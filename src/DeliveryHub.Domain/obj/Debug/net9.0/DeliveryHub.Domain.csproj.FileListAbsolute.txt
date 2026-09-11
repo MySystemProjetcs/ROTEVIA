@@ -1,0 +1,12 @@
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/bin/Debug/net9.0/DeliveryHub.Domain.deps.json
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/bin/Debug/net9.0/DeliveryHub.Domain.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/bin/Debug/net9.0/DeliveryHub.Domain.pdb
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.AssemblyInfoInputs.cache
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.AssemblyInfo.cs
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.csproj.CoreCompileInputs.cache
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.sourcelink.json
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/refint/DeliveryHub.Domain.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/DeliveryHub.Domain.pdb
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/Debug/net9.0/ref/DeliveryHub.Domain.dll

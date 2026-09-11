@@ -1,0 +1,16 @@
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/bin/Debug/net9.0/DeliveryHub.Application.deps.json
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/bin/Debug/net9.0/DeliveryHub.Application.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/bin/Debug/net9.0/DeliveryHub.Application.pdb
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/bin/Debug/net9.0/DeliveryHub.Domain.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/bin/Debug/net9.0/DeliveryHub.Domain.pdb
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.csproj.AssemblyReference.cache
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.AssemblyInfoInputs.cache
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.AssemblyInfo.cs
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.csproj.CoreCompileInputs.cache
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.sourcelink.json
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/Delivery.0D2FE3EE.Up2Date
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/refint/DeliveryHub.Application.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/DeliveryHub.Application.pdb
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/Debug/net9.0/ref/DeliveryHub.Application.dll

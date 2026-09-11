@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "ntYRcW4mj2dGbqLqOXMcrZUSKEU8UlS9jkanEZImN8Y=",
+  "Source": "DeliveryHub.Api",
+  "BasePath": "_content/DeliveryHub.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

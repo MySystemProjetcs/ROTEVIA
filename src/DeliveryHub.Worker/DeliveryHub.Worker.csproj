@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>4e11dcc4-b91a-4386-9720-c050cb4e939a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeliveryHub.Infrastructure\DeliveryHub.Infrastructure.csproj" />
+    <ProjectReference Include="..\DeliveryHub.Application\DeliveryHub.Application.csproj" />
+  </ItemGroup>
+</Project>

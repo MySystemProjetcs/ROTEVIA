@@ -1,0 +1,361 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/DeliveryHub.Integration.Tests.csproj": {}
+  },
+  "projects": {
+    "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+        "projectName": "DeliveryHub.Api",
+        "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+        "packagesPath": "/Users/jonathan/.nuget/packages/",
+        "outputPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jonathan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj"
+              },
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/sdk/9.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj",
+        "projectName": "DeliveryHub.Application",
+        "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj",
+        "packagesPath": "/Users/jonathan/.nuget/packages/",
+        "outputPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jonathan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/DeliveryHub.Domain.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/DeliveryHub.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/sdk/9.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/DeliveryHub.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/DeliveryHub.Domain.csproj",
+        "projectName": "DeliveryHub.Domain",
+        "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/DeliveryHub.Domain.csproj",
+        "packagesPath": "/Users/jonathan/.nuget/packages/",
+        "outputPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Domain/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jonathan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/sdk/9.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj",
+        "projectName": "DeliveryHub.Infrastructure",
+        "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj",
+        "packagesPath": "/Users/jonathan/.nuget/packages/",
+        "outputPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jonathan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[9.0.9, )"
+            },
+            "Microsoft.Extensions.Options.ConfigurationExtensions": {
+              "target": "Package",
+              "version": "[9.0.9, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/sdk/9.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/DeliveryHub.Integration.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/DeliveryHub.Integration.Tests.csproj",
+        "projectName": "DeliveryHub.Integration.Tests",
+        "projectPath": "/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/DeliveryHub.Integration.Tests.csproj",
+        "packagesPath": "/Users/jonathan/.nuget/packages/",
+        "outputPath": "/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jonathan/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj"
+              },
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.12.0, )"
+            },
+            "coverlet.collector": {
+              "target": "Package",
+              "version": "[6.0.2, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.9.2, )"
+            },
+            "xunit.runner.visualstudio": {
+              "target": "Package",
+              "version": "[2.8.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@9/9.0.121/libexec/sdk/9.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
