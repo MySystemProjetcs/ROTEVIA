@@ -148,3 +148,10 @@
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/obj/Debug/net9.0/DeliveryHub.Architecture.Tests.pdb
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/obj/Debug/net9.0/DeliveryHub.Architecture.Tests.genruntimeconfig.cache
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/obj/Debug/net9.0/ref/DeliveryHub.Architecture.Tests.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Relational.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Microsoft.Extensions.Caching.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Microsoft.Extensions.Caching.Memory.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Npgsql.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Architecture.Tests/bin/Debug/net9.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll

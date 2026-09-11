@@ -131,3 +131,10 @@
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/events/polling-events.json
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/events/polling-placed.json
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/orders/order-details-delivery.json
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Relational.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.Extensions.Caching.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.Extensions.Caching.Memory.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Npgsql.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll

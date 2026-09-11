@@ -54,3 +54,10 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/DeliveryHub.Worker.pdb
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/DeliveryHub.Worker.genruntimeconfig.cache
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/ref/DeliveryHub.Worker.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.Relational.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.Extensions.Caching.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.Extensions.Caching.Memory.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Npgsql.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll
