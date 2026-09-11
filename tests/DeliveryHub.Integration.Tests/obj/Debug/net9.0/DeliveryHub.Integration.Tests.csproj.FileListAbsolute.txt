@@ -127,3 +127,7 @@
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/obj/Debug/net9.0/ref/DeliveryHub.Integration.Tests.dll
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/auth/error-forbidden.json
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/auth/token-success.json
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/events/polling-403-unauthorized.json
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/events/polling-events.json
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/events/polling-placed.json
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/ifood/orders/order-details-delivery.json

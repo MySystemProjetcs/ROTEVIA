@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryHub.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+258bfffe0df6143378a9398e9ccf499eed83af4d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+82e811627b1ce691ef284d757a64b54c907a81b0")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryHub.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryHub.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

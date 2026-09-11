@@ -1,0 +1,251 @@
+{
+  "id": "b57177eb-158b-4308-92ca-56aaaecad387",
+  "displayId": "1578",
+  "createdAt": "2026-09-11T23:07:51.939Z",
+  "category": "FOOD",
+  "orderTiming": "IMMEDIATE",
+  "orderType": "DELIVERY",
+  "delivery": {
+    "mode": "DEFAULT",
+    "description": "Padrão",
+    "deliveredBy": "MERCHANT",
+    "deliveryDateTime": "2026-09-11T23:52:51.939Z",
+    "observations": "",
+    "deliveryAddress": {
+      "streetName": "Rua de Teste",
+      "streetNumber": "100",
+      "formattedAddress": "Rua de Teste, 100",
+      "neighborhood": "Centro",
+      "complement": "Apto 1",
+      "postalCode": "00000000",
+      "city": "TESTE",
+      "state": "XX",
+      "country": "XX",
+      "reference": "Referencia",
+      "coordinates": {
+        "latitude": -23.5505,
+        "longitude": -46.6333
+      }
+    },
+    "pickupCode": "0000"
+  },
+  "preparationStartDateTime": "2026-09-11T23:07:51.939Z",
+  "isTest": true,
+  "salesChannel": "IFOOD",
+  "merchant": {
+    "id": "323f53b3-356c-4af8-85b7-b71eff95dd72",
+    "name": "Loja de Teste",
+    "business": {
+      "name": "Restaurante"
+    }
+  },
+  "customer": {
+    "id": "dace8b15-e2be-408e-9b98-91b4e72e029f",
+    "name": "Cliente de Teste",
+    "documentNumber": "00000000000",
+    "documentType": "idEstrangeiro",
+    "phone": {
+      "number": "0800 000 0000",
+      "localizer": "000000",
+      "localizerExpiration": "2026-09-12T03:07:51.939Z"
+    },
+    "ordersCountOnMerchant": 0,
+    "segmentation": "Cliente"
+  },
+  "items": [
+    {
+      "index": 1,
+      "id": "a86847d5-43ce-4c1e-9412-8a2354df7cfe",
+      "uniqueId": "661cf42a-ef6b-4459-ae68-141dc3610b84",
+      "name": "PRODUTO 1 - NÃO ENTREGAR - Primeiro Nível",
+      "externalCode": "5728",
+      "ean": "",
+      "quantity": 1,
+      "unit": "UN",
+      "unitPrice": 5.0,
+      "optionsPrice": 0,
+      "customizationPrice": 0,
+      "totalPrice": 5.0,
+      "price": 5.0,
+      "observations": "",
+      "options": [],
+      "imageUrl": "https://static-images.ifood.com.br/image/upload/t_high/pratos/e078d2e1-0af0-49c3-ba0d-ea4effffbd54/202305121137_XIHJ_i.jpg"
+    },
+    {
+      "index": 2,
+      "id": "9816e945-12be-4212-a360-79af1a75c121",
+      "uniqueId": "af2e85b1-0c19-47cc-8c45-a3aba2c7117b",
+      "name": "PRODUTO 2 (COMBO) - NÃO ENTREGAR - Primeiro Nível",
+      "type": "COMBO_V2",
+      "externalCode": "1278",
+      "ean": "",
+      "quantity": 1,
+      "unit": "UN",
+      "unitPrice": 5.0,
+      "optionsPrice": 8.0,
+      "customizationPrice": 3.0,
+      "totalPrice": 16.0,
+      "price": 5.0,
+      "observations": "",
+      "options": [
+        {
+          "index": 3,
+          "id": "efe3e591-d14c-43ef-90d7-f962f66994b8",
+          "name": "Complemento 1 - Segundo Nível",
+          "type": "SPECIFICATION",
+          "groupName": "Adicione mais ingredientes",
+          "externalCode": "4071",
+          "ean": "",
+          "quantity": 1,
+          "unit": "UN",
+          "unitPrice": 2.0,
+          "addition": 0.0,
+          "price": 2.0
+        },
+        {
+          "index": 4,
+          "id": "3eda8be6-18f0-46e7-adbb-94f4c9d0e025",
+          "name": "Complemento 2 - Segundo Nível",
+          "type": "OFFER_UNIT",
+          "groupName": "Deseja adicionar molhos?",
+          "externalCode": "2200",
+          "ean": "",
+          "quantity": 1,
+          "unit": "UN",
+          "unitPrice": 2.0,
+          "addition": 0.0,
+          "price": 2.0
+        },
+        {
+          "index": 5,
+          "id": "10d70a9e-c29b-445b-a718-4d3110d6f297",
+          "name": "Complemento 3 - Segundo Nível",
+          "type": "OFFER_UNIT",
+          "groupName": "Escolha seu acompanhamento",
+          "externalCode": "5338",
+          "ean": "",
+          "quantity": 1,
+          "unit": "UN",
+          "unitPrice": 2.0,
+          "addition": 0.0,
+          "price": 2.0
+        },
+        {
+          "index": 6,
+          "id": "dc0f8e40-8773-49d9-9740-1cc47f23cf1a",
+          "name": "Complemento 4 - Segundo Nível",
+          "type": "MAIN",
+          "groupName": "Meu sanduíche favorito",
+          "customizations": [
+            {
+              "id": "a4734b86-5ef5-45f3-931c-7e7310973d8a",
+              "externalCode": "6010",
+              "name": "Customização 1 do Complemento 4 - Terceiro Nível",
+              "groupName": "Grupo de Complemento Obrigatório",
+              "type": "SPECIFICATION",
+              "quantity": 1,
+              "unitPrice": 1.0,
+              "addition": 0.0,
+              "price": 1.0
+            },
+            {
+              "id": "7c9f9982-42d9-4e8e-92d9-136ed91a8665",
+              "externalCode": "1858",
+              "name": "Customização 2 do Complemento 4 - Terceiro Nível",
+              "groupName": "Grupo de Complemento Opcional",
+              "type": "SPECIFICATION",
+              "quantity": 1,
+              "unitPrice": 1.0,
+              "addition": 0.0,
+              "price": 1.0
+            },
+            {
+              "id": "8932ccb5-cff4-4e7b-a79f-99733a77c95b",
+              "externalCode": "3256",
+              "name": "Customização 3 do Complemento 4 - Terceiro Nível",
+              "groupName": "Escolha seu acompanhamento",
+              "type": "SPECIFICATION",
+              "quantity": 1,
+              "unitPrice": 1.0,
+              "addition": 0.0,
+              "price": 1.0
+            }
+          ],
+          "externalCode": "6531",
+          "ean": "",
+          "quantity": 1,
+          "unit": "UN",
+          "unitPrice": 2.0,
+          "addition": 0.0,
+          "price": 2.0
+        }
+      ],
+      "imageUrl": "https://static-images.ifood.com.br/image/upload/t_high/pratos/e078d2e1-0af0-49c3-ba0d-ea4effffbd54/202305121137_XIHJ_i.jpg"
+    }
+  ],
+  "total": {
+    "additionalFees": 1.0,
+    "subTotal": 21.0,
+    "deliveryFee": 5.0,
+    "benefits": 0,
+    "orderAmount": 27.0
+  },
+  "payments": {
+    "prepaid": 27.0,
+    "pending": 0,
+    "methods": [
+      {
+        "value": 17.0,
+        "currency": "BRL",
+        "method": "CREDIT",
+        "prepaid": true,
+        "type": "ONLINE",
+        "transaction": {
+          "authorizationCode": "000000",
+          "acquirerDocument": "00000000000000"
+        },
+        "card": {
+          "brand": "Visa"
+        }
+      },
+      {
+        "value": 10.0,
+        "currency": "BRL",
+        "method": "CREDIT",
+        "prepaid": true,
+        "type": "ONLINE",
+        "transaction": {
+          "authorizationCode": "000000",
+          "acquirerDocument": "00000000000000"
+        },
+        "card": {
+          "brand": "Master"
+        }
+      }
+    ]
+  },
+  "additionalFees": [
+    {
+      "type": "SMALL_ORDER_FEE_35_PROMOTIONS",
+      "description": "Taxa de Serviço",
+      "fullDescription": "Cobramos uma taxa que nos ajuda a cobrir custos operacionais, inclusive de segurança, e a manter os investimentos contínuos na plataforma.",
+      "value": 1.0,
+      "liabilities": [
+        {
+          "name": "IFOOD",
+          "percentage": 100.0
+        }
+      ]
+    }
+  ],
+  "picking": {
+    "picker": ""
+  },
+  "additionalInfo": {
+    "metadata": {
+      "developerId": "00000000-0000-0000-0000-000000000000",
+      "customerEmail": "cliente@exemplo.com",
+      "developerEmail": "dev@exemplo.com"
+    }
+  }
+}

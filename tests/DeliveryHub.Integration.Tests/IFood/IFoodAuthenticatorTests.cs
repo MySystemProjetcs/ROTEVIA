@@ -13,10 +13,7 @@ public sealed class IFoodAuthenticatorTests
         StubHttpMessageHandler handler)
     {
         var clock = new TestTimeProvider();
-        var httpClient = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://merchant-api.ifood.com.br/authentication/v1.0/")
-        };
+        var factory = new StubHttpClientFactory(handler, "https://merchant-api.ifood.com.br/authentication/v1.0/");
 
         var options = Options.Create(new IFoodOptions
         {
@@ -24,7 +21,7 @@ public sealed class IFoodAuthenticatorTests
             ClientSecret = "client-secret-de-teste"
         });
 
-        return (new IFoodAuthenticator(httpClient, options, clock), handler, clock);
+        return (new IFoodAuthenticator(factory, options, clock), handler, clock);
     }
 
     [Fact]

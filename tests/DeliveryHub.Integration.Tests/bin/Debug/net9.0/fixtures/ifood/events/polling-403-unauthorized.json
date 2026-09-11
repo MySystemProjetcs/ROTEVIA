@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "Forbidden",
+    "message": "Unauthorized merchants",
+    "unauthorizedMerchants": [
+      "6b487a27-c4fc-4f26-b05e-3967c2331882",
+      "2f1c9d84-7a35-4b1e-9f60-1d8c3ab54e09"
+    ]
+  }
+}

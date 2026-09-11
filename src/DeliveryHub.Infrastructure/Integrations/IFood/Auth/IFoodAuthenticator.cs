@@ -16,7 +16,7 @@ internal sealed class IFoodAuthenticator : IIFoodAuthenticator
     // fazendo toda chamada reautenticar — excesso de requisição bloqueia o app.
     private const double RenewAtLifetimeFraction = 0.9;
 
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IFoodOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
@@ -24,9 +24,12 @@ internal sealed class IFoodAuthenticator : IIFoodAuthenticator
     private AuthenticationHeaderValue? _cachedHeader;
     private DateTimeOffset _renewAt = DateTimeOffset.MinValue;
 
-    public IFoodAuthenticator(HttpClient httpClient, IOptions<IFoodOptions> options, TimeProvider timeProvider)
+    // Precisa ser singleton para o cache do token sobreviver entre chamadas; por
+    // isso recebe a factory e cria o HttpClient por requisição, em vez de segurar
+    // um HttpClient para sempre.
+    public IFoodAuthenticator(IHttpClientFactory httpClientFactory, IOptions<IFoodOptions> options, TimeProvider timeProvider)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _options = options.Value;
         _timeProvider = timeProvider;
     }
@@ -68,7 +71,8 @@ internal sealed class IFoodAuthenticator : IIFoodAuthenticator
             })
         };
 
-        using var response = await _httpClient.SendAsync(request, ct);
+        var httpClient = _httpClientFactory.CreateClient(IFoodHttpClients.Authentication);
+        using var response = await httpClient.SendAsync(request, ct);
 
         if (!response.IsSuccessStatusCode)
         {

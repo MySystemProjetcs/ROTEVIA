@@ -1,0 +1,38 @@
+[
+  {
+    "id": "b03392c5-61dd-47c4-a503-bce3109c96c8",
+    "code": "CFM",
+    "fullCode": "CONFIRMED",
+    "orderId": "93ba4bf4-f4ae-4de8-8017-35d7c7de9bf1",
+    "merchantId": "820af392-002c-47b1-bfae-d7ef31743c99",
+    "createdAt": "2021-02-17T19:36:55.295Z",
+    "salesChannel": "IFOOD",
+    "metadata": {
+      "CLIENT_ID": "3c587f8f-fb22-46a7-88f8-781246a3ea3f"
+    }
+  },
+  {
+    "id": "4d063d88-32f6-4b89-b68b-48890b098c71",
+    "orderId": "dd2796df-1c09-446b-a3b4-81f28849c459",
+    "merchantId": "820af392-002c-47b1-bfae-d7ef31743c99",
+    "code": "CAR",
+    "fullCode": "CANCELLATION_REQUESTED",
+    "createdAt": "2021-02-17T19:51:45.704Z",
+    "salesChannel": "IFOOD",
+    "metadata": {
+      "reason_code": "504",
+      "details": "MANUAL(RESTAURANT_WITHOUT_DELIVERY_MAN) - Restaurante sem entregador",
+      "ORIGIN": "ORDER_MANAGER",
+      "CLIENT_ID": "iconnect_v3_homologation"
+    }
+  },
+  {
+    "id": "05dec672-5fd7-46ce-bdd2-fda515d33eb8",
+    "code": "RTS",
+    "fullCode": "RETURN_TO_STORE",
+    "orderId": "96eebd06-50a5-4e87-908d-d93bbb1ef17b",
+    "merchantId": "820af392-002c-47b1-bfae-d7ef31743c99",
+    "createdAt": "2021-02-23T15:28:13.084Z",
+    "salesChannel": "IFOOD"
+  }
+]
