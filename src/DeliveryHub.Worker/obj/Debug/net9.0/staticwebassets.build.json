@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "Tau3IJDbr/iCCAolv0Jr1PkGFBQyfm+Zc1zFuJad15o=",
+  "Source": "DeliveryHub.Worker",
+  "BasePath": "_content/DeliveryHub.Worker",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

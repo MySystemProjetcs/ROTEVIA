@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* Fonte única de verdade do visual. Nenhum componente declara cor, tamanho,
+   espaçamento ou raio: tudo sai daqui como token do Tailwind. Trocar a
+   identidade visual do produto é trocar este arquivo. */
+@theme {
+  /* Marca — índigo e lima, conforme CLAUDE.md §11.
+     Vermelho não existe na paleta de propósito: conflita com o iFood. */
+  --color-marca-50: #eef2ff;
+  --color-marca-100: #e0e7ff;
+  --color-marca-200: #c7d2fe;
+  --color-marca-300: #a5b4fc;
+  --color-marca-400: #818cf8;
+  --color-marca-500: #6366f1;
+  --color-marca-600: #4f46e5;
+  --color-marca-700: #4338ca;
+  --color-marca-800: #3730a3;
+  --color-marca-900: #312e81;
+
+  --color-acento-300: #bef264;
+  --color-acento-400: #a3e635;
+  --color-acento-500: #84cc16;
+  --color-acento-600: #65a30d;
+
+  /* Superfícies e texto */
+  --color-superficie: #ffffff;
+  --color-superficie-alt: #f8fafc;
+  --color-superficie-afundada: #f1f5f9;
+  --color-borda: #e2e8f0;
+  --color-borda-forte: #cbd5e1;
+
+  --color-texto: #0f172a;
+  --color-texto-suave: #475569;
+  --color-texto-fraco: #94a3b8;
+  --color-texto-invertido: #ffffff;
+
+  /* Estados do pedido. São tokens semânticos, não cores cruas: a tela fala
+     "pedido confirmado", não "verde". Mudar a cor de um estado é mudar aqui. */
+  --color-estado-recebido: #f59e0b;
+  --color-estado-recebido-fundo: #fffbeb;
+  --color-estado-confirmado: #4f46e5;
+  --color-estado-confirmado-fundo: #eef2ff;
+  --color-estado-preparo: #8b5cf6;
+  --color-estado-preparo-fundo: #f5f3ff;
+  --color-estado-pronto: #0ea5e9;
+  --color-estado-pronto-fundo: #f0f9ff;
+  --color-estado-despachado: #14b8a6;
+  --color-estado-despachado-fundo: #f0fdfa;
+  --color-estado-concluido: #16a34a;
+  --color-estado-concluido-fundo: #f0fdf4;
+  --color-estado-cancelado: #64748b;
+  --color-estado-cancelado-fundo: #f8fafc;
+
+  /* Feedback. Erro usa laranja queimado em vez de vermelho puro, pela mesma
+     razão da marca. */
+  --color-perigo: #c2410c;
+  --color-perigo-fundo: #fff7ed;
+  --color-sucesso: #16a34a;
+  --color-sucesso-fundo: #f0fdf4;
+  --color-alerta: #b45309;
+  --color-alerta-fundo: #fffbeb;
+
+  /* Tipografia */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-rotulo: 0.6875rem;
+  --text-rotulo--line-height: 1rem;
+  --text-rotulo--letter-spacing: 0.06em;
+  --text-rotulo--font-weight: 600;
+
+  --text-apoio: 0.8125rem;
+  --text-apoio--line-height: 1.125rem;
+
+  --text-corpo: 0.9375rem;
+  --text-corpo--line-height: 1.375rem;
+
+  --text-titulo: 1.125rem;
+  --text-titulo--line-height: 1.5rem;
+  --text-titulo--font-weight: 600;
+
+  --text-destaque: 1.5rem;
+  --text-destaque--line-height: 1.875rem;
+  --text-destaque--font-weight: 700;
+
+  /* Raios e sombras */
+  --radius-controle: 0.5rem;
+  --radius-cartao: 0.75rem;
+
+  --shadow-cartao: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-elevado: 0 4px 12px -2px rgb(15 23 42 / 0.1);
+
+  /* Alvo mínimo de toque. A base é web mas roda como app via Capacitor, e
+     44px é o mínimo confortável para o dedo. */
+  --spacing-toque: 2.75rem;
+}

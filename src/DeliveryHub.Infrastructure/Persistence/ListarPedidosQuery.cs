@@ -1,0 +1,61 @@
+using DeliveryHub.Application.Orders;
+using DeliveryHub.Domain.Orders;
+using Microsoft.EntityFrameworkCore;
+
+namespace DeliveryHub.Infrastructure.Persistence;
+
+internal sealed class ListarPedidosQuery : IListarPedidos
+{
+    // O prazo que o iFood dá para confirmar o recebimento. Passado dele, o
+    // pedido é cancelado automaticamente do lado deles.
+    private static readonly TimeSpan PrazoDeConfirmacao = TimeSpan.FromMinutes(8);
+
+    private static readonly StatusPedido[] Ativos =
+    [
+        StatusPedido.Recebido,
+        StatusPedido.Confirmado,
+        StatusPedido.EmPreparo,
+        StatusPedido.Pronto,
+        StatusPedido.Despachado
+    ];
+
+    private readonly AppDbContext _db;
+
+    public ListarPedidosQuery(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<IReadOnlyList<PedidoDto>> ExecutarAsync(bool apenasAtivos, CancellationToken ct)
+    {
+        // Leitura projetada direto para DTO, sem tracking: carregar a entidade
+        // inteira para depois mapear é desperdício (ENGINEERING-GUIDE §6).
+        var consulta = _db.Pedidos.AsNoTracking();
+
+        if (apenasAtivos)
+            consulta = consulta.Where(x => Ativos.Contains(x.Status));
+
+        return await consulta
+            .OrderByDescending(x => x.RecebidoEm)
+            .Select(x => new PedidoDto(
+                x.Id,
+                x.NumeroExibicao,
+                x.Status,
+                x.EhTeste,
+                x.ValorTotal,
+                x.TaxaEntrega,
+                x.Cliente.Nome,
+                x.EnderecoEntrega == null
+                    ? null
+                    : x.EnderecoEntrega.Logradouro + ", " + x.EnderecoEntrega.Numero + " - " + x.EnderecoEntrega.Bairro,
+                x.CriadoNaOrigemEm,
+                x.RecebidoEm,
+                x.CriadoNaOrigemEm + PrazoDeConfirmacao,
+                x.Itens
+                    .OrderBy(i => i.Indice)
+                    .Select(i => new ItemDoPedidoDto(
+                        i.Indice, i.Nome, i.Quantidade, i.Unidade, i.PrecoUnitario, i.PrecoTotal, i.Observacoes))
+                    .ToList()))
+            .ToListAsync(ct);
+    }
+}

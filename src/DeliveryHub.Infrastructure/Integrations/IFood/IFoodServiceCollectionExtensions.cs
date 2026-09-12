@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Infrastructure.Integrations.IFood.Auth;
 using DeliveryHub.Infrastructure.Integrations.IFood.Orders;
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
@@ -28,6 +29,12 @@ public static class IFoodServiceCollectionExtensions
         // injeção começaria sem token e reautenticaria — caminho para bloqueio.
         services.AddSingleton<IIFoodAuthenticator, IFoodAuthenticator>();
         services.AddTransient<IFoodAuthorizationHandler>();
+
+        // Singleton: a métrica precisa sobreviver entre ciclos do worker.
+        services.AddSingleton<IPollingHealth, PollingHealth>();
+        services.AddScoped<IIFoodEventIngestor, IFoodEventIngestor>();
+        services.AddScoped<IIFoodInboxProcessor, IFoodInboxProcessor>();
+        services.AddScoped<IOrderSource, IFoodOrderSource>();
 
         services
             .AddHttpClient(IFoodHttpClients.Authentication, client => Configure(client, AuthenticationBaseAddress))

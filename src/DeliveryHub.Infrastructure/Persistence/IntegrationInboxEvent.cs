@@ -24,6 +24,8 @@ public sealed class IntegrationInboxEvent
 
     public bool EmQuarentena => MerchantId is null;
 
+    public void MarcarProcessado(DateTimeOffset em) => ProcessedAt = em;
+
     public static IntegrationInboxEvent Receber(
         string source,
         string externalEventId,

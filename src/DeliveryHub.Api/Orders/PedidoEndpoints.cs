@@ -1,0 +1,65 @@
+using DeliveryHub.Application.Orders;
+using DeliveryHub.Domain.SharedKernel;
+using Microsoft.AspNetCore.Http.HttpResults;
+
+namespace DeliveryHub.Api.Orders;
+
+public static class PedidoEndpoints
+{
+    public static void MapPedidoEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/pedidos")
+            .WithTags("Pedidos")
+            .RequireAuthorization(Identity.Policies.OperadorDaLoja);
+
+        group.MapGet("/", Listar);
+
+        // Um caminho por ação em vez de um PATCH com o status no corpo: assim a
+        // transição válida é decidida pelo domínio, não por um campo que o
+        // cliente preenche.
+        group.MapPost("/{id:guid}/confirmar", (Guid id, IAvancarPedido a, CancellationToken ct) =>
+            Avancar(id, AcaoDePedido.Confirmar, a, ct));
+
+        group.MapPost("/{id:guid}/iniciar-preparo", (Guid id, IAvancarPedido a, CancellationToken ct) =>
+            Avancar(id, AcaoDePedido.IniciarPreparo, a, ct));
+
+        group.MapPost("/{id:guid}/pronto", (Guid id, IAvancarPedido a, CancellationToken ct) =>
+            Avancar(id, AcaoDePedido.MarcarPronto, a, ct));
+
+        group.MapPost("/{id:guid}/despachar", (Guid id, IAvancarPedido a, CancellationToken ct) =>
+            Avancar(id, AcaoDePedido.Despachar, a, ct));
+    }
+
+    private static async Task<Ok<IReadOnlyList<PedidoDto>>> Listar(
+        IListarPedidos listar,
+        CancellationToken ct,
+        bool apenasAtivos = true)
+    {
+        return TypedResults.Ok(await listar.ExecutarAsync(apenasAtivos, ct));
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> Avancar(
+        Guid id,
+        AcaoDePedido acao,
+        IAvancarPedido avancar,
+        CancellationToken ct)
+    {
+        var resultado = await avancar.ExecutarAsync(id, acao, ct);
+
+        return resultado.IsSuccess
+            ? TypedResults.NoContent()
+            : TypedResults.Problem(
+                title: resultado.Error.Message,
+                detail: resultado.Error.Code,
+                statusCode: ParaStatusHttp(resultado.Error.Type));
+    }
+
+    private static int ParaStatusHttp(ErrorType tipo) => tipo switch
+    {
+        ErrorType.NotFound => StatusCodes.Status404NotFound,
+        ErrorType.Conflict => StatusCodes.Status409Conflict,
+        ErrorType.Validation => StatusCodes.Status400BadRequest,
+        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+        _ => StatusCodes.Status500InternalServerError
+    };
+}

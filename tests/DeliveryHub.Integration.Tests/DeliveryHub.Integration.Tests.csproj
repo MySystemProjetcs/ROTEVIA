@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DeliveryHub.Infrastructure\DeliveryHub.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\DeliveryHub.Api\DeliveryHub.Api.csproj" />
+    <ProjectReference Include="..\..\src\DeliveryHub.Worker\DeliveryHub.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

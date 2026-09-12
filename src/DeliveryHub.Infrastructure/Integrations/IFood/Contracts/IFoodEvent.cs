@@ -17,7 +17,13 @@ internal sealed record IFoodEvent(
     [property: JsonPropertyName("salesChannel")] string? SalesChannel,
     [property: JsonPropertyName("createdAt")] DateTimeOffset CreatedAt,
     // Muda de forma a cada tipo de evento — guardado cru para ir como jsonb no inbox.
-    [property: JsonPropertyName("metadata")] JsonElement? Metadata);
+    [property: JsonPropertyName("metadata")] JsonElement? Metadata)
+{
+    // Campo novo que o iFood adicione sem avisar sobrevive à ida e volta para
+    // JSON, para o inbox guardar o payload fiel e não a nossa interpretação dele.
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? CamposNaoMapeados { get; init; }
+}
 
 // POST /events/v1.0/events/acknowledgment — item do array enviado.
 internal sealed record IFoodAckEvent(

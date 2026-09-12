@@ -4,8 +4,17 @@ namespace DeliveryHub.Domain.Tests.Orders;
 
 public sealed class PedidoTests
 {
-    private static Pedido Novo() =>
-        Pedido.Receber(Guid.CreateVersion7(), "b57177eb-158b-4308-92ca-56aaaecad387", ehTeste: false, DateTimeOffset.UtcNow);
+    private static Pedido Novo(bool ehTeste = false) => Pedido.Receber(
+        merchantId: Guid.CreateVersion7(),
+        idExterno: "b57177eb-158b-4308-92ca-56aaaecad387",
+        numeroExibicao: "1578",
+        ehTeste: ehTeste,
+        cliente: new Cliente("Cliente de Teste", "0800 000 0000", "000000"),
+        enderecoEntrega: null,
+        valorTotal: 50m,
+        taxaEntrega: 5m,
+        criadoNaOrigemEm: DateTimeOffset.UtcNow,
+        recebidoEm: DateTimeOffset.UtcNow);
 
     [Fact]
     public void Pedido_nasce_em_recebido()
@@ -140,8 +149,6 @@ public sealed class PedidoTests
     {
         // isTest vem do payload real do iFood; sem isso, pedido de sandbox
         // vira lançamento financeiro de verdade quando o Ledger existir.
-        var pedido = Pedido.Receber(Guid.CreateVersion7(), "abc", ehTeste: true, DateTimeOffset.UtcNow);
-
-        Assert.True(pedido.EhTeste);
+        Assert.True(Novo(ehTeste: true).EhTeste);
     }
 }

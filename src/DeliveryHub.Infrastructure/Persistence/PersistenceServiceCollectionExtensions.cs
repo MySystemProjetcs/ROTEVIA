@@ -1,3 +1,5 @@
+using DeliveryHub.Application.Abstractions;
+using DeliveryHub.Application.Orders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,11 @@ public static class PersistenceServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IIntegrationInboxWriter, IntegrationInboxWriter>();
+        services.AddScoped<IMerchantResolver, MerchantResolver>();
+        services.AddScoped<IPedidoRepository, PedidoRepository>();
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IMerchantRepository, MerchantRepository>();
+        services.AddScoped<IListarPedidos, ListarPedidosQuery>();
 
         return services;
     }
