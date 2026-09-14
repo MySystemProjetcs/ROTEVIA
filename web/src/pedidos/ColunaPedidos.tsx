@@ -51,6 +51,11 @@ const CROMO_DA_COLUNA: Record<StatusPedido, { ponto: string; pill: string; fundo
     pill: 'border-estado-chegou/40 bg-estado-chegou-fundo text-estado-chegou',
     fundo: 'bg-estado-chegou-fundo',
   },
+  Cobrar: {
+    ponto: 'bg-estado-cobrar',
+    pill: 'border-estado-cobrar/40 bg-estado-cobrar-fundo text-estado-cobrar',
+    fundo: 'bg-estado-cobrar-fundo',
+  },
   Concluido: {
     ponto: 'bg-estado-concluido',
     pill: 'border-estado-concluido/40 bg-estado-concluido-fundo text-estado-concluido',

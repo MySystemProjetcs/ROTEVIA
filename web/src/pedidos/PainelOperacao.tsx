@@ -11,7 +11,6 @@ import {
   COLUNAS,
   COLUNAS_ENTREGADOR,
   podeMoverPara,
-  podeMoverParaEntregador,
   proximoPasso,
   proximoPassoEntregador,
 } from '@/dominio/pedido'
@@ -133,9 +132,10 @@ function PainelEntregador() {
   const emEntrega = pedidos.some((p) => p.entregadorId && STATUS_EM_ENTREGA.includes(p.status))
 
   // Enquanto o motoboy está online — com entrega ou esperando —, o navegador
-  // dele emite GPS. É o que alimenta o mapa do restaurante.
+  // dele emite GPS. Ele não vê mapa aqui, mas continua emitindo: é isso que
+  // alimenta o mapa do restaurante.
   const { disponivel, erro: erroDisponibilidade, definir } = useDisponibilidade()
-  const { estado: estadoGps, pedidoEmRota, posicaoAtual, trilha } = useEnviarPosicao(pedidos, disponivel)
+  const { estado: estadoGps } = useEnviarPosicao(pedidos, disponivel)
 
   return (
     <div className="flex flex-col gap-4">
@@ -149,35 +149,77 @@ function PainelEntregador() {
         <EtiquetaGps estado={estadoGps} />
       </div>
 
-      {pedidoEmRota && (
-        <Cartao>
-          <CartaoCorpo className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-titulo text-texto">Sua rota</h2>
-              <span className="text-apoio text-texto-suave">
-                #{pedidoEmRota.numeroExibicao}
-                {pedidoEmRota.enderecoResumido ? ` · ${pedidoEmRota.enderecoResumido}` : ''}
-              </span>
-            </div>
+      <ListaDeEntregas pedidos={pedidos} carregando={carregando} erro={erro} onMover={mover} />
+    </div>
+  )
+}
 
-            <MapaEntrega
-              posicoes={posicaoAtual ? [posicaoAtual] : []}
-              trilha={trilha}
-              className="h-80 w-full overflow-hidden rounded-cartao"
-            />
+// O motoboy usa o celular na rua, de capacete e com pressa: quadro de quatro
+// colunas com arraste lateral não serve. Uma coluna só, e o cartão muda de
+// etapa no lugar — o botão vira o próximo passo a cada clique.
+//
+// Sem mapa aqui de propósito: a navegação acontece no Waze ou no Google Maps,
+// pelos botões do próprio cartão. O GPS continua sendo emitido (useEnviarPosicao
+// segue ativo acima), porque é ele que alimenta o mapa do restaurante.
+function ListaDeEntregas({
+  pedidos,
+  carregando,
+  erro,
+  onMover,
+}: {
+  pedidos: Pedido[]
+  carregando: boolean
+  erro: string | null
+  onMover: (pedido: Pedido, destino: StatusPedido) => void
+}) {
+  const agora = useAgora()
+
+  useAlertaSonoro(pedidos, agora)
+
+  if (carregando) {
+    return <p className="p-4 text-corpo text-texto-suave">Carregando entregas…</p>
+  }
+
+  // Na ordem em que a entrega anda, não por chegada: o que está mais perto de
+  // terminar aparece primeiro.
+  const emOrdem = [...pedidos].sort(
+    (a, b) => COLUNAS_ENTREGADOR.indexOf(b.status) - COLUNAS_ENTREGADOR.indexOf(a.status),
+  )
+
+  return (
+    // w-72 é a mesma largura da coluna do Kanban: o cartão mantém a proporção
+    // que já tinha, em vez de esticar até a borda da tela.
+    <div className="flex flex-col items-center gap-3">
+      {erro && (
+        <Cartao className="w-72 border-perigo">
+          <CartaoCorpo className="flex items-center gap-3">
+            <Etiqueta tom="alerta">Erro</Etiqueta>
+            <span className="text-corpo text-texto">{erro}</span>
           </CartaoCorpo>
         </Cartao>
       )}
 
-      <Kanban
-        pedidos={pedidos}
-        carregando={carregando}
-        erro={erro}
-        colunas={COLUNAS_ENTREGADOR}
-        podeMoverParaFn={podeMoverParaEntregador}
-        obterProximoPasso={proximoPassoEntregador}
-        onMover={mover}
-      />
+      {emOrdem.length === 0 ? (
+        <p className="px-2 py-8 text-center text-apoio text-texto-fraco">
+          Nenhuma entrega no momento.
+        </p>
+      ) : (
+        emOrdem.map((pedido) => (
+          <CartaoPedido
+            key={pedido.id}
+            pedido={pedido}
+            agora={agora}
+            arrastavel={false}
+            mostrarEstado
+            className="w-72"
+            obterProximoPasso={proximoPassoEntregador}
+            onAvancar={(p) => {
+              const passo = proximoPassoEntregador(p)
+              if (passo) onMover(p, passo.destino)
+            }}
+          />
+        ))
+      )}
     </div>
   )
 }
@@ -187,7 +229,7 @@ interface KanbanProps {
   carregando: boolean
   erro: string | null
   colunas: StatusPedido[]
-  podeMoverParaFn: (origem: StatusPedido, destino: StatusPedido) => boolean
+  podeMoverParaFn: (pedido: Pedido, destino: StatusPedido) => boolean
   obterProximoPasso: ObterProximoPasso
   onMover: (pedido: Pedido, destino: StatusPedido) => void
   entregadoresAtivos?: Entregador[]
@@ -230,13 +272,13 @@ function Kanban({
 
     // A interface só permite o movimento que a máquina de estados aceita: o
     // pedido anda para frente, um passo por vez.
-    if (pedido && destino && podeMoverParaFn(pedido.status, destino)) {
+    if (pedido && destino && podeMoverParaFn(pedido, destino)) {
       onMover(pedido, destino)
     }
   }
 
   function avancar(pedido: Pedido) {
-    const passo = obterProximoPasso(pedido.status)
+    const passo = obterProximoPasso(pedido)
     if (passo) onMover(pedido, passo.destino)
   }
 
@@ -263,7 +305,7 @@ function Kanban({
               estado={estado}
               pedidos={pedidos.filter((p) => p.status === estado)}
               agora={agora}
-              aceitaSolto={arrastando ? podeMoverParaFn(arrastando.status, estado) : false}
+              aceitaSolto={arrastando ? podeMoverParaFn(arrastando, estado) : false}
               onAvancar={avancar}
               obterProximoPasso={obterProximoPasso}
               entregadoresAtivos={entregadoresAtivos}

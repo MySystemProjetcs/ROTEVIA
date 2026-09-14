@@ -32,7 +32,7 @@ export function useMinhasEntregas() {
 
   const mover = useCallback(
     async (pedido: Pedido, destino: StatusPedido) => {
-      const acao = acaoParaEntregador(pedido.status, destino)
+      const acao = acaoParaEntregador(pedido, destino)
       if (!acao) return
 
       const anterior = pedido.status

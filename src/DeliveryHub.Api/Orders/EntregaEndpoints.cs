@@ -57,6 +57,11 @@ public static class EntregaEndpoints
         group.MapPost("/pedidos/{id:guid}/cheguei", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
             Avancar(t, id, AcaoDeEntrega.ChegarNoLocal, a, ct));
 
+        // Só existe em pedido com valor pendente — o domínio recusa em pedido
+        // já pago.
+        group.MapPost("/pedidos/{id:guid}/cobrar", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
+            Avancar(t, id, AcaoDeEntrega.Cobrar, a, ct));
+
         group.MapPost("/pedidos/{id:guid}/finalizar", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
             Avancar(t, id, AcaoDeEntrega.Finalizar, a, ct));
 

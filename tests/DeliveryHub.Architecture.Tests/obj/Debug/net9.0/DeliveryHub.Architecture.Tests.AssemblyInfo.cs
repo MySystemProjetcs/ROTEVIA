@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryHub.Architecture.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+322b4d97c221236378d73a85e89fa1260f242dc5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3c9333c3df71c4bfef1eb7ce43a11051eae0fbff")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryHub.Architecture.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryHub.Architecture.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

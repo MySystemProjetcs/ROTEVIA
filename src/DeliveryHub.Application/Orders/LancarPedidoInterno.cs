@@ -17,7 +17,10 @@ public sealed record NovoPedidoInterno(
     string Numero,
     string? Complemento,
     string? Referencia,
-    decimal TaxaEntrega,
+    // Como o cliente paga, e se já pagou. Venda de balcão não tem marketplace
+    // informando isso — quem sabe é quem atendeu.
+    string FormaPagamento,
+    bool JaPago,
     IReadOnlyList<ItemDoLancamento> Itens,
     // Opcional: em venda de balcão o lojista costuma já saber quem entrega, e
     // obrigá-lo a passar por Confirmar/Preparo/Pronto antes de alocar seria
@@ -81,6 +84,14 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
         _relogio = relogio;
     }
 
+    // Pago = nada pendente; a cobrar = o total inteiro na mão do motoboy.
+    // Venda interna não tem pagamento parcial: quem atendeu sabe se recebeu ou
+    // não, e dividir isso em dois valores seria complexidade sem uso hoje.
+    private static Pagamento MontarPagamento(NovoPedidoInterno novo, decimal total) =>
+        novo.JaPago
+            ? new Pagamento(total, 0, novo.FormaPagamento)
+            : new Pagamento(0, total, novo.FormaPagamento);
+
     public async Task<Result<Guid>> ExecutarAsync(NovoPedidoInterno novo, CancellationToken ct)
     {
         if (_tenant.MerchantId is not { } merchantId)
@@ -97,7 +108,7 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
             return Result.Failure<Guid>(PedidoInternoErrors.CepNaoEncontrado);
 
         var agora = _relogio.GetUtcNow();
-        var totalDosItens = novo.Itens.Sum(i => i.PrecoUnitario * i.Quantidade);
+        var total = novo.Itens.Sum(i => i.PrecoUnitario * i.Quantidade);
 
         var pedido = Pedido.Receber(
             merchantId: merchantId,
@@ -120,10 +131,14 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
                 // Sem coordenada o pedido existe, só não vai para o mapa.
                 Latitude: endereco.Latitude ?? 0,
                 Longitude: endereco.Longitude ?? 0),
-            valorTotal: totalDosItens + novo.TaxaEntrega,
-            taxaEntrega: novo.TaxaEntrega,
+            valorTotal: total,
+            // O que o motoboy recebe por esta entrega não sai daqui: é a taxa
+            // padrão da loja, lida no fechamento (AvancarEntrega). Guardar um
+            // valor por pedido aqui criaria uma segunda fonte da mesma regra.
+            taxaEntrega: 0m,
             criadoNaOrigemEm: agora,
-            recebidoEm: agora);
+            recebidoEm: agora,
+            pagamento: MontarPagamento(novo, total));
 
         var indice = 1;
         foreach (var item in novo.Itens)

@@ -4,7 +4,7 @@ namespace DeliveryHub.Domain.Tests.Orders;
 
 public sealed class PedidoTests
 {
-    private static Pedido Novo(bool ehTeste = false) => Pedido.Receber(
+    private static Pedido Novo(bool ehTeste = false, Pagamento? pagamento = null) => Pedido.Receber(
         merchantId: Guid.CreateVersion7(),
         idExterno: "b57177eb-158b-4308-92ca-56aaaecad387",
         numeroExibicao: "1578",
@@ -14,7 +14,22 @@ public sealed class PedidoTests
         valorTotal: 50m,
         taxaEntrega: 5m,
         criadoNaOrigemEm: DateTimeOffset.UtcNow,
-        recebidoEm: DateTimeOffset.UtcNow);
+        recebidoEm: DateTimeOffset.UtcNow,
+        pagamento: pagamento);
+
+    // Leva o pedido até "Chegou": é de lá que sai o passo de cobrar.
+    private static Pedido NoLocal(Pagamento pagamento)
+    {
+        var pedido = Novo(pagamento: pagamento);
+        pedido.Confirmar();
+        pedido.AlocarEntregador(Guid.CreateVersion7());
+        pedido.Despachar();
+        pedido.AceitarEntrega();
+        pedido.SairParaEntrega();
+        pedido.ChegarNoLocal();
+
+        return pedido;
+    }
 
     [Fact]
     public void Pedido_nasce_em_recebido()
@@ -199,6 +214,88 @@ public sealed class PedidoTests
         var excecao = Record.Exception(() => pedido.Confirmar());
 
         Assert.Null(excecao);
+    }
+
+    [Fact]
+    public void Cobrar_quita_a_pendencia_e_move_o_status()
+    {
+        var pedido = NoLocal(new Pagamento(ValorJaPago: 0, ValorACobrar: 55m, "Dinheiro"));
+
+        var resultado = pedido.Cobrar();
+
+        Assert.True(resultado.IsSuccess);
+        Assert.Equal(StatusPedido.Cobrar, pedido.Status);
+        Assert.Equal(55m, pedido.Pagamento.ValorJaPago);
+        Assert.Equal(0m, pedido.Pagamento.ValorACobrar);
+        Assert.False(pedido.Pagamento.PrecisaCobrarNaEntrega);
+    }
+
+    [Fact]
+    public void Cobrar_soma_ao_que_ja_havia_sido_pago_online()
+    {
+        // O iFood manda pedido parcialmente pago: parte no cartão, o troco em
+        // dinheiro na porta. Cobrar fecha só a diferença, não o total.
+        var pedido = NoLocal(new Pagamento(ValorJaPago: 35m, ValorACobrar: 20m, "Crédito · Visa"));
+
+        pedido.Cobrar();
+
+        Assert.Equal(55m, pedido.Pagamento.ValorJaPago);
+        Assert.Equal(0m, pedido.Pagamento.ValorACobrar);
+    }
+
+    [Fact]
+    public void Cobrar_pedido_pago_online_falha_sem_mover_o_status()
+    {
+        // Pedido pago no app não pode ganhar o passo de cobrar: seria pedir
+        // dinheiro duas vezes ao cliente.
+        var pedido = NoLocal(new Pagamento(ValorJaPago: 55m, ValorACobrar: 0m, "Pix"));
+
+        var resultado = pedido.Cobrar();
+
+        Assert.True(resultado.IsFailure);
+        Assert.Equal(PedidoErrors.PedidoJaPago, resultado.Error);
+        Assert.Equal(StatusPedido.Chegou, pedido.Status);
+    }
+
+    [Fact]
+    public void Cobrar_pedido_sem_informacao_de_pagamento_falha()
+    {
+        // Pagamento.Indefinido vale como pago: sem dado, o sistema não inventa
+        // cobrança que o motoboy repassaria como se fosse real.
+        var pedido = NoLocal(Pagamento.Indefinido);
+
+        Assert.True(pedido.Cobrar().IsFailure);
+    }
+
+    [Fact]
+    public void Cobrar_duas_vezes_nao_credita_o_valor_de_novo()
+    {
+        // Duplo clique no botão do motoboy, ou retry de rede. A segunda chamada
+        // recusa porque não há mais pendência — e o importante é que o valor
+        // recebido não dobra.
+        var pedido = NoLocal(new Pagamento(ValorJaPago: 0, ValorACobrar: 55m, "Dinheiro"));
+        pedido.Cobrar();
+
+        var segunda = pedido.Cobrar();
+
+        Assert.True(segunda.IsFailure);
+        Assert.Equal(55m, pedido.Pagamento.ValorJaPago);
+        Assert.Equal(StatusPedido.Cobrar, pedido.Status);
+    }
+
+    [Fact]
+    public void Pedido_a_cobrar_so_entra_na_receita_depois_de_cobrado_e_concluido()
+    {
+        // A regra da receita lê estas duas coisas juntas: status Concluido e
+        // nada a cobrar. Enquanto o motoboy não recebeu, o dinheiro não é do
+        // caixa — só vira receita quando as duas condições valem.
+        var pedido = NoLocal(new Pagamento(ValorJaPago: 0, ValorACobrar: 55m, "Dinheiro"));
+
+        pedido.Concluir();
+        Assert.True(pedido.Pagamento.PrecisaCobrarNaEntrega);
+
+        // Concluir não pula a cobrança: o valor continua pendente depois dele.
+        Assert.Equal(0m, pedido.Pagamento.ValorJaPago);
     }
 
     [Fact]

@@ -52,6 +52,10 @@
   --color-estado-emrota-fundo: #ecfdf5;
   --color-estado-chegou: #65a30d;
   --color-estado-chegou-fundo: #f7fee7;
+  /* Cobrança na entrega: âmbar, o mesmo tom de "exige atenção" usado no
+     alerta — é dinheiro que o motoboy ainda precisa receber. */
+  --color-estado-cobrar: #b45309;
+  --color-estado-cobrar-fundo: #fffbeb;
   --color-estado-concluido: #16a34a;
   --color-estado-concluido-fundo: #f0fdf4;
   --color-estado-cancelado: #64748b;

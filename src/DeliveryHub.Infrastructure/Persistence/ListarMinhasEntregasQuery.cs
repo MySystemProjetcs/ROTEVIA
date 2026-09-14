@@ -13,7 +13,8 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
         StatusPedido.Despachado,
         StatusPedido.Aceito,
         StatusPedido.EmRota,
-        StatusPedido.Chegou
+        StatusPedido.Chegou,
+        StatusPedido.Cobrar
     ];
 
     private readonly AppDbContext _db;
@@ -55,6 +56,8 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
                 x.EnderecoEntrega == null || x.EnderecoEntrega.Longitude == 0
                     ? null
                     : (double?)x.EnderecoEntrega.Longitude,
+                x.Pagamento.Descricao,
+                x.Pagamento.ValorACobrar,
                 x.CriadoNaOrigemEm,
                 x.RecebidoEm,
                 x.CriadoNaOrigemEm + PrazoDeConfirmacao,

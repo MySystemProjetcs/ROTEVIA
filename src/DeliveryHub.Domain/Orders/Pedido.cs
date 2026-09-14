@@ -94,9 +94,13 @@ public sealed class Pedido : ITenantOwned
         decimal valorTotal,
         decimal taxaEntrega,
         DateTimeOffset criadoNaOrigemEm,
-        DateTimeOffset recebidoEm) =>
+        DateTimeOffset recebidoEm,
+        Pagamento? pagamento = null) =>
         new(Guid.CreateVersion7(), merchantId, idExterno, numeroExibicao, ehTeste, cliente,
-            enderecoEntrega, valorTotal, taxaEntrega, criadoNaOrigemEm, recebidoEm);
+            enderecoEntrega, valorTotal, taxaEntrega, criadoNaOrigemEm, recebidoEm)
+        {
+            Pagamento = pagamento ?? Pagamento.Indefinido
+        };
 
     // O item herda o tenant do pedido: é o pedido que sabe de quem ele é, e
     // deixar isso a cargo de quem chama seria abrir espaço para item órfão.
@@ -129,7 +133,35 @@ public sealed class Pedido : ITenantOwned
     public Result AceitarEntrega() => AvancarPara(StatusPedido.Aceito);
     public Result SairParaEntrega() => AvancarPara(StatusPedido.EmRota);
     public Result ChegarNoLocal() => AvancarPara(StatusPedido.Chegou);
+
+    // Só faz sentido em pedido com pendência. Em pedido pago online cobrar
+    // seria pedir dinheiro duas vezes ao cliente.
+    public Result Cobrar()
+    {
+        if (!Pagamento.PrecisaCobrarNaEntrega)
+            return Result.Failure(PedidoErrors.PedidoJaPago);
+
+        var transicao = AvancarPara(StatusPedido.Cobrar);
+        if (transicao.IsFailure)
+            return transicao;
+
+        // O que estava pendente virou dinheiro em mãos. É isto que faz o pedido
+        // entrar na receita do dia, que só conta pedido sem pendência.
+        Pagamento = Pagamento with
+        {
+            ValorJaPago = Pagamento.ValorJaPago + Pagamento.ValorACobrar,
+            ValorACobrar = 0,
+        };
+
+        return Result.Success();
+    }
+
     public Result Concluir() => AvancarPara(StatusPedido.Concluido);
+
+    // Como o pedido foi pago, e quanto ainda falta receber. Nunca nulo: pedido
+    // sem informação de pagamento vale como pago (Pagamento.Indefinido), para
+    // não inventar cobrança onde não há dado.
+    public Pagamento Pagamento { get; private set; } = Pagamento.Indefinido;
 
     public Result Cancelar()
     {

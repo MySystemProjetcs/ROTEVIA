@@ -17,7 +17,13 @@ public enum StatusPedido
     Aceito = 5,
     EmRota = 6,
     Chegou = 7,
-    Concluido = 8,
+
+    // Só existe em pedido com valor pendente — o motoboy chegou e ainda
+    // precisa receber do cliente. Pedido pago online pula direto de Chegou
+    // para Concluido. Concluido sobe de novo para abrir espaço; seguro pelo
+    // mesmo motivo de antes (persistido como string).
+    Cobrar = 8,
+    Concluido = 9,
 
     // Fora da linha de progressão: alcançável de qualquer estado não terminal.
     Cancelado = 99

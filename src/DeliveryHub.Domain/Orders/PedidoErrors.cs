@@ -19,6 +19,11 @@ public static class PedidoErrors
         "Aloque um motoboy antes de despachar.",
         ErrorType.Conflict);
 
+    public static readonly Error PedidoJaPago = new(
+        "pedido.ja_pago",
+        "Este pedido já foi pago — não há valor a cobrar na entrega.",
+        ErrorType.Conflict);
+
     public static readonly Error EntregadorNaoPertenceAoPedido = new(
         "pedido.entregador_nao_pertence_ao_pedido",
         "Este pedido não está atribuído a você.",

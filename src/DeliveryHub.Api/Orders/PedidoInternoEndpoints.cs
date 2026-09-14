@@ -18,7 +18,8 @@ public sealed record PedidoInternoRequest(
     string Numero,
     string? Complemento,
     string? Referencia,
-    decimal TaxaEntrega,
+    string FormaPagamento,
+    bool JaPago,
     IReadOnlyList<ItemInternoRequest> Itens,
     Guid? EntregadorId);
 
@@ -54,7 +55,8 @@ public static class PedidoInternoEndpoints
                 request.Numero,
                 request.Complemento,
                 request.Referencia,
-                request.TaxaEntrega,
+                request.FormaPagamento,
+                request.JaPago,
                 request.Itens
                     .Select(i => new ItemDoLancamento(i.Nome, i.Quantidade, i.PrecoUnitario, i.Observacoes))
                     .ToList(),

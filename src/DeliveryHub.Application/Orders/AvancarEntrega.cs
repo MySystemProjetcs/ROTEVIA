@@ -9,6 +9,7 @@ public enum AcaoDeEntrega
     Aceitar,
     SairParaEntrega,
     ChegarNoLocal,
+    Cobrar,
     Finalizar
 }
 
@@ -54,6 +55,7 @@ public sealed class AvancarEntrega : IAvancarEntrega
             AcaoDeEntrega.Aceitar => pedido.AceitarEntrega(),
             AcaoDeEntrega.SairParaEntrega => pedido.SairParaEntrega(),
             AcaoDeEntrega.ChegarNoLocal => pedido.ChegarNoLocal(),
+            AcaoDeEntrega.Cobrar => pedido.Cobrar(),
             AcaoDeEntrega.Finalizar => pedido.Concluir(),
             _ => throw new ArgumentOutOfRangeException(nameof(acao)),
         };

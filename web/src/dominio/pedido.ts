@@ -7,6 +7,7 @@ export type StatusPedido =
   | 'Aceito'
   | 'EmRota'
   | 'Chegou'
+  | 'Cobrar'
   | 'Concluido'
   | 'Cancelado'
 
@@ -42,6 +43,10 @@ export interface Pedido {
   itens: ItemDoPedido[]
   entregadorId?: string | null
   entregadorNome?: string | null
+  /** Texto pronto para a tela: "Crédito Visa", "PIX", "Dinheiro". */
+  pagamentoDescricao: string
+  /** Maior que zero = o motoboy ainda precisa receber do cliente. */
+  pagamentoValorACobrar: number
   /** Só vem preenchido na listagem do motoboy — ele pode atender mais de uma loja. */
   nomeLoja?: string | null
 }
@@ -61,10 +66,24 @@ export const COLUNAS: StatusPedido[] = [
 // Entrega em curso (aguardando aceite incluso): é o que separa "Em Entrega"
 // de "Disponível" — no painel do dono, na página de motoboys e no toggle do
 // motoboy. Um lugar só, pra ninguém divergir a definição.
-export const STATUS_EM_ENTREGA: StatusPedido[] = ['Despachado', 'Aceito', 'EmRota', 'Chegou']
+export const STATUS_EM_ENTREGA: StatusPedido[] = [
+  'Despachado',
+  'Aceito',
+  'EmRota',
+  'Chegou',
+  'Cobrar',
+]
 
-// As colunas do painel do motoboy (mesmo sistema, papel diferente).
-export const COLUNAS_ENTREGADOR: StatusPedido[] = ['Despachado', 'Aceito', 'EmRota', 'Chegou']
+// Ordem das etapas do motoboy. Vira lista, não colunas: o painel dele é de uma
+// coluna só. "Cobrar" fica no meio porque só existe em pedido com pendência —
+// pedido pago pula de Chegou direto para Concluido.
+export const COLUNAS_ENTREGADOR: StatusPedido[] = [
+  'Despachado',
+  'Aceito',
+  'EmRota',
+  'Chegou',
+  'Cobrar',
+]
 
 export const TITULO_COLUNA: Record<StatusPedido, string> = {
   Recebido: 'Aguardando',
@@ -75,6 +94,7 @@ export const TITULO_COLUNA: Record<StatusPedido, string> = {
   Aceito: 'Aceito',
   EmRota: 'A caminho',
   Chegou: 'No local',
+  Cobrar: 'Cobrando',
   Concluido: 'Concluídos',
   Cancelado: 'Cancelados',
 }
@@ -85,9 +105,15 @@ export interface PassoPedido {
   rotulo: string
 }
 
-// Assinatura comum de proximoPasso/proximoPassoEntregador — usada pelo Kanban
-// pra aceitar o mapa de qualquer um dos dois papéis sem duplicar o tipo.
-export type ObterProximoPasso = (status: StatusPedido) => PassoPedido | null
+// Recebe o pedido inteiro, não só o status: depois de "Cheguei no local" o
+// próximo passo depende de haver valor a cobrar — pedido pago vai direto para
+// Finalizar, pedido com pendência passa por Cobrar antes.
+export type ObterProximoPasso = (pedido: Pedido) => PassoPedido | null
+
+// Precisa cobrar do cliente na entrega.
+export function temValorACobrar(pedido: Pedido): boolean {
+  return pedido.pagamentoValorACobrar > 0
+}
 
 // A ação que leva o pedido ao próximo estado — lado do dono. O caminho do
 // endpoint espelha a ação, não o status: quem decide a transição válida é o
@@ -105,37 +131,49 @@ export const PROXIMO_ENTREGADOR: Partial<Record<StatusPedido, PassoPedido>> = {
   Despachado: { destino: 'Aceito', acao: 'aceitar', rotulo: 'Aceitar' },
   Aceito: { destino: 'EmRota', acao: 'sair-para-entrega', rotulo: 'Sair para entrega' },
   EmRota: { destino: 'Chegou', acao: 'cheguei', rotulo: 'Cheguei no local' },
-  Chegou: { destino: 'Concluido', acao: 'finalizar', rotulo: 'Finalizar entrega' },
+  // Chegou não está aqui: o passo seguinte depende do pagamento, e quem decide
+  // é a função abaixo.
+  Cobrar: { destino: 'Concluido', acao: 'finalizar', rotulo: 'Finalizar entrega' },
 }
 
-export function proximoPasso(status: StatusPedido) {
-  return PROXIMO[status] ?? null
+const COBRAR: PassoPedido = { destino: 'Cobrar', acao: 'cobrar', rotulo: 'Cobrar do cliente' }
+const FINALIZAR: PassoPedido = { destino: 'Concluido', acao: 'finalizar', rotulo: 'Finalizar entrega' }
+
+export function proximoPasso(pedido: Pedido) {
+  return PROXIMO[pedido.status] ?? null
 }
 
 // O estado só anda para frente (regra da máquina de estados do backend: um
 // evento atrasado nunca retrocede o pedido). A interface impede o movimento
 // inválido antes de a requisição sair.
-export function podeMoverPara(origem: StatusPedido, destino: StatusPedido): boolean {
-  return proximoPasso(origem)?.destino === destino
+export function podeMoverPara(pedido: Pedido, destino: StatusPedido): boolean {
+  return proximoPasso(pedido)?.destino === destino
 }
 
-export function acaoPara(origem: StatusPedido, destino: StatusPedido): string | null {
-  const passo = proximoPasso(origem)
+export function acaoPara(pedido: Pedido, destino: StatusPedido): string | null {
+  const passo = proximoPasso(pedido)
 
   return passo && passo.destino === destino ? passo.acao : null
 }
 
 // Mesmo trio de funções, lado do motoboy — espelha PROXIMO_ENTREGADOR.
-export function proximoPassoEntregador(status: StatusPedido) {
-  return PROXIMO_ENTREGADOR[status] ?? null
+export function proximoPassoEntregador(pedido: Pedido) {
+  // A bifurcação do fluxo: em "Chegou", quem tem pendência cobra antes de
+  // finalizar; quem já pagou online encerra direto. Pedir dinheiro a quem já
+  // pagou seria cobrar duas vezes.
+  if (pedido.status === 'Chegou') {
+    return temValorACobrar(pedido) ? COBRAR : FINALIZAR
+  }
+
+  return PROXIMO_ENTREGADOR[pedido.status] ?? null
 }
 
-export function podeMoverParaEntregador(origem: StatusPedido, destino: StatusPedido): boolean {
-  return proximoPassoEntregador(origem)?.destino === destino
+export function podeMoverParaEntregador(pedido: Pedido, destino: StatusPedido): boolean {
+  return proximoPassoEntregador(pedido)?.destino === destino
 }
 
-export function acaoParaEntregador(origem: StatusPedido, destino: StatusPedido): string | null {
-  const passo = proximoPassoEntregador(origem)
+export function acaoParaEntregador(pedido: Pedido, destino: StatusPedido): string | null {
+  const passo = proximoPassoEntregador(pedido)
 
   return passo && passo.destino === destino ? passo.acao : null
 }

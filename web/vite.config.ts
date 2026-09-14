@@ -22,6 +22,9 @@ export default defineConfig({
     // para outra porta silenciosamente.
     port: 5273,
     strictPort: true,
+    // O Vite recusa requisição cujo Host ele não conhece (proteção contra
+    // DNS rebinding). Sem isto o túnel do ngrok responde "Blocked request".
+    allowedHosts: ['.ngrok-free.app', '.ngrok.app', '.ngrok.io'],
     // A API roda separada. O proxy evita CORS no desenvolvimento e mantém o
     // mesmo caminho relativo que o app empacotado vai usar.
     proxy: {

@@ -22,7 +22,8 @@ internal static class IFoodOrderMapper
             valorTotal: origem.Total.OrderAmount,
             taxaEntrega: origem.Total.DeliveryFee,
             criadoNaOrigemEm: origem.CreatedAt,
-            recebidoEm: recebidoEm);
+            recebidoEm: recebidoEm,
+            pagamento: MapearPagamento(origem.Payments));
 
         foreach (var item in origem.Items)
         {
@@ -41,6 +42,39 @@ internal static class IFoodOrderMapper
 
     // documentNumber e documentType existem no payload e são descartados de
     // propósito: entrega não precisa de CPF (LGPD, minimização).
+    // "pending" é o que manda: é quanto ainda falta receber, e cobre o caso de
+    // pagamento parcial (parte no cartão online, resto em dinheiro na porta).
+    // Deduzir isso pelo método daria errado nesse caso.
+    private static Pagamento MapearPagamento(IFoodPayments origem)
+    {
+        var descricao = origem.Methods.Count == 0
+            ? "Não informado"
+            : string.Join(" + ", origem.Methods.Select(Descrever));
+
+        return new Pagamento(origem.Prepaid, origem.Pending, descricao);
+    }
+
+    private static string Descrever(IFoodPaymentMethod metodo)
+    {
+        var nome = metodo.Method.ToUpperInvariant() switch
+        {
+            "CREDIT" => "Crédito",
+            "DEBIT" => "Débito",
+            "PIX" => "PIX",
+            "CASH" => "Dinheiro",
+            "MEAL_VOUCHER" => "Vale-refeição",
+            "FOOD_VOUCHER" => "Vale-alimentação",
+            "DIGITAL_WALLET" => "Carteira digital",
+            // Método novo do iFood não pode virar texto vazio na tela do
+            // lojista: mostra o código cru, que ainda é informação.
+            var outro => outro,
+        };
+
+        // A bandeira só aparece quando existe: "Crédito Visa" ajuda a conferir
+        // a maquininha, "Dinheiro Visa" seria absurdo.
+        return metodo.Card?.Brand is { Length: > 0 } bandeira ? $"{nome} {bandeira}" : nome;
+    }
+
     private static Cliente MapearCliente(IFoodCustomer origem) =>
         new(origem.Name, origem.Phone?.Number, origem.Phone?.Localizer);
 

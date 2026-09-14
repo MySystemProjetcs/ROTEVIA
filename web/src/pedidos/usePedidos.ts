@@ -30,7 +30,7 @@ export function usePedidos() {
 
   const mover = useCallback(
     async (pedido: Pedido, destino: StatusPedido) => {
-      const acao = acaoPara(pedido.status, destino)
+      const acao = acaoPara(pedido, destino)
       if (!acao) return
 
       const anterior = pedido.status

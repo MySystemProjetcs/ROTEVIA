@@ -129,8 +129,11 @@ if (app.Environment.IsDevelopment())
 
 // Worker embutido: container de DI próprio (TenantContextSistema não pode
 // coexistir com o TenantContextHttp desta API), só compartilhando o processo
-// e a porta 5000 pro /health do polling continuar visível separado do da API.
-var workerHost = DeliveryHub.Worker.WorkerHostFactory.Build(urls: "http://localhost:5000");
+// e uma porta própria pro /health do polling ficar visível separado do da API.
+// Configurável porque a 5000 é disputada: no macOS o Receptor AirPlay ocupa
+// ela sozinho, e aí a API inteira deixa de subir por causa do worker.
+var workerHost = DeliveryHub.Worker.WorkerHostFactory.Build(
+    urls: builder.Configuration["Worker:HealthUrl"] ?? "http://localhost:5000");
 await workerHost.StartAsync();
 
 try

@@ -2,6 +2,9 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Botao } from '@/components/Botao'
 import { Cartao, CartaoCorpo, CartaoRodape } from '@/components/Cartao'
+import { Menu } from '@/components/Menu'
+import type { OpcaoDeMenu } from '@/components/Menu'
+import { Switch } from '@/components/Switch'
 import { api, ErroDaApi } from '@/lib/api'
 import { formatarDinheiro } from '@/lib/tempo'
 
@@ -27,6 +30,16 @@ const CLASSE_ROTULO = 'text-rotulo uppercase text-texto-suave'
 
 const ITEM_VAZIO: ItemDigitado = { nome: '', quantidade: '1', precoUnitario: '' }
 
+type FormaDePagamento = 'Dinheiro' | 'Pix' | 'Credito' | 'Debito' | 'Voucher'
+
+const FORMAS: readonly OpcaoDeMenu<FormaDePagamento>[] = [
+  { valor: 'Dinheiro', rotulo: 'Dinheiro' },
+  { valor: 'Pix', rotulo: 'PIX' },
+  { valor: 'Credito', rotulo: 'Crédito' },
+  { valor: 'Debito', rotulo: 'Débito' },
+  { valor: 'Voucher', rotulo: 'Voucher' },
+]
+
 // Vírgula é o separador decimal que o lojista digita; Number() só entende ponto.
 function paraNumero(valor: string): number {
   const limpo = valor.replace(/\./g, '').replace(',', '.')
@@ -41,18 +54,22 @@ export function FormularioPedidoInterno({ onLancado }: { onLancado: () => void }
   const [cep, setCep] = useState('')
   const [numero, setNumero] = useState('')
   const [complemento, setComplemento] = useState('')
-  const [taxaEntrega, setTaxaEntrega] = useState('')
+  const [formaPagamento, setFormaPagamento] = useState<FormaDePagamento>('Dinheiro')
+  // Falso = o motoboy cobra na entrega. Dinheiro quase sempre é cobrar, então
+  // é o padrão de quem lança venda de balcão por telefone.
+  const [jaPago, setJaPago] = useState(false)
   const [itens, setItens] = useState<ItemDigitado[]>([{ ...ITEM_VAZIO }])
   const [endereco, setEndereco] = useState<EnderecoResolvido | null>(null)
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  const totalItens = itens.reduce(
+  // O que o cliente paga são os itens. A taxa da entrega não entra aqui: quem
+  // define quanto o motoboy recebe é a regra global da loja, não o lançamento.
+  const total = itens.reduce(
     (soma, item) => soma + paraNumero(item.precoUnitario) * paraNumero(item.quantidade),
     0,
   )
-  const total = totalItens + paraNumero(taxaEntrega)
 
   // Busca ao completar os 8 dígitos, não a cada tecla: consulta a serviço de
   // terceiro não deve disparar enquanto a pessoa ainda está digitando.
@@ -92,7 +109,8 @@ export function FormularioPedidoInterno({ onLancado }: { onLancado: () => void }
         numero,
         complemento: complemento || null,
         referencia: null,
-        taxaEntrega: paraNumero(taxaEntrega),
+        formaPagamento,
+        jaPago,
         itens: itens
           .filter((i) => i.nome.trim() !== '')
           .map((i) => ({
@@ -235,24 +253,48 @@ export function FormularioPedidoInterno({ onLancado }: { onLancado: () => void }
             </Botao>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* Total, forma e confirmação numa linha só: fechar o pedido é uma
+              decisão única — quanto é, como paga e se já pagou. */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="flex flex-col justify-end gap-1">
+              <span className={CLASSE_ROTULO}>Total</span>
+              {/* Mesma altura dos controles ao lado para os quatro campos
+                  ficarem na mesma linha de base. */}
+              <p className="flex h-toque items-center text-destaque tabular-nums text-texto">
+                {formatarDinheiro(total)}
+              </p>
+            </div>
+
             <div className="flex flex-col gap-1">
-              <label htmlFor="pi-taxa" className={CLASSE_ROTULO}>Taxa de entrega</label>
-              <input
-                id="pi-taxa"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={taxaEntrega}
-                onChange={(e) => setTaxaEntrega(e.target.value)}
-                className={CLASSE_CAMPO}
+              <span className={CLASSE_ROTULO}>Forma de pagamento</span>
+              <Menu
+                rotulo="Forma de pagamento"
+                valor={formaPagamento}
+                opcoes={FORMAS}
+                onEscolher={setFormaPagamento}
               />
             </div>
 
             <div className="flex flex-col justify-end gap-1">
-              <span className={CLASSE_ROTULO}>Total</span>
-              <p className="text-destaque tabular-nums text-texto">{formatarDinheiro(total)}</p>
+              <span className={CLASSE_ROTULO}>Confirmação</span>
+              <div className="flex h-toque items-center">
+                <Switch
+                  marcado={jaPago}
+                  onMudar={setJaPago}
+                  rotulo={jaPago ? 'Já pago' : 'Cobrar na entrega'}
+                  // Verde quando pago — o mesmo tom que a etiqueta do cartão usa
+                  // para dizer que não há mais nada a receber.
+                  classeLigado="bg-sucesso"
+                />
+              </div>
             </div>
           </div>
+
+          <p className="text-apoio text-texto-suave">
+            {jaPago
+              ? 'Não aparece para o motoboy cobrar.'
+              : `O motoboy recebe ${formatarDinheiro(total)} na entrega.`}
+          </p>
 
           {erro && <p className="text-apoio text-perigo">{erro}</p>}
         </CartaoCorpo>

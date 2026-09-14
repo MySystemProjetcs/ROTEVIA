@@ -13,6 +13,7 @@ const POR_ESTADO: Record<StatusPedido, { rotulo: string; classe: string }> = {
   Aceito: { rotulo: 'Aceito', classe: 'bg-estado-aceito-fundo text-estado-aceito' },
   EmRota: { rotulo: 'A caminho', classe: 'bg-estado-emrota-fundo text-estado-emrota' },
   Chegou: { rotulo: 'No local', classe: 'bg-estado-chegou-fundo text-estado-chegou' },
+  Cobrar: { rotulo: 'Cobrando', classe: 'bg-estado-cobrar-fundo text-estado-cobrar' },
   Concluido: { rotulo: 'Concluído', classe: 'bg-estado-concluido-fundo text-estado-concluido' },
   Cancelado: { rotulo: 'Cancelado', classe: 'bg-estado-cancelado-fundo text-estado-cancelado' },
 }

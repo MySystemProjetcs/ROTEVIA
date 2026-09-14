@@ -26,6 +26,10 @@ public sealed record PedidoDto(
     // chegam com 0,0 e levariam a navegação para o meio do Atlântico.
     double? EnderecoLatitude,
     double? EnderecoLongitude,
+    // Como foi pago, e quanto ainda falta receber. Valor a cobrar maior que
+    // zero é o que liga a etiqueta "Cobrar" e o passo extra do motoboy.
+    string PagamentoDescricao,
+    decimal PagamentoValorACobrar,
     DateTimeOffset CriadoNaOrigemEm,
     DateTimeOffset RecebidoEm,
     // Instante em que o prazo de confirmação do iFood expira. Vem calculado do

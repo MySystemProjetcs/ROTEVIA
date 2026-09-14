@@ -30,6 +30,15 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         // junto com ValorTotal (que é receita da loja, não do motoboy).
         builder.Property(x => x.ValorPagoAoEntregador).HasColumnName("valor_pago_ao_entregador");
 
+        // Pagamento por table splitting, igual a Cliente e Endereço: é dado do
+        // pedido, não entidade com vida própria.
+        builder.OwnsOne(x => x.Pagamento, pagamento =>
+        {
+            pagamento.Property(x => x.ValorJaPago).HasColumnName("pagamento_valor_pago");
+            pagamento.Property(x => x.ValorACobrar).HasColumnName("pagamento_valor_a_cobrar");
+            pagamento.Property(x => x.Descricao).HasColumnName("pagamento_descricao").HasMaxLength(200);
+        });
+
         builder.OwnsOne(x => x.Cliente, cliente =>
         {
             cliente.Property(x => x.Nome).HasColumnName("cliente_nome").HasMaxLength(200).IsRequired();
@@ -64,15 +73,20 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
             .IsUnique()
             .HasDatabaseName("ux_pedidos_id_externo");
 
+        // Dois índices sobre as mesmas colunas, e é por isso que cada um
+        // precisa ser declarado com nome no próprio HasIndex: chamar
+        // HasIndex(props) duas vezes devolve o MESMO builder, e o segundo
+        // sobrescreveria o primeiro — o modelo ficaria com um índice só,
+        // e a migração seguinte apagaria o outro do banco.
+
         // Painel de pedidos ativos: o índice cresce com os pedidos abertos, não
         // com o histórico (ENGINEERING-GUIDE §7).
-        builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm })
-            .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado','Aceito','EmRota','Chegou')")
-            .HasDatabaseName("ix_pedidos_ativos_por_merchant");
+        builder
+            .HasIndex(x => new { x.MerchantId, x.RecebidoEm }, "ix_pedidos_ativos_por_merchant")
+            .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado','Aceito','EmRota','Chegou','Cobrar')");
 
         // Dashboard/resumo do dia e extrato de ganhos: mesma chave, sem filtro
         // de status (o parcial acima não serve pra Concluído/Cancelado).
-        builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm })
-            .HasDatabaseName("ix_pedidos_merchant_recebido");
+        builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm }, "ix_pedidos_merchant_recebido");
     }
 }

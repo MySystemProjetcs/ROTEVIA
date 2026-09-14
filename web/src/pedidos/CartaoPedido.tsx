@@ -3,10 +3,10 @@ import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { Botao } from '@/components/Botao'
 import { Cartao, CartaoCorpo, CartaoRodape } from '@/components/Cartao'
-import { Etiqueta } from '@/components/Etiqueta'
+import { Etiqueta, EtiquetaEstado } from '@/components/Etiqueta'
 import { IconeLocal } from '@/components/icones/IconeLocal'
 import type { ObterProximoPasso, Pedido, StatusPedido } from '@/dominio/pedido'
-import { proximoPasso } from '@/dominio/pedido'
+import { proximoPasso, temValorACobrar } from '@/dominio/pedido'
 import type { Entregador } from '@/dominio/entregador'
 import { cn } from '@/lib/cn'
 import { formatarDinheiro } from '@/lib/tempo'
@@ -26,6 +26,7 @@ const COR_NUMERO: Record<StatusPedido, string> = {
   Aceito: 'text-estado-aceito',
   EmRota: 'text-estado-emrota',
   Chegou: 'text-estado-chegou',
+  Cobrar: 'text-estado-cobrar',
   Concluido: 'text-estado-concluido',
   Cancelado: 'text-estado-cancelado',
 }
@@ -46,6 +47,10 @@ interface CartaoPedidoProps {
   agora: number
   onAvancar: (pedido: Pedido) => void
   arrastavel?: boolean
+  // Fora do Kanban não há coluna dizendo em que etapa o pedido está, então o
+  // próprio cartão precisa mostrar. É o caso da lista do motoboy.
+  mostrarEstado?: boolean
+  className?: string
   obterProximoPasso?: ObterProximoPasso
   // Só o dono recebe estes dois — presença deles é o que liga o par de
   // botões "Alocar Motoboy" / "Despachar" no card Pronto.
@@ -62,6 +67,8 @@ export function CartaoPedido({
   agora,
   onAvancar,
   arrastavel = true,
+  mostrarEstado = false,
+  className,
   obterProximoPasso = proximoPasso,
   entregadoresAtivos,
   onAlocar,
@@ -74,7 +81,8 @@ export function CartaoPedido({
   })
   const [seletorAberto, setSeletorAberto] = useState(false)
 
-  const passo = obterProximoPasso(pedido.status)
+  const passo = obterProximoPasso(pedido)
+  const precisaCobrar = temValorACobrar(pedido)
   const mostrarAlocacao = entregadoresAtivos !== undefined && pedido.status === 'Pronto'
   // Mapa visível quando há posição deste pedido e ele está na janela de rastreio.
   const posicaoDoPedido = posicoes.find((p) => p.pedidoId === pedido.id) ?? null
@@ -85,7 +93,7 @@ export function CartaoPedido({
     <Cartao
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(isDragging && 'opacity-40')}
+      className={cn(isDragging && 'opacity-40', className)}
     >
       {/* O arraste vive no corpo, não no cartão inteiro: com os listeners no
           elemento externo, o sensor engolia o clique do botão do rodapé — e o
@@ -98,7 +106,11 @@ export function CartaoPedido({
         {/* Só vem preenchido na listagem do motoboy — ele pode atender
             mais de uma loja, então precisa saber de qual pedido é esse. */}
         {pedido.nomeLoja && <p className="text-apoio font-medium text-marca-600">{pedido.nomeLoja}</p>}
-        <span className={cn('text-titulo', COR_NUMERO[pedido.status])}>#{pedido.numeroExibicao}</span>
+
+        <div className="flex items-center justify-between gap-2">
+          <span className={cn('text-titulo', COR_NUMERO[pedido.status])}>#{pedido.numeroExibicao}</span>
+          {mostrarEstado && <EtiquetaEstado estado={pedido.status} />}
+        </div>
         <p className="-mt-2 text-corpo font-semibold text-texto">{pedido.clienteNome}</p>
 
         {pedido.status === 'Recebido' && <ContadorSla prazoAte={pedido.prazoConfirmacaoAte} agora={agora} />}
@@ -121,10 +133,24 @@ export function CartaoPedido({
             <span className="text-apoio font-medium text-texto">
               {pedido.itens.length} {pedido.itens.length === 1 ? 'item' : 'itens'}
             </span>
-            <span className={cn('text-corpo font-semibold tabular-nums', COR_NUMERO[pedido.status])}>
-              {formatarDinheiro(pedido.valorTotal)}
+            <span className="flex items-center gap-1.5">
+              {/* Ao lado do valor, não no rodapé: é aqui que o olho vai quando
+                  a pergunta é "recebo quanto, e de quem". */}
+              {precisaCobrar && <Etiqueta tom="alerta">Cobrar</Etiqueta>}
+              <span className={cn('text-corpo font-semibold tabular-nums', COR_NUMERO[pedido.status])}>
+                {formatarDinheiro(pedido.valorTotal)}
+              </span>
             </span>
           </div>
+
+          <p className="mt-1.5 flex items-center justify-between gap-2 text-apoio text-texto-suave">
+            <span>{pedido.pagamentoDescricao}</span>
+            {precisaCobrar && (
+              <span className="font-semibold text-alerta tabular-nums">
+                receber {formatarDinheiro(pedido.pagamentoValorACobrar)}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Nulo quando é retirada no balcão ou consumo no local. */}

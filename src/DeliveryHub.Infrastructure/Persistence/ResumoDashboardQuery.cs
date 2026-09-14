@@ -68,12 +68,16 @@ internal sealed class ResumoDashboardQuery : IObterResumoDashboard
 
         var qtd = await doDia.CountAsync(ct);
 
-        // Receita inclui pedido de teste, igual à contagem: excluir de um e não
-        // do outro fazia o painel parecer quebrado — 20 pedidos e R$ 0,00. O
-        // que impede teste de virar dinheiro é o Ledger (CLAUDE.md §7), não
-        // este resumo, que é leitura operacional. A tela avisa quando há teste
-        // no total.
-        var receita = await doDia.SumAsync(x => x.ValorTotal, ct);
+        // Receita é dinheiro que entrou: só pedido concluído e sem valor
+        // pendente. Pedido em rota ainda pode ser cancelado, e pedido entregue
+        // com pagamento na porta só vira receita quando o motoboy cobra.
+        //
+        // Esta é a diferença entre "Pedidos hoje" e "Receita hoje": o primeiro
+        // é volume da operação, o segundo é caixa.
+        var receita = await doDia
+            .Where(x => x.Status == StatusPedido.Concluido && x.Pagamento.ValorACobrar == 0)
+            .SumAsync(x => x.ValorTotal, ct);
+
         var qtdDeTeste = await doDia.CountAsync(x => x.EhTeste, ct);
 
         return new ResumoDashboard(online, emEntrega, qtd, receita, taxa, qtdDeTeste);
