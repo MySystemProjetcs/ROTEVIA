@@ -17,6 +17,13 @@ public sealed class AvancarPedidoTests
 
         public Task<Pedido?> ObterPorIdAsync(Guid id, CancellationToken ct) => Task.FromResult(_pedido);
 
+        public Task<Pedido?> ObterParaEntregadorAsync(Guid id, CancellationToken ct) => Task.FromResult(_pedido);
+
+        public Task<Pedido?> ObterEntregaEmCursoAsync(Guid entregadorId, CancellationToken ct) =>
+            Task.FromResult<Pedido?>(null);
+
+        public void Adicionar(Pedido pedido) => throw new NotSupportedException("AvancarPedido não cria pedido.");
+
         public Task SalvarAsync(CancellationToken ct)
         {
             Salvamentos++;
@@ -47,6 +54,17 @@ public sealed class AvancarPedidoTests
         public Task<Result> DespacharAsync(string id, CancellationToken ct) => Registrar("despachar");
     }
 
+    private sealed class FakeNotificador : INotificadorPainel
+    {
+        public List<Guid> Avisados { get; } = [];
+
+        public Task ResumoAtualizadoAsync(Guid merchantId, CancellationToken ct)
+        {
+            Avisados.Add(merchantId);
+            return Task.CompletedTask;
+        }
+    }
+
     private static Pedido NovoPedido() => Pedido.Receber(
         merchantId: Guid.CreateVersion7(),
         idExterno: "b57177eb-158b-4308-92ca-56aaaecad387",
@@ -64,7 +82,7 @@ public sealed class AvancarPedidoTests
     {
         var origem = new FakeOrigem(Result.Success());
 
-        var resultado = await new AvancarPedido(new FakeRepositorio(null), origem)
+        var resultado = await new AvancarPedido(new FakeRepositorio(null), origem, new FakeNotificador())
             .ExecutarAsync(Guid.CreateVersion7(), AcaoDePedido.Confirmar, CancellationToken.None);
 
         Assert.True(resultado.IsFailure);
@@ -76,18 +94,78 @@ public sealed class AvancarPedidoTests
     [InlineData(AcaoDePedido.Confirmar, "confirmar", StatusPedido.Confirmado)]
     [InlineData(AcaoDePedido.IniciarPreparo, "iniciar-preparo", StatusPedido.EmPreparo)]
     [InlineData(AcaoDePedido.MarcarPronto, "pronto", StatusPedido.Pronto)]
-    [InlineData(AcaoDePedido.Despachar, "despachar", StatusPedido.Despachado)]
     public async Task Cada_acao_avisa_a_origem_certa_e_move_o_pedido(
         AcaoDePedido acao, string chamadaEsperada, StatusPedido statusEsperado)
     {
         var pedido = NovoPedido();
         var origem = new FakeOrigem(Result.Success());
 
-        await new AvancarPedido(new FakeRepositorio(pedido), origem)
+        await new AvancarPedido(new FakeRepositorio(pedido), origem, new FakeNotificador())
             .ExecutarAsync(pedido.Id, acao, CancellationToken.None);
 
         Assert.Equal([chamadaEsperada], origem.Chamadas);
         Assert.Equal(statusEsperado, pedido.Status);
+    }
+
+    [Fact]
+    public async Task Pedido_de_origem_local_nao_chama_a_origem_mas_avanca()
+    {
+        // Venda nascida dentro do sistema (PDV próprio, gerador de validação)
+        // não existe no marketplace: chamar a API de lá devolveria recusa.
+        var pedido = Pedido.Receber(
+            merchantId: Guid.CreateVersion7(),
+            idExterno: $"{Pedido.PrefixoOrigemLocal}{Guid.CreateVersion7()}",
+            numeroExibicao: "2280",
+            ehTeste: false,
+            cliente: new Cliente("Cliente Local", null, null),
+            enderecoEntrega: null,
+            valorTotal: 74.90m,
+            taxaEntrega: 7.90m,
+            criadoNaOrigemEm: DateTimeOffset.UtcNow,
+            recebidoEm: DateTimeOffset.UtcNow);
+
+        var repositorio = new FakeRepositorio(pedido);
+        var origem = new FakeOrigem(Result.Success());
+
+        var resultado = await new AvancarPedido(repositorio, origem, new FakeNotificador())
+            .ExecutarAsync(pedido.Id, AcaoDePedido.Confirmar, CancellationToken.None);
+
+        Assert.True(resultado.IsSuccess);
+        Assert.Empty(origem.Chamadas);
+        Assert.Equal(StatusPedido.Confirmado, pedido.Status);
+        Assert.Equal(1, repositorio.Salvamentos);
+    }
+
+    [Fact]
+    public async Task Despachar_com_entregador_ja_alocado_avisa_a_origem_e_move_o_pedido()
+    {
+        var pedido = NovoPedido();
+        pedido.AlocarEntregador(Guid.CreateVersion7());
+        var origem = new FakeOrigem(Result.Success());
+
+        await new AvancarPedido(new FakeRepositorio(pedido), origem, new FakeNotificador())
+            .ExecutarAsync(pedido.Id, AcaoDePedido.Despachar, CancellationToken.None);
+
+        Assert.Equal(["despachar"], origem.Chamadas);
+        Assert.Equal(StatusPedido.Despachado, pedido.Status);
+    }
+
+    [Fact]
+    public async Task Despachar_sem_entregador_alocado_nao_avisa_a_origem_nem_persiste()
+    {
+        // A pré-condição é checada antes de notificar o iFood: sem isso o
+        // marketplace saberia que o pedido "saiu" mesmo sem motoboy nenhum.
+        var pedido = NovoPedido();
+        var repositorio = new FakeRepositorio(pedido);
+        var origem = new FakeOrigem(Result.Success());
+
+        var resultado = await new AvancarPedido(repositorio, origem, new FakeNotificador())
+            .ExecutarAsync(pedido.Id, AcaoDePedido.Despachar, CancellationToken.None);
+
+        Assert.True(resultado.IsFailure);
+        Assert.Equal(PedidoErrors.SemEntregadorAlocado, resultado.Error);
+        Assert.Empty(origem.Chamadas);
+        Assert.Equal(0, repositorio.Salvamentos);
     }
 
     [Fact]
@@ -98,7 +176,7 @@ public sealed class AvancarPedidoTests
         var pedido = NovoPedido();
         var origem = new FakeOrigem(Result.Success()) { Observado = pedido };
 
-        await new AvancarPedido(new FakeRepositorio(pedido), origem)
+        await new AvancarPedido(new FakeRepositorio(pedido), origem, new FakeNotificador())
             .ExecutarAsync(pedido.Id, AcaoDePedido.Confirmar, CancellationToken.None);
 
         Assert.Equal(StatusPedido.Recebido, origem.StatusQuandoChamada);
@@ -112,7 +190,7 @@ public sealed class AvancarPedidoTests
         var repositorio = new FakeRepositorio(pedido);
         var recusa = Result.Failure(new Error("origem.recusou", "Recusado.", ErrorType.Conflict));
 
-        var resultado = await new AvancarPedido(repositorio, new FakeOrigem(recusa))
+        var resultado = await new AvancarPedido(repositorio, new FakeOrigem(recusa), new FakeNotificador())
             .ExecutarAsync(pedido.Id, AcaoDePedido.Confirmar, CancellationToken.None);
 
         Assert.True(resultado.IsFailure);
@@ -127,7 +205,7 @@ public sealed class AvancarPedidoTests
         pedido.Cancelar();
         var repositorio = new FakeRepositorio(pedido);
 
-        var resultado = await new AvancarPedido(repositorio, new FakeOrigem(Result.Success()))
+        var resultado = await new AvancarPedido(repositorio, new FakeOrigem(Result.Success()), new FakeNotificador())
             .ExecutarAsync(pedido.Id, AcaoDePedido.Confirmar, CancellationToken.None);
 
         Assert.True(resultado.IsFailure);

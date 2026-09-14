@@ -9,8 +9,15 @@ public enum StatusPedido
     Confirmado = 1,
     EmPreparo = 2,
     Pronto = 3,
+
+    // Motoboy interno já foi alocado e o dono despachou — aguardando o
+    // motoboy aceitar. Concluido sobe de valor pra abrir espaço aqui; seguro
+    // porque o status é persistido como string, não como número.
     Despachado = 4,
-    Concluido = 5,
+    Aceito = 5,
+    EmRota = 6,
+    Chegou = 7,
+    Concluido = 8,
 
     // Fora da linha de progressão: alcançável de qualquer estado não terminal.
     Cancelado = 99

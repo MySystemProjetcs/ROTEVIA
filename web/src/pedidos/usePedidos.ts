@@ -3,7 +3,7 @@ import type { Pedido, StatusPedido } from '@/dominio/pedido'
 import { acaoPara } from '@/dominio/pedido'
 import { api, ErroDaApi } from '@/lib/api'
 
-const INTERVALO_ATUALIZACAO_MS = 10_000
+const INTERVALO_ATUALIZACAO_MS = 4_000
 
 export function usePedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
@@ -51,5 +51,17 @@ export function usePedidos() {
     [recarregar],
   )
 
-  return { pedidos, carregando, erro, mover, recarregar }
+  const alocar = useCallback(
+    async (pedido: Pedido, entregadorId: string) => {
+      try {
+        await api.post(`/pedidos/${pedido.id}/alocar-entregador`, { entregadorId })
+        await recarregar()
+      } catch (e) {
+        setErro(e instanceof ErroDaApi ? e.message : 'Não foi possível alocar o motoboy.')
+      }
+    },
+    [recarregar],
+  )
+
+  return { pedidos, carregando, erro, mover, alocar, recarregar }
 }

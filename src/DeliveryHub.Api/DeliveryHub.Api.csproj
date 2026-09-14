@@ -3,6 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\DeliveryHub.Infrastructure\DeliveryHub.Infrastructure.csproj" />
     <ProjectReference Include="..\DeliveryHub.Application\DeliveryHub.Application.csproj" />
+    <!-- Só pra reaproveitar o WorkerHostFactory e subir o polling embutido no
+         processo da API — decisão explícita, diverge do "processo separado"
+         original do CLAUDE.md §4. -->
+    <ProjectReference Include="..\DeliveryHub.Worker\DeliveryHub.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

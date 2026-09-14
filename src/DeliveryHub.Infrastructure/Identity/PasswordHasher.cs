@@ -48,3 +48,10 @@ internal sealed class GeradorDeSenha : IGeradorDeSenha
 
     public string Gerar() => RandomNumberGenerator.GetString(Alfabeto, Tamanho);
 }
+
+internal sealed class GeradorDeConvite : IGeradorDeConvite
+{
+    // 32 bytes de entropia em hex: só precisa ser imprevisível e caber numa
+    // URL sem encoding — diferente da senha provisória, ninguém digita isto.
+    public string Gerar() => Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
+}

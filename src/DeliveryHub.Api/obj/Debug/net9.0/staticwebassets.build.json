@@ -1,11 +1,23 @@
 {
   "Version": 1,
-  "Hash": "ntYRcW4mj2dGbqLqOXMcrZUSKEU8UlS9jkanEZImN8Y=",
+  "Hash": "/PLpC3s4n2XZ2j/cGvjGBzPytMShKqxl4kZU/rijtnc=",
   "Source": "DeliveryHub.Api",
   "BasePath": "_content/DeliveryHub.Api",
   "Mode": "Default",
   "ManifestType": "Build",
-  "ReferencedProjectsConfiguration": [],
+  "ReferencedProjectsConfiguration": [
+    {
+      "Identity": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/DeliveryHub.Worker.csproj",
+      "Version": 2,
+      "Source": "DeliveryHub.Worker",
+      "GetPublishAssetsTargets": "ComputeReferencedStaticWebAssetsPublishManifest;GetCurrentProjectPublishStaticWebAssetItems",
+      "AdditionalPublishProperties": "Configuration=Debug;Platform=AnyCPU",
+      "AdditionalPublishPropertiesToRemove": "WebPublishProfileFile;TargetFramework",
+      "GetBuildAssetsTargets": "GetCurrentProjectBuildStaticWebAssetItems",
+      "AdditionalBuildProperties": "Configuration=Debug;Platform=AnyCPU",
+      "AdditionalBuildPropertiesToRemove": "WebPublishProfileFile;TargetFramework"
+    }
+  ],
   "DiscoveryPatterns": [],
   "Assets": [],
   "Endpoints": []

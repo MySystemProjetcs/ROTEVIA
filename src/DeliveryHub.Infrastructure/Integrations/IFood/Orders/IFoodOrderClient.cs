@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
 
@@ -6,8 +7,9 @@ namespace DeliveryHub.Infrastructure.Integrations.IFood.Orders;
 internal interface IIFoodOrderClient
 {
     // O evento do polling não diz de qual loja é o pedido — o merchant só
-    // aparece aqui, e é por ele que o tenant é resolvido.
-    Task<IFoodOrderDetails> GetDetailsAsync(Guid orderId, CancellationToken ct);
+    // aparece aqui, e é por ele que o tenant é resolvido. autorizacao nulo usa
+    // o token Centralizado padrão; uma loja do Distribuído passa o próprio.
+    Task<IFoodOrderDetails> GetDetailsAsync(Guid orderId, CancellationToken ct, AuthenticationHeaderValue? autorizacao = null);
 
     Task ConfirmAsync(Guid orderId, CancellationToken ct);
     Task StartPreparationAsync(Guid orderId, CancellationToken ct);
@@ -24,9 +26,14 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
         _httpClient = httpClient;
     }
 
-    public async Task<IFoodOrderDetails> GetDetailsAsync(Guid orderId, CancellationToken ct)
+    public async Task<IFoodOrderDetails> GetDetailsAsync(
+        Guid orderId, CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
     {
-        using var response = await _httpClient.GetAsync($"orders/{orderId}", ct);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"orders/{orderId}");
+        if (autorizacao is not null)
+            request.Headers.Authorization = autorizacao;
+
+        using var response = await _httpClient.SendAsync(request, ct);
 
         if (!response.IsSuccessStatusCode)
         {

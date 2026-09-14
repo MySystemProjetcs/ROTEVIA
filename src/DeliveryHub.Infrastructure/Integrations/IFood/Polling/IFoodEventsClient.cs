@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
 
@@ -6,11 +7,14 @@ namespace DeliveryHub.Infrastructure.Integrations.IFood.Polling;
 
 internal interface IIFoodEventsClient
 {
-    Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct);
+    // autorizacao nulo usa o token Centralizado padrão (via handler). Uma loja
+    // do fluxo Distribuído passa o próprio token — só ela enxerga os eventos
+    // daquela loja específica.
+    Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct, AuthenticationHeaderValue? autorizacao = null);
 
     // Só chamar depois de persistir: acknowledgment antes de gravar perde
     // pedido se o processo cair no meio (CLAUDE.md §7).
-    Task AcknowledgeAsync(IReadOnlyList<Guid> eventIds, CancellationToken ct);
+    Task AcknowledgeAsync(IReadOnlyList<Guid> eventIds, CancellationToken ct, AuthenticationHeaderValue? autorizacao = null);
 }
 
 internal sealed class IFoodEventsClient : IIFoodEventsClient
@@ -27,9 +31,13 @@ internal sealed class IFoodEventsClient : IIFoodEventsClient
         _httpClient = httpClient;
     }
 
-    public async Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
     {
-        using var response = await _httpClient.GetAsync(PollingPath, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Get, PollingPath);
+        if (autorizacao is not null)
+            request.Headers.Authorization = autorizacao;
+
+        using var response = await _httpClient.SendAsync(request, ct);
 
         // Sem evento novo o iFood responde 204 com corpo vazio — desserializar
         // isso estoura, então o caso precisa sair antes.
@@ -42,14 +50,22 @@ internal sealed class IFoodEventsClient : IIFoodEventsClient
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodEvent>>(ct) ?? [];
     }
 
-    public async Task AcknowledgeAsync(IReadOnlyList<Guid> eventIds, CancellationToken ct)
+    public async Task AcknowledgeAsync(
+        IReadOnlyList<Guid> eventIds, CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
     {
         if (eventIds.Count == 0)
             return;
 
         var payload = eventIds.Select(id => new IFoodAckEvent(id)).ToArray();
 
-        using var response = await _httpClient.PostAsJsonAsync(AcknowledgmentPath, payload, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Post, AcknowledgmentPath)
+        {
+            Content = JsonContent.Create(payload)
+        };
+        if (autorizacao is not null)
+            request.Headers.Authorization = autorizacao;
+
+        using var response = await _httpClient.SendAsync(request, ct);
 
         if (!response.IsSuccessStatusCode)
             throw await ToExceptionAsync(response, ct);

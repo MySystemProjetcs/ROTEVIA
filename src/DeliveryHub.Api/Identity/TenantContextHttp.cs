@@ -2,7 +2,6 @@ using System.Security.Claims;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Identity;
 using DeliveryHub.Infrastructure.Identity;
-using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace DeliveryHub.Api.Identity;
 
@@ -19,11 +18,9 @@ internal sealed class TenantContextHttp : ITenantContext
 
     public bool EstaAutenticado => _usuario?.Identity?.IsAuthenticated == true;
 
-    public Guid? UsuarioId =>
-        Guid.TryParse(_usuario?.FindFirstValue(JwtRegisteredClaimNames.Sub), out var id) ? id : null;
+    public Guid? UsuarioId => _usuario.UsuarioId();
 
-    public Guid? MerchantId =>
-        Guid.TryParse(_usuario?.FindFirstValue(ClaimsDeliveryHub.MerchantId), out var id) ? id : null;
+    public Guid? MerchantId => _usuario.MerchantId();
 
     // Só o papel de administrador abre o filtro, e só quando o token é válido.
     // Requisição sem autenticação não vê nada de ninguém.

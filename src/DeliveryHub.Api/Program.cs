@@ -3,11 +3,20 @@ using System.Text.Json.Serialization;
 using DeliveryHub.Api.Diagnostics;
 using DeliveryHub.Api.Identity;
 using DeliveryHub.Api.Orders;
+using DeliveryHub.Infrastructure.RealTime;
 using DeliveryHub.Application.Abstractions;
+using DeliveryHub.Api.Couriers;
+using DeliveryHub.Api.Dashboard;
+using DeliveryHub.Api.Merchants;
+using DeliveryHub.Api.WhatsApp;
+using DeliveryHub.Application.Couriers;
 using DeliveryHub.Application.Identity;
+using DeliveryHub.Application.Merchants;
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Infrastructure.Identity;
+using DeliveryHub.Infrastructure.Integrations.Enderecos;
 using DeliveryHub.Infrastructure.Integrations.IFood;
+using DeliveryHub.Infrastructure.Integrations.WhatsApp;
 using DeliveryHub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -39,6 +48,27 @@ builder.Services
             // Sem tolerância de relógio: token expirado é token expirado.
             ClockSkew = TimeSpan.Zero
         };
+
+        // SignalR via WebSocket não suporta header Authorization padrão:
+        // o navegador não permite headers customizados em conexões WS.
+        // A convenção do SignalR JS client é enviar o token como query string
+        // "access_token" — este handler captura e repassa como Bearer.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddPoliticasDeAutorizacao();
@@ -49,13 +79,30 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
 
 builder.Services.AddIFoodIntegration(builder.Configuration);
+builder.Services.AddWhatsAppIntegration(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddBuscaDeEndereco();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<IAvancarPedido, AvancarPedido>();
+builder.Services.AddScoped<ILancarPedidoInterno, LancarPedidoInterno>();
+builder.Services.AddScoped<IAlocarEntregador, AlocarEntregador>();
+builder.Services.AddScoped<IAvancarEntrega, AvancarEntrega>();
 builder.Services.AddScoped<IAutenticar, Autenticar>();
 builder.Services.AddScoped<ICadastrarRestaurante, CadastrarRestaurante>();
 builder.Services.AddScoped<ICriarDonoParaRestaurante, CriarDonoParaRestaurante>();
+builder.Services.AddScoped<IIniciarConexaoIFood, IniciarConexaoIFood>();
+builder.Services.AddScoped<IConfirmarConexaoIFood, ConfirmarConexaoIFood>();
+builder.Services.AddScoped<IConvidarEntregador, ConvidarEntregador>();
+builder.Services.AddScoped<IConfirmarConviteEntregador, ConfirmarConviteEntregador>();
+builder.Services.AddScoped<IListarEntregadores, ListarEntregadores>();
+builder.Services.AddScoped<IObterPreviaDoConvite, ObterPreviaDoConvite>();
+builder.Services.AddScoped<IDisponibilidadeEntrega, DisponibilidadeEntrega>();
+builder.Services.AddScoped<IDefinirTaxaPorEntrega, DefinirTaxaPorEntrega>();
+
+// SignalR com backplane no Redis: é o que permite o worker de polling, que
+// vive em outro container de DI, alcançar as conexões abertas aqui.
+builder.Services.AddTempoReal(builder.Configuration);
 
 var app = builder.Build();
 
@@ -66,6 +113,32 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapPedidoEndpoints();
+app.MapEntregaEndpoints();
+app.MapRastreioEndpoints();
+app.MapPedidoInternoEndpoints();
+app.MapMerchantEndpoints();
+app.MapCourierEndpoints();
+app.MapDashboardEndpoints();
+app.MapWhatsAppEndpoints();
 app.MapIFoodDiagnosticsEndpoints();
+app.MapHub<RastreioHub>("/hubs/rastreio");
 
-app.Run();
+// Gerador de pedido com endereço real: só existe fora de produção.
+if (app.Environment.IsDevelopment())
+    app.MapPedidoLocalEndpoints();
+
+// Worker embutido: container de DI próprio (TenantContextSistema não pode
+// coexistir com o TenantContextHttp desta API), só compartilhando o processo
+// e a porta 5000 pro /health do polling continuar visível separado do da API.
+var workerHost = DeliveryHub.Worker.WorkerHostFactory.Build(urls: "http://localhost:5000");
+await workerHost.StartAsync();
+
+try
+{
+    await app.RunAsync();
+}
+finally
+{
+    await workerHost.StopAsync();
+    await workerHost.DisposeAsync();
+}

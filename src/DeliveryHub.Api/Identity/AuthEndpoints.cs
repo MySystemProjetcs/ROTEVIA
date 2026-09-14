@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace DeliveryHub.Api.Identity;
 
 public sealed record LoginRequest(string Email, string Senha);
-public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiraEm, bool DeveTrocarSenha);
+public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiraEm, bool DeveTrocarSenha, string? NomeRestaurante, string NomeUsuario);
 
-public sealed record CadastrarRestauranteRequest(
-    string NomeLoja, Guid IFoodMerchantId, string EmailDono, string NomeDono);
+public sealed record CadastrarRestauranteRequest(string NomeLoja, string EmailDono, string NomeDono);
 
 // A senha provisória trafega uma única vez, nesta resposta, para o
 // administrador repassar ao dono. Não é persistida nem registrada em log.
@@ -53,7 +52,7 @@ public static class AuthEndpoints
 
         return resultado.IsSuccess
             ? TypedResults.Ok(new LoginResponse(
-                resultado.Value.AccessToken, resultado.Value.ExpiraEm, resultado.Value.DeveTrocarSenha))
+                resultado.Value.AccessToken, resultado.Value.ExpiraEm, resultado.Value.DeveTrocarSenha, resultado.Value.NomeRestaurante, resultado.Value.NomeUsuario))
             : ProblemaDe(resultado.Error);
     }
 
@@ -62,8 +61,7 @@ public static class AuthEndpoints
         ICadastrarRestaurante cadastrar,
         CancellationToken ct)
     {
-        var resultado = await cadastrar.ExecutarAsync(
-            request.NomeLoja, request.IFoodMerchantId, request.EmailDono, request.NomeDono, ct);
+        var resultado = await cadastrar.ExecutarAsync(request.NomeLoja, request.EmailDono, request.NomeDono, ct);
 
         return resultado.IsSuccess
             ? TypedResults.Ok(new CadastrarRestauranteResponse(

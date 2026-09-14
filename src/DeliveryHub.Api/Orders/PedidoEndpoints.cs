@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace DeliveryHub.Api.Orders;
 
+public sealed record AlocarEntregadorRequest(Guid EntregadorId);
+
 public static class PedidoEndpoints
 {
     public static void MapPedidoEndpoints(this IEndpointRouteBuilder app)
@@ -26,8 +28,25 @@ public static class PedidoEndpoints
         group.MapPost("/{id:guid}/pronto", (Guid id, IAvancarPedido a, CancellationToken ct) =>
             Avancar(id, AcaoDePedido.MarcarPronto, a, ct));
 
+        // Só define quem vai entregar — não move o status. Precisa acontecer
+        // antes do /despachar, que agora exige entregador já alocado.
+        group.MapPost("/{id:guid}/alocar-entregador", AlocarEntregador);
+
         group.MapPost("/{id:guid}/despachar", (Guid id, IAvancarPedido a, CancellationToken ct) =>
             Avancar(id, AcaoDePedido.Despachar, a, ct));
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> AlocarEntregador(
+        Guid id, AlocarEntregadorRequest request, IAlocarEntregador alocar, CancellationToken ct)
+    {
+        var resultado = await alocar.ExecutarAsync(id, request.EntregadorId, ct);
+
+        return resultado.IsSuccess
+            ? TypedResults.NoContent()
+            : TypedResults.Problem(
+                title: resultado.Error.Message,
+                detail: resultado.Error.Code,
+                statusCode: ParaStatusHttp(resultado.Error.Type));
     }
 
     private static async Task<Ok<IReadOnlyList<PedidoDto>>> Listar(

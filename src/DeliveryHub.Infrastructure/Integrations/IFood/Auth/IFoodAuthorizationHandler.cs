@@ -16,10 +16,16 @@ internal sealed class IFoodAuthorizationHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        request.Headers.Authorization = await _authenticator.GetAuthorizationHeaderAsync(cancellationToken);
+        // Chamada em nome de uma loja do fluxo Distribuído já chega com o
+        // token daquela loja anexado — não é o autenticador Centralizado que
+        // decide o que fazer com um 401 nesse caso, então nem invalida cache
+        // nem repete: devolve a resposta como veio para o chamador decidir.
+        var autorizacaoExplicita = request.Headers.Authorization is not null;
+        if (!autorizacaoExplicita)
+            request.Headers.Authorization = await _authenticator.GetAuthorizationHeaderAsync(cancellationToken);
 
         var response = await base.SendAsync(request, cancellationToken);
-        if (response.StatusCode != HttpStatusCode.Unauthorized)
+        if (autorizacaoExplicita || response.StatusCode != HttpStatusCode.Unauthorized)
             return response;
 
         response.Dispose();

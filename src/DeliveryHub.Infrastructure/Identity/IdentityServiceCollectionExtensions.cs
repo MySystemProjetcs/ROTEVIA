@@ -16,7 +16,9 @@ public static class IdentityServiceCollectionExtensions
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IGeradorDeSenha, GeradorDeSenha>();
+        services.AddSingleton<IGeradorDeConvite, GeradorDeConvite>();
         services.AddScoped<IGeradorDeToken, GeradorDeToken>();
+        services.AddScoped<IGeradorDeLinkDeConvite, GeradorDeLinkDeConvite>();
 
         return services;
     }

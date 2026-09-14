@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Infrastructure.Integrations.IFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.IFood.Merchants;
 using DeliveryHub.Infrastructure.Integrations.IFood.Orders;
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
 using Microsoft.Extensions.Configuration;
@@ -15,12 +16,18 @@ public static class IFoodServiceCollectionExtensions
     private const string AuthenticationBaseAddress = "https://merchant-api.ifood.com.br/authentication/v1.0/";
     private const string EventsBaseAddress = "https://merchant-api.ifood.com.br/events/v1.0/";
     private const string OrderBaseAddress = "https://merchant-api.ifood.com.br/order/v1.0/";
+    private const string MerchantBaseAddress = "https://merchant-api.ifood.com.br/merchant/v1.0/";
 
     public static IServiceCollection AddIFoodIntegration(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddOptions<IFoodOptions>()
             .Bind(configuration.GetSection(IFoodOptions.SectionName))
+            .ValidateOnStart();
+
+        services
+            .AddOptions<IFoodDistributedOptions>()
+            .Bind(configuration.GetSection(IFoodDistributedOptions.SectionName))
             .ValidateOnStart();
 
         services.TryAddSingleton(TimeProvider.System);
@@ -36,8 +43,22 @@ public static class IFoodServiceCollectionExtensions
         services.AddScoped<IIFoodInboxProcessor, IFoodInboxProcessor>();
         services.AddScoped<IOrderSource, IFoodOrderSource>();
 
+        // Sem estado a manter entre chamadas — cada troca de token já devolve
+        // seu próprio expiresIn, então não precisa ser singleton como o
+        // autenticador Centralizado.
+        services.AddScoped<IIFoodMerchantConnector, IFoodMerchantConnector>();
+        services.AddScoped<IIFoodMerchantTokenProvider, IFoodMerchantTokenProvider>();
+
         services
             .AddHttpClient(IFoodHttpClients.Authentication, client => Configure(client, AuthenticationBaseAddress))
+            .ConfigurePrimaryHttpMessageHandler(PrimaryHandler);
+
+        services
+            .AddHttpClient(IFoodHttpClients.AuthenticationDistributed, client => Configure(client, AuthenticationBaseAddress))
+            .ConfigurePrimaryHttpMessageHandler(PrimaryHandler);
+
+        services
+            .AddHttpClient(IFoodHttpClients.MerchantDistributed, client => Configure(client, MerchantBaseAddress))
             .ConfigurePrimaryHttpMessageHandler(PrimaryHandler);
 
         services

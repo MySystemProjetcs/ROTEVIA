@@ -31,11 +31,13 @@ public sealed class AvancarPedido : IAvancarPedido
 {
     private readonly IPedidoRepository _pedidos;
     private readonly IOrderSource _origem;
+    private readonly INotificadorPainel _notificador;
 
-    public AvancarPedido(IPedidoRepository pedidos, IOrderSource origem)
+    public AvancarPedido(IPedidoRepository pedidos, IOrderSource origem, INotificadorPainel notificador)
     {
         _pedidos = pedidos;
         _origem = origem;
+        _notificador = notificador;
     }
 
     public async Task<Result> ExecutarAsync(Guid pedidoId, AcaoDePedido acao, CancellationToken ct)
@@ -44,17 +46,31 @@ public sealed class AvancarPedido : IAvancarPedido
         if (pedido is null)
             return Result.Failure(AvancarPedidoErrors.PedidoNaoEncontrado);
 
+        // Checa a pré-condição do domínio antes de avisar a origem: sem isso
+        // o iFood saberia que o pedido "saiu" mesmo sem motoboy alocado, e só
+        // depois a gente descobriria que o domínio recusa.
+        if (acao == AcaoDePedido.Despachar && pedido.EntregadorId is null)
+            return Result.Failure(PedidoErrors.SemEntregadorAlocado);
+
         // A origem primeiro: mudar o status local antes de o marketplace
         // aceitar deixaria o lojista vendo um estado que não existe lá fora.
-        var naOrigem = await NotificarOrigemAsync(acao, pedido.IdExterno, ct);
-        if (naOrigem.IsFailure)
-            return naOrigem;
+        //
+        // Pedido nascido aqui dentro pula esse passo — não há marketplace a
+        // avisar, e chamar a API do iFood com um id que não existe lá só
+        // devolveria recusa para uma venda legítima.
+        if (pedido.TemOrigemExterna)
+        {
+            var naOrigem = await NotificarOrigemAsync(acao, pedido.IdExterno, ct);
+            if (naOrigem.IsFailure)
+                return naOrigem;
+        }
 
         var transicao = AplicarNoDominio(acao, pedido);
         if (transicao.IsFailure)
             return transicao;
 
         await _pedidos.SalvarAsync(ct);
+        await _notificador.ResumoAtualizadoAsync(pedido.MerchantId, ct);
         return Result.Success();
     }
 

@@ -11,11 +11,6 @@ public static class CadastroErrors
         "cadastro.email_ja_usado",
         "Já existe usuário com este e-mail.",
         ErrorType.Conflict);
-
-    public static readonly Error LojaJaCadastrada = new(
-        "cadastro.loja_ja_cadastrada",
-        "Já existe restaurante com este id do iFood.",
-        ErrorType.Conflict);
 }
 
 // A senha em claro aparece uma única vez, aqui, para o administrador repassar
@@ -24,8 +19,11 @@ public sealed record RestauranteCadastrado(Guid MerchantId, Guid UsuarioId, stri
 
 public interface ICadastrarRestaurante
 {
-    Task<Result<RestauranteCadastrado>> ExecutarAsync(
-        string nomeLoja, Guid ifoodMerchantId, string emailDono, string nomeDono, CancellationToken ct);
+    // Sem ifoodMerchantId de propósito: no fluxo Distribuído esse dado só
+    // existe depois que o próprio dono autoriza a loja pelo Portal do
+    // Parceiro — pedir aqui seria inventar informação que ainda não existe
+    // no momento do cadastro.
+    Task<Result<RestauranteCadastrado>> ExecutarAsync(string nomeLoja, string emailDono, string nomeDono, CancellationToken ct);
 }
 
 public sealed class CadastrarRestaurante : ICadastrarRestaurante
@@ -51,17 +49,14 @@ public sealed class CadastrarRestaurante : ICadastrarRestaurante
     }
 
     public async Task<Result<RestauranteCadastrado>> ExecutarAsync(
-        string nomeLoja, Guid ifoodMerchantId, string emailDono, string nomeDono, CancellationToken ct)
+        string nomeLoja, string emailDono, string nomeDono, CancellationToken ct)
     {
         if (await _usuarios.ExisteComEmailAsync(emailDono, ct))
             return Result.Failure<RestauranteCadastrado>(CadastroErrors.EmailJaUsado);
 
-        if (await _merchants.ExistePorIFoodIdAsync(ifoodMerchantId, ct))
-            return Result.Failure<RestauranteCadastrado>(CadastroErrors.LojaJaCadastrada);
-
         var agora = _timeProvider.GetUtcNow();
 
-        var merchant = Merchant.Criar(nomeLoja, ifoodMerchantId, agora);
+        var merchant = Merchant.Criar(nomeLoja, agora);
         _merchants.Adicionar(merchant);
 
         var senhaProvisoria = _geradorDeSenha.Gerar();

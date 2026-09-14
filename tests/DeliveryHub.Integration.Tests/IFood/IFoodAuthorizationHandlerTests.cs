@@ -92,6 +92,44 @@ public sealed class IFoodAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task Autorizacao_explicita_nao_e_sobrescrita_pelo_autenticador_Centralizado()
+    {
+        // Uma loja do fluxo Distribuído já chega com o próprio token anexado.
+        // Se o handler sobrescrevesse, a chamada usaria o token errado — de
+        // uma loja diferente da que ela deveria enxergar.
+        var stub = new StubHttpMessageHandler().Enqueue(HttpStatusCode.OK, "{}");
+        var httpClient = Build(stub, new FakeAuthenticator());
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "orders/07110e1b-8191-4670-baed-407219481ffb")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("bearer", "token-da-loja-distribuida") }
+        };
+        await httpClient.SendAsync(request);
+
+        Assert.Equal("token-da-loja-distribuida", stub.AuthorizationHeaders[0]?.Parameter);
+    }
+
+    [Fact]
+    public async Task Autorizacao_explicita_com_401_nao_invalida_o_cache_Centralizado_nem_repete()
+    {
+        // Um 401 na loja do Distribuído é problema do token daquela loja — não
+        // tem relação com o autenticador Centralizado, que continua válido.
+        var stub = new StubHttpMessageHandler().Enqueue(HttpStatusCode.Unauthorized, "{}");
+        var authenticator = new FakeAuthenticator();
+        var httpClient = Build(stub, authenticator);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "orders/07110e1b-8191-4670-baed-407219481ffb")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("bearer", "token-da-loja-distribuida") }
+        };
+        var resposta = await httpClient.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+        Assert.Equal(1, stub.RequestCount);
+        Assert.Equal(0, authenticator.InvalidateCount);
+    }
+
+    [Fact]
     public async Task Resposta_bem_sucedida_nao_dispara_retry()
     {
         var stub = new StubHttpMessageHandler().Enqueue(HttpStatusCode.OK, "{}");

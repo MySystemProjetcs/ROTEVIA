@@ -32,6 +32,9 @@
               },
               "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj": {
                 "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj"
+              },
+              "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/DeliveryHub.Worker.csproj": {
+                "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/DeliveryHub.Worker.csproj"
               }
             }
           }
@@ -256,6 +259,10 @@
           "targetAlias": "net9.0",
           "dependencies": {
             "Microsoft.AspNetCore.Cryptography.KeyDerivation": {
+              "target": "Package",
+              "version": "[9.0.9, )"
+            },
+            "Microsoft.AspNetCore.SignalR.StackExchangeRedis": {
               "target": "Package",
               "version": "[9.0.9, )"
             },

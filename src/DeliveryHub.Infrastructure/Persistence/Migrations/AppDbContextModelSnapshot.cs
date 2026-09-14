@@ -22,6 +22,117 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("DeliveryHub.Domain.Couriers.Courier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Cpf")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("cpf");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<bool>("DisponivelParaEntrega")
+                        .HasColumnType("boolean")
+                        .HasColumnName("disponivel_para_entrega");
+
+                    b.Property<string>("ModeloDaMoto")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("modelo_da_moto");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<string>("Placa")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("placa");
+
+                    b.Property<string>("Telefone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("telefone");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cpf")
+                        .IsUnique()
+                        .HasDatabaseName("ux_couriers_cpf");
+
+                    b.ToTable("couriers", (string)null);
+                });
+
+            modelBuilder.Entity("DeliveryHub.Domain.Couriers.CourierMerchantLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AtivadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ativado_em");
+
+                    b.Property<DateTimeOffset?>("ConviteExpiraEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("convite_expira_em");
+
+                    b.Property<Guid>("CourierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("courier_id");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<Guid>("MerchantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("merchant_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TokenConviteHash")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("token_convite_hash");
+
+                    b.Property<DateTimeOffset>("VinculadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vinculado_em");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourierId", "MerchantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_courier_merchant_links_courier_merchant");
+
+                    b.ToTable("courier_merchant_links", (string)null);
+                });
+
             modelBuilder.Entity("DeliveryHub.Domain.Identity.Usuario", b =>
                 {
                     b.Property<Guid>("Id")
@@ -113,7 +224,7 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
-                    b.Property<Guid>("IFoodMerchantId")
+                    b.Property<Guid?>("IFoodMerchantId")
                         .HasColumnType("uuid")
                         .HasColumnName("ifood_merchant_id");
 
@@ -122,6 +233,11 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome");
+
+                    b.Property<decimal>("TaxaPadraoPorEntrega")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("taxa_padrao_por_entrega");
 
                     b.HasKey("Id");
 
@@ -205,6 +321,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("eh_teste");
 
+                    b.Property<Guid?>("EntregadorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entregador_id");
+
                     b.Property<string>("IdExterno")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -236,6 +356,11 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("taxa_entrega");
 
+                    b.Property<decimal?>("ValorPagoAoEntregador")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("valor_pago_ao_entregador");
+
                     b.Property<decimal>("ValorTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -248,10 +373,57 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_pedidos_id_externo");
 
                     b.HasIndex("MerchantId", "RecebidoEm")
-                        .HasDatabaseName("ix_pedidos_ativos_por_merchant")
-                        .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado')");
+                        .HasDatabaseName("ix_pedidos_merchant_recebido")
+                        .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado','Aceito','EmRota','Chegou')");
 
                     b.ToTable("pedidos", (string)null);
+                });
+
+            modelBuilder.Entity("DeliveryHub.Domain.Tracking.PosicaoEntregador", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CapturadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("capturado_em");
+
+                    b.Property<Guid>("EntregadorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entregador_id");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
+                    b.Property<Guid>("MerchantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("merchant_id");
+
+                    b.Property<Guid>("PedidoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pedido_id");
+
+                    b.Property<double>("PrecisaoEmMetros")
+                        .HasColumnType("double precision")
+                        .HasColumnName("precisao_metros");
+
+                    b.Property<DateTimeOffset>("RecebidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recebido_em");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PedidoId", "CapturadoEm")
+                        .HasDatabaseName("ix_posicoes_por_pedido");
+
+                    b.ToTable("posicoes_entregador", (string)null);
                 });
 
             modelBuilder.Entity("DeliveryHub.Infrastructure.Persistence.IntegrationInboxEvent", b =>
@@ -305,6 +477,162 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_inbox_event");
 
                     b.ToTable("integration_inbox", (string)null);
+                });
+
+            modelBuilder.Entity("DeliveryHub.Domain.Merchants.Merchant", b =>
+                {
+                    b.OwnsOne("DeliveryHub.Domain.Merchants.ConexaoIFood", "ConexaoIFood", b1 =>
+                        {
+                            b1.Property<Guid>("MerchantId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("AccessToken")
+                                .HasColumnType("text")
+                                .HasColumnName("ifood_access_token");
+
+                            b1.Property<string>("AuthorizationCodeVerifier")
+                                .HasColumnType("text")
+                                .HasColumnName("ifood_authorization_code_verifier");
+
+                            b1.Property<DateTimeOffset?>("CodigoExpiraEm")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("ifood_codigo_expira_em");
+
+                            b1.Property<DateTimeOffset?>("ConectadoEm")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("ifood_conectado_em");
+
+                            b1.Property<string>("RefreshToken")
+                                .HasColumnType("text")
+                                .HasColumnName("ifood_refresh_token");
+
+                            b1.Property<string>("TipoToken")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("ifood_tipo_token");
+
+                            b1.Property<DateTimeOffset?>("TokenExpiraEm")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("ifood_token_expira_em");
+
+                            b1.Property<string>("UserCode")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("ifood_user_code");
+
+                            b1.HasKey("MerchantId");
+
+                            b1.ToTable("merchants");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MerchantId");
+                        });
+
+                    b.OwnsOne("DeliveryHub.Domain.Merchants.ConexaoWhatsApp", "ConexaoWhatsApp", b1 =>
+                        {
+                            b1.Property<Guid>("MerchantId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset?>("ConectadoEm")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("whatsapp_conectado_em");
+
+                            b1.Property<string>("Historico")
+                                .IsRequired()
+                                .HasColumnType("jsonb")
+                                .HasColumnName("whatsapp_historico");
+
+                            b1.Property<string>("Status")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("character varying(30)")
+                                .HasColumnName("whatsapp_status");
+
+                            b1.Property<string>("Telefone")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("whatsapp_telefone");
+
+                            b1.HasKey("MerchantId");
+
+                            b1.ToTable("merchants");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MerchantId");
+                        });
+
+                    b.OwnsOne("DeliveryHub.Domain.SharedKernel.Endereco", "Endereco", b1 =>
+                        {
+                            b1.Property<Guid>("MerchantId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Bairro")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("character varying(120)")
+                                .HasColumnName("endereco_bairro");
+
+                            b1.Property<string>("Cep")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("endereco_cep");
+
+                            b1.Property<string>("Cidade")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("character varying(120)")
+                                .HasColumnName("endereco_cidade");
+
+                            b1.Property<string>("Complemento")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("endereco_complemento");
+
+                            b1.Property<string>("Estado")
+                                .IsRequired()
+                                .HasMaxLength(2)
+                                .HasColumnType("character varying(2)")
+                                .HasColumnName("endereco_estado");
+
+                            b1.Property<double>("Latitude")
+                                .HasColumnType("double precision")
+                                .HasColumnName("endereco_latitude");
+
+                            b1.Property<string>("Logradouro")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("endereco_logradouro");
+
+                            b1.Property<double>("Longitude")
+                                .HasColumnType("double precision")
+                                .HasColumnName("endereco_longitude");
+
+                            b1.Property<string>("Numero")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("endereco_numero");
+
+                            b1.Property<string>("Referencia")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("endereco_referencia");
+
+                            b1.HasKey("MerchantId");
+
+                            b1.ToTable("merchants");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MerchantId");
+                        });
+
+                    b.Navigation("ConexaoIFood");
+
+                    b.Navigation("ConexaoWhatsApp");
+
+                    b.Navigation("Endereco");
                 });
 
             modelBuilder.Entity("DeliveryHub.Domain.Orders.ItemPedido", b =>

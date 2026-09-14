@@ -28,11 +28,11 @@ public sealed class PedidoPersistenciaTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(ConnectionString).Options;
-        _db = new AppDbContext(options, new TenantContextSistema());
+        _db = new AppDbContext(options, new TenantContextSistema(), new CifradorDeTeste());
 
         await LimparAsync();
 
-        var merchant = Merchant.Criar("Loja de Teste", Guid.CreateVersion7(), DateTimeOffset.UtcNow);
+        var merchant = Merchant.Criar("Loja de Teste", DateTimeOffset.UtcNow);
         _db.Merchants.Add(merchant);
         await _db.SaveChangesAsync();
         _merchantId = merchant.Id;

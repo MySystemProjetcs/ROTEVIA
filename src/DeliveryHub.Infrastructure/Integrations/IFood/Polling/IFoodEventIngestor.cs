@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using DeliveryHub.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
@@ -8,7 +9,10 @@ public sealed record ResultadoIngestao(int Recebidos, int Gravados, int EmQuaren
 
 public interface IIFoodEventIngestor
 {
-    Task<ResultadoIngestao> IngerirAsync(CancellationToken ct);
+    // autorizacao nulo faz o polling Centralizado (todas as lojas daquele
+    // token); com token de uma loja específica, faz o polling só dela — é
+    // assim que o worker itera pelas lojas do fluxo Distribuído.
+    Task<ResultadoIngestao> IngerirAsync(CancellationToken ct, AuthenticationHeaderValue? autorizacao = null);
 }
 
 internal sealed class IFoodEventIngestor : IIFoodEventIngestor
@@ -32,9 +36,9 @@ internal sealed class IFoodEventIngestor : IIFoodEventIngestor
         _logger = logger;
     }
 
-    public async Task<ResultadoIngestao> IngerirAsync(CancellationToken ct)
+    public async Task<ResultadoIngestao> IngerirAsync(CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
     {
-        var eventos = await _events.PollAsync(ct);
+        var eventos = await _events.PollAsync(ct, autorizacao);
         if (eventos.Count == 0)
             return new ResultadoIngestao(0, 0, 0, 0);
 
@@ -78,7 +82,7 @@ internal sealed class IFoodEventIngestor : IIFoodEventIngestor
             paraReconhecer.Add(evento.Id);
         }
 
-        await _events.AcknowledgeAsync(paraReconhecer, ct);
+        await _events.AcknowledgeAsync(paraReconhecer, ct, autorizacao);
 
         return new ResultadoIngestao(eventos.Count, gravados, quarentena, duplicados);
     }

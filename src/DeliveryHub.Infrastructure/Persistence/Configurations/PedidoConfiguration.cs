@@ -22,6 +22,14 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(x => x.RecebidoEm).HasColumnName("recebido_em").IsRequired();
         builder.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20).IsRequired();
 
+        // Aponta pro Courier.Id — sem FK de propósito, é referência entre
+        // agregados (mesmo padrão de outras referências cross-aggregate aqui).
+        builder.Property(x => x.EntregadorId).HasColumnName("entregador_id");
+
+        // Snapshot do ganho, gravado na conclusão — nunca filtrado nem somado
+        // junto com ValorTotal (que é receita da loja, não do motoboy).
+        builder.Property(x => x.ValorPagoAoEntregador).HasColumnName("valor_pago_ao_entregador");
+
         builder.OwnsOne(x => x.Cliente, cliente =>
         {
             cliente.Property(x => x.Nome).HasColumnName("cliente_nome").HasMaxLength(200).IsRequired();
@@ -59,7 +67,12 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         // Painel de pedidos ativos: o índice cresce com os pedidos abertos, não
         // com o histórico (ENGINEERING-GUIDE §7).
         builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm })
-            .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado')")
+            .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado','Aceito','EmRota','Chegou')")
             .HasDatabaseName("ix_pedidos_ativos_por_merchant");
+
+        // Dashboard/resumo do dia e extrato de ganhos: mesma chave, sem filtro
+        // de status (o parcial acima não serve pra Concluído/Cancelado).
+        builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm })
+            .HasDatabaseName("ix_pedidos_merchant_recebido");
     }
 }

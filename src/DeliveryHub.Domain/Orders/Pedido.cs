@@ -43,6 +43,16 @@ public sealed class Pedido : ITenantOwned
     // Id do pedido na origem. É por ele que a ingestão deduplica.
     public string IdExterno { get; }
 
+    // Prefixo reservado a pedido nascido dentro do próprio sistema — PDV
+    // próprio (CLAUDE.md §5) ou gerador de validação. Não colide com id de
+    // marketplace, que é sempre GUID.
+    public const string PrefixoOrigemLocal = "local-";
+
+    // Pedido sem origem externa não tem marketplace a avisar: tentar confirmar
+    // lá fora devolveria erro para uma venda que só existe aqui.
+    public bool TemOrigemExterna =>
+        !IdExterno.StartsWith(PrefixoOrigemLocal, StringComparison.Ordinal);
+
     // O número curto que o lojista vê e usa para falar do pedido.
     public string NumeroExibicao { get; }
 
@@ -60,6 +70,17 @@ public sealed class Pedido : ITenantOwned
     public DateTimeOffset CriadoNaOrigemEm { get; }
     public DateTimeOffset RecebidoEm { get; }
     public StatusPedido Status { get; private set; }
+
+    // Aponta pro Courier.Id (identidade global do motoboy) — o próprio
+    // MerchantId do pedido já resolve qual CourierMerchantLink é o relevante,
+    // não precisa guardar o vínculo, só quem é o entregador.
+    public Guid? EntregadorId { get; private set; }
+
+    // Snapshot do quanto esse pedido pagou ao motoboy, gravado na conclusão
+    // com a taxa vigente da loja. Nulo = não aplicável (sem entregador,
+    // pedido de teste, ou concluído antes do recurso existir). Imutável depois
+    // de gravado: reajuste de taxa nunca reescreve ganho passado.
+    public decimal? ValorPagoAoEntregador { get; private set; }
 
     public IReadOnlyList<ItemPedido> Itens => _itens;
 
@@ -86,7 +107,28 @@ public sealed class Pedido : ITenantOwned
     public Result Confirmar() => AvancarPara(StatusPedido.Confirmado);
     public Result IniciarPreparo() => AvancarPara(StatusPedido.EmPreparo);
     public Result MarcarPronto() => AvancarPara(StatusPedido.Pronto);
-    public Result Despachar() => AvancarPara(StatusPedido.Despachado);
+
+    // Só define quem vai entregar — não move o status. O pedido continua
+    // "Pronto" até o dono clicar em Despachar de verdade.
+    public Result AlocarEntregador(Guid entregadorId)
+    {
+        EntregadorId = entregadorId;
+        return Result.Success();
+    }
+
+    public Result Despachar()
+    {
+        if (EntregadorId is null)
+            return Result.Failure(PedidoErrors.SemEntregadorAlocado);
+
+        return AvancarPara(StatusPedido.Despachado);
+    }
+
+    // Passos do motoboy depois que o dono despacha. Nenhum deles avisa o
+    // iFood — só o clique do dono em Despachar faz isso, como já fazia antes.
+    public Result AceitarEntrega() => AvancarPara(StatusPedido.Aceito);
+    public Result SairParaEntrega() => AvancarPara(StatusPedido.EmRota);
+    public Result ChegarNoLocal() => AvancarPara(StatusPedido.Chegou);
     public Result Concluir() => AvancarPara(StatusPedido.Concluido);
 
     public Result Cancelar()
@@ -98,6 +140,21 @@ public sealed class Pedido : ITenantOwned
             return Result.Failure(PedidoErrors.PedidoConcluido);
 
         Status = StatusPedido.Cancelado;
+        return Result.Success();
+    }
+
+    // Registra o ganho dessa entrega. Chamada uma única vez, na conclusão,
+    // por quem conhece a taxa vigente (o caso de uso, não o domínio).
+    // Segunda chamada é no-op de sucesso: reentrega de webhook não duplica.
+    public Result RegistrarRepasseAoEntregador(decimal valor)
+    {
+        if (ValorPagoAoEntregador.HasValue)
+            return Result.Success();
+
+        if (valor < 0)
+            return Result.Failure(PedidoErrors.ValorRepasseInvalido);
+
+        ValorPagoAoEntregador = valor;
         return Result.Success();
     }
 

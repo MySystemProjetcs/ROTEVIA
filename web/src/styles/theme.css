@@ -46,10 +46,22 @@
   --color-estado-pronto-fundo: #f0f9ff;
   --color-estado-despachado: #14b8a6;
   --color-estado-despachado-fundo: #f0fdfa;
+  --color-estado-aceito: #0891b2;
+  --color-estado-aceito-fundo: #ecfeff;
+  --color-estado-emrota: #059669;
+  --color-estado-emrota-fundo: #ecfdf5;
+  --color-estado-chegou: #65a30d;
+  --color-estado-chegou-fundo: #f7fee7;
   --color-estado-concluido: #16a34a;
   --color-estado-concluido-fundo: #f0fdf4;
   --color-estado-cancelado: #64748b;
   --color-estado-cancelado-fundo: #f8fafc;
+
+  /* Marcadores do mapa. O vermelho aqui é exceção consciente ao §11: pino de
+     mapa é convenção cartográfica, não identidade da marca — não aparece em
+     botão, logo ou cabeçalho, só sobre o mapa. */
+  --color-marcador-loja: #dc2626;
+  --color-marcador-motoboy: #4f46e5;
 
   /* Feedback. Erro usa laranja queimado em vez de vermelho puro, pela mesma
      razão da marca. */

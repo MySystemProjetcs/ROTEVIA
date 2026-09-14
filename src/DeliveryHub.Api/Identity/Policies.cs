@@ -9,6 +9,7 @@ public static class Policies
 {
     public const string AdministradorSistema = nameof(AdministradorSistema);
     public const string OperadorDaLoja = nameof(OperadorDaLoja);
+    public const string Entregador = nameof(Entregador);
 }
 
 public static class AuthorizationSetup
@@ -26,7 +27,11 @@ public static class AuthorizationSetup
                 // DbContext, não esta policy.
                 contexto.User.IsInRole(nameof(PapelUsuario.AdministradorSistema)) ||
                 (contexto.User.IsInRole(nameof(PapelUsuario.DonoRestaurante)) &&
-                 contexto.User.HasClaim(c => c.Type == Infrastructure.Identity.ClaimsDeliveryHub.MerchantId))));
+                 contexto.User.HasClaim(c => c.Type == Infrastructure.Identity.ClaimsDeliveryHub.MerchantId))))
+            // Sem merchant_id de propósito: o motoboy pode atender mais de um
+            // restaurante, então não há uma única loja pra travar aqui — a
+            // autorização por pedido específico acontece dentro do endpoint.
+            .AddPolicy(Policies.Entregador, p => p.RequireRole(nameof(PapelUsuario.Entregador)));
 
         return services;
     }

@@ -1,7 +1,15 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-type Variante = 'primario' | 'secundario' | 'sutil' | 'perigo'
+type Variante =
+  | 'primario'
+  | 'secundario'
+  | 'sutil'
+  | 'perigo'
+  | 'acaoConfirmar'
+  | 'acaoIniciarPreparo'
+  | 'acaoMarcarPronto'
+  | 'acaoDespachar'
 type Tamanho = 'medio' | 'grande'
 
 // Toda diferença de aparência é uma variante declarada aqui. Precisou de um
@@ -12,6 +20,12 @@ const VARIANTES: Record<Variante, string> = {
   secundario: 'bg-superficie text-texto border border-borda-forte hover:bg-superficie-alt',
   sutil: 'bg-transparent text-marca-600 hover:bg-marca-50',
   perigo: 'bg-perigo text-texto-invertido hover:opacity-90',
+  // Ações do Kanban na cor da etapa de destino. Texto branco em todas: os tons
+  // foram escolhidos escuros de propósito para o contraste.
+  acaoConfirmar: 'bg-alerta text-texto-invertido hover:opacity-90',
+  acaoIniciarPreparo: 'bg-marca-600 text-texto-invertido hover:bg-marca-700',
+  acaoMarcarPronto: 'bg-estado-preparo text-texto-invertido hover:opacity-90',
+  acaoDespachar: 'bg-sucesso text-texto-invertido hover:opacity-90',
 }
 
 const TAMANHOS: Record<Tamanho, string> = {

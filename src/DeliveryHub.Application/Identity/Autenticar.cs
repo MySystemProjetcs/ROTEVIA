@@ -19,7 +19,7 @@ public static class AutenticacaoErrors
         ErrorType.Conflict);
 }
 
-public sealed record ResultadoLogin(string AccessToken, DateTimeOffset ExpiraEm, bool DeveTrocarSenha);
+public sealed record ResultadoLogin(string AccessToken, DateTimeOffset ExpiraEm, bool DeveTrocarSenha, string? NomeRestaurante, string NomeUsuario);
 
 public interface IAutenticar
 {
@@ -29,12 +29,14 @@ public interface IAutenticar
 public sealed class Autenticar : IAutenticar
 {
     private readonly IUsuarioRepository _usuarios;
+    private readonly IMerchantRepository _merchants;
     private readonly IPasswordHasher _hasher;
     private readonly IGeradorDeToken _token;
 
-    public Autenticar(IUsuarioRepository usuarios, IPasswordHasher hasher, IGeradorDeToken token)
+    public Autenticar(IUsuarioRepository usuarios, IMerchantRepository merchants, IPasswordHasher hasher, IGeradorDeToken token)
     {
         _usuarios = usuarios;
+        _merchants = merchants;
         _hasher = hasher;
         _token = token;
     }
@@ -58,8 +60,15 @@ public sealed class Autenticar : IAutenticar
                 return Result.Failure<ResultadoLogin>(AutenticacaoErrors.SemLojaVinculada);
         }
 
+        string? nomeRestaurante = null;
+        if (merchantId is not null)
+        {
+            var merchant = await _merchants.ObterPorIdAsync(merchantId.Value, ct);
+            nomeRestaurante = merchant?.Nome;
+        }
+
         var emitido = _token.Gerar(usuario, merchantId);
 
-        return Result.Success(new ResultadoLogin(emitido.AccessToken, emitido.ExpiraEm, usuario.DeveTrocarSenha));
+        return Result.Success(new ResultadoLogin(emitido.AccessToken, emitido.ExpiraEm, usuario.DeveTrocarSenha, nomeRestaurante, usuario.Nome));
     }
 }

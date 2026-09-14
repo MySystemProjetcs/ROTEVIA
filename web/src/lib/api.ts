@@ -42,4 +42,6 @@ export const api = {
   get: <T>(caminho: string) => requisitar<T>(caminho),
   post: <T>(caminho: string, corpo?: unknown) =>
     requisitar<T>(caminho, { method: 'POST', body: corpo ? JSON.stringify(corpo) : undefined }),
+  put: <T>(caminho: string, corpo?: unknown) =>
+    requisitar<T>(caminho, { method: 'PUT', body: corpo ? JSON.stringify(corpo) : undefined }),
 }

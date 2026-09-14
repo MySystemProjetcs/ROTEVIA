@@ -35,3 +35,8 @@ export function formatarDecorrido(ms: number): string {
 export function formatarDinheiro(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
+
+// Relógio do dia no cabeçalho (HH:MM local). Só exibição — nunca base de regra.
+export function formatarHora(agora: number): string {
+  return new Date(agora).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}

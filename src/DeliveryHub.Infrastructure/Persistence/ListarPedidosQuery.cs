@@ -16,7 +16,10 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         StatusPedido.Confirmado,
         StatusPedido.EmPreparo,
         StatusPedido.Pronto,
-        StatusPedido.Despachado
+        StatusPedido.Despachado,
+        StatusPedido.Aceito,
+        StatusPedido.EmRota,
+        StatusPedido.Chegou
     ];
 
     private readonly AppDbContext _db;
@@ -48,6 +51,14 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 x.EnderecoEntrega == null
                     ? null
                     : x.EnderecoEntrega.Logradouro + ", " + x.EnderecoEntrega.Numero + " - " + x.EnderecoEntrega.Bairro,
+                // 0,0 é "desconhecido" na prática: é o que o sandbox do iFood
+                // manda, e navegar para lá jogaria o motoboy no Atlântico.
+                x.EnderecoEntrega == null || x.EnderecoEntrega.Latitude == 0
+                    ? null
+                    : (double?)x.EnderecoEntrega.Latitude,
+                x.EnderecoEntrega == null || x.EnderecoEntrega.Longitude == 0
+                    ? null
+                    : (double?)x.EnderecoEntrega.Longitude,
                 x.CriadoNaOrigemEm,
                 x.RecebidoEm,
                 x.CriadoNaOrigemEm + PrazoDeConfirmacao,
@@ -55,7 +66,14 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                     .OrderBy(i => i.Indice)
                     .Select(i => new ItemDoPedidoDto(
                         i.Indice, i.Nome, i.Quantidade, i.Unidade, i.PrecoUnitario, i.PrecoTotal, i.Observacoes))
-                    .ToList()))
+                    .ToList(),
+                x.EntregadorId,
+                x.EntregadorId == null
+                    ? null
+                    : _db.Couriers.Where(c => c.Id == x.EntregadorId).Select(c => c.Nome).FirstOrDefault(),
+                // O dono já sabe de que loja é o pedido: só a listagem do
+                // motoboy preenche isso.
+                null))
             .ToListAsync(ct);
     }
 }

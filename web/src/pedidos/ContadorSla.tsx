@@ -1,4 +1,5 @@
 import { BarraDeProgresso } from '@/components/BarraDeProgresso'
+import { IconeRelogio } from '@/components/icones/IconeRelogio'
 import { formatarDecorrido, formatarDuracao } from '@/lib/tempo'
 
 // Janela total de confirmação do iFood. Serve só para desenhar a barra — o
@@ -57,9 +58,19 @@ interface TempoDecorridoProps {
   rotulo: string
 }
 
-// Para os estados após a confirmação não existe prazo rígido do iFood, então
-// mostramos há quanto tempo o pedido está parado — é o que revela o pedido
-// esquecido na cozinha.
+// Chip de tempo decorrido do rodapé do cartão. Só leitura de relance — o
+// prazo rígido do iFood continua na barra acima, só na coluna Aguardando.
+export function ChipTempoDecorrido({ desde, agora }: { desde: string; agora: number }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-controle border border-borda bg-superficie px-2 py-1.5 font-mono text-apoio text-texto-suave tabular-nums">
+      <IconeRelogio className="size-3.5 text-texto-fraco" />
+      {formatarDecorrido(agora - new Date(desde).getTime())}
+    </span>
+  )
+}
+
+// Versão com rótulo. No cartão do Kanban o chip compacto acima basta — a
+// coluna já diz o estado.
 export function TempoDecorrido({ desde, agora, rotulo }: TempoDecorridoProps) {
   const decorridoMs = agora - new Date(desde).getTime()
 

@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
 using DeliveryHub.Infrastructure.Persistence;
@@ -20,9 +21,16 @@ public sealed class IFoodEventIngestorTests
         public bool ReconheceuAntesDeGravar { get; private set; }
         public Func<bool>? InboxJaGravou { get; set; }
 
-        public Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct) => Task.FromResult(_eventos);
+        public AuthenticationHeaderValue? UltimaAutorizacaoRecebida { get; private set; }
 
-        public Task AcknowledgeAsync(IReadOnlyList<Guid> eventIds, CancellationToken ct)
+        public Task<IReadOnlyList<IFoodEvent>> PollAsync(CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
+        {
+            UltimaAutorizacaoRecebida = autorizacao;
+            return Task.FromResult(_eventos);
+        }
+
+        public Task AcknowledgeAsync(
+            IReadOnlyList<Guid> eventIds, CancellationToken ct, AuthenticationHeaderValue? autorizacao = null)
         {
             if (InboxJaGravou is not null && !InboxJaGravou())
                 ReconheceuAntesDeGravar = true;

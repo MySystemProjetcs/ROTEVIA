@@ -5,6 +5,12 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // O MapLibre carrega um web worker próprio, e o otimizador de dependências
+  // do Vite não o acompanha — o worker some do diretório de deps e o mapa não
+  // renderiza. Excluir é a saída indicada pelo próprio aviso do Vite.
+  optimizeDeps: {
+    exclude: ['maplibre-gl'],
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -20,6 +26,8 @@ export default defineConfig({
     // mesmo caminho relativo que o app empacotado vai usar.
     proxy: {
       '/api': { target: 'http://localhost:5300', changeOrigin: true },
+      // SignalR usa WebSocket — ws: true é obrigatório para o upgrade do protocolo.
+      '/hubs': { target: 'http://localhost:5300', changeOrigin: true, ws: true },
     },
   },
 })

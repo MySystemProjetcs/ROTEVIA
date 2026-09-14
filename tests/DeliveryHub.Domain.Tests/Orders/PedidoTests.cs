@@ -30,10 +30,64 @@ public sealed class PedidoTests
         Assert.True(pedido.Confirmar().IsSuccess);
         Assert.True(pedido.IniciarPreparo().IsSuccess);
         Assert.True(pedido.MarcarPronto().IsSuccess);
+        Assert.True(pedido.AlocarEntregador(Guid.CreateVersion7()).IsSuccess);
         Assert.True(pedido.Despachar().IsSuccess);
         Assert.True(pedido.Concluir().IsSuccess);
 
         Assert.Equal(StatusPedido.Concluido, pedido.Status);
+    }
+
+    [Fact]
+    public void Percorre_o_ciclo_da_entrega_apos_o_despacho()
+    {
+        // As transições do motoboy, uma por uma — não são atalho de
+        // AvancarPara pulando estado, são passo real da entrega.
+        var pedido = Novo();
+        pedido.Confirmar();
+        pedido.MarcarPronto();
+        pedido.AlocarEntregador(Guid.CreateVersion7());
+        pedido.Despachar();
+
+        Assert.True(pedido.AceitarEntrega().IsSuccess);
+        Assert.Equal(StatusPedido.Aceito, pedido.Status);
+
+        Assert.True(pedido.SairParaEntrega().IsSuccess);
+        Assert.Equal(StatusPedido.EmRota, pedido.Status);
+
+        Assert.True(pedido.ChegarNoLocal().IsSuccess);
+        Assert.Equal(StatusPedido.Chegou, pedido.Status);
+
+        Assert.True(pedido.Concluir().IsSuccess);
+        Assert.Equal(StatusPedido.Concluido, pedido.Status);
+    }
+
+    [Fact]
+    public void Alocar_entregador_define_o_entregador_sem_mudar_o_status()
+    {
+        var pedido = Novo();
+        pedido.Confirmar();
+        pedido.MarcarPronto();
+        var entregadorId = Guid.CreateVersion7();
+
+        var resultado = pedido.AlocarEntregador(entregadorId);
+
+        Assert.True(resultado.IsSuccess);
+        Assert.Equal(entregadorId, pedido.EntregadorId);
+        Assert.Equal(StatusPedido.Pronto, pedido.Status);
+    }
+
+    [Fact]
+    public void Despachar_sem_entregador_alocado_falha()
+    {
+        var pedido = Novo();
+        pedido.Confirmar();
+        pedido.MarcarPronto();
+
+        var resultado = pedido.Despachar();
+
+        Assert.True(resultado.IsFailure);
+        Assert.Equal(PedidoErrors.SemEntregadorAlocado, resultado.Error);
+        Assert.Equal(StatusPedido.Pronto, pedido.Status);
     }
 
     [Fact]
@@ -57,6 +111,7 @@ public sealed class PedidoTests
         // não pode desfazer o despacho.
         var pedido = Novo();
         pedido.Confirmar();
+        pedido.AlocarEntregador(Guid.CreateVersion7());
         pedido.Despachar();
 
         var atrasado = pedido.IniciarPreparo();
@@ -72,6 +127,7 @@ public sealed class PedidoTests
         // o pedido pode ir de confirmado direto para despachado.
         var pedido = Novo();
         pedido.Confirmar();
+        pedido.AlocarEntregador(Guid.CreateVersion7());
 
         Assert.True(pedido.Despachar().IsSuccess);
         Assert.Equal(StatusPedido.Despachado, pedido.Status);
@@ -89,6 +145,7 @@ public sealed class PedidoTests
         if (ate >= StatusPedido.Confirmado) pedido.Confirmar();
         if (ate >= StatusPedido.EmPreparo) pedido.IniciarPreparo();
         if (ate >= StatusPedido.Pronto) pedido.MarcarPronto();
+        if (ate >= StatusPedido.Despachado) pedido.AlocarEntregador(Guid.CreateVersion7());
         if (ate >= StatusPedido.Despachado) pedido.Despachar();
 
         Assert.True(pedido.Cancelar().IsSuccess);

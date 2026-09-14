@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.IFood.Orders;
@@ -16,22 +17,32 @@ public interface IIFoodInboxProcessor
 // Roda separado do polling (CLAUDE.md §7): a ingestão grava e reconhece rápido,
 // o trabalho pesado — buscar detalhe do pedido — acontece aqui, fora da janela
 // de 30s do heartbeat.
+//
+// A fila do inbox mistura evento de loja do Centralizado com evento de loja do
+// Distribuído — quem trata isso é este processador, buscando o merchant dono
+// da entrada e usando o token certo para pedir o detalhe do pedido.
 internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
 {
     private readonly AppDbContext _db;
     private readonly IIFoodOrderClient _orders;
+    private readonly IIFoodMerchantTokenProvider _tokenProvider;
     private readonly TimeProvider _timeProvider;
+    private readonly INotificadorPainel _notificador;
     private readonly ILogger<IFoodInboxProcessor> _logger;
 
     public IFoodInboxProcessor(
         AppDbContext db,
         IIFoodOrderClient orders,
+        IIFoodMerchantTokenProvider tokenProvider,
         TimeProvider timeProvider,
+        INotificadorPainel notificador,
         ILogger<IFoodInboxProcessor> logger)
     {
         _db = db;
         _orders = orders;
+        _tokenProvider = tokenProvider;
         _timeProvider = timeProvider;
+        _notificador = notificador;
         _logger = logger;
     }
 
@@ -55,6 +66,11 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
                 entrada.MarcarProcessado(_timeProvider.GetUtcNow());
                 await _db.SaveChangesAsync(ct);
                 processados++;
+
+                // Só depois de persistido: avisar antes deixaria a tela buscar
+                // um estado que ainda não existe no banco. Vai pelo backplane
+                // do Redis, porque quem está conectado é a API, não este host.
+                await _notificador.ResumoAtualizadoAsync(entrada.MerchantId!.Value, ct);
             }
             catch (Exception ex)
             {
@@ -90,13 +106,46 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
                 throw new InvalidOperationException("Pedido ainda não existe.");
             }
 
-            var detalhe = await _orders.GetDetailsAsync(evento.OrderId, ct);
+            var autorizacao = await ResolverAutorizacaoAsync(entrada.MerchantId!.Value, ct);
+            var detalhe = await _orders.GetDetailsAsync(evento.OrderId, ct, autorizacao);
             pedido = IFoodOrderMapper.ParaPedido(detalhe, entrada.MerchantId!.Value, entrada.ReceivedAt);
             _db.Pedidos.Add(pedido);
             return;
         }
 
         AplicarTransicao(pedido, evento.FullCode);
+
+        // Segundo caminho do fato gerador (o primeiro é o Finalizar do
+        // motoboy): iFood marcando CONCLUDED também encerra a entrega aqui.
+        // Mesma regra do AvancarEntrega — concluído com entregador gera
+        // repasse, com a taxa vigente (snapshot, nunca recalculado), inclusive
+        // para pedido de teste.
+        if (evento.FullCode == "CONCLUDED"
+            && pedido.Status == StatusPedido.Concluido
+            && pedido.EntregadorId is not null
+            && !pedido.ValorPagoAoEntregador.HasValue)
+        {
+            var taxa = await _db.Merchants
+                .Where(x => x.Id == pedido.MerchantId)
+                .Select(x => (decimal?)x.TaxaPadraoPorEntrega)
+                .FirstOrDefaultAsync(ct);
+
+            if (taxa.HasValue)
+                pedido.RegistrarRepasseAoEntregador(taxa.Value);
+        }
+    }
+
+    // Nulo pede o token Centralizado padrão (handler injeta sozinho). Loja
+    // conectada pelo Distribuído tem seu próprio token — usar o Centralizado
+    // nela devolveria 401, o token dele não enxerga essa loja.
+    private async Task<System.Net.Http.Headers.AuthenticationHeaderValue?> ResolverAutorizacaoAsync(
+        Guid merchantId, CancellationToken ct)
+    {
+        var merchant = await _db.Merchants.FirstOrDefaultAsync(x => x.Id == merchantId, ct);
+
+        return merchant?.ConexaoIFood?.Conectado == true
+            ? await _tokenProvider.ObterAsync(merchant, ct)
+            : null;
     }
 
     private void AplicarTransicao(Pedido pedido, string fullCode)

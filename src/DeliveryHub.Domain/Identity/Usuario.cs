@@ -6,7 +6,12 @@ public enum PapelUsuario
     AdministradorSistema = 0,
 
     // Dono do restaurante. Enxerga apenas as lojas vinculadas a ele.
-    DonoRestaurante = 1
+    DonoRestaurante = 1,
+
+    // Motoboy. Conta própria, sem senha definida pelo restaurante (CLAUDE.md
+    // §6/ENGINEERING-GUIDE §10) — nasce só quando confirma o convite. Vínculo com
+    // loja(s) fica em CourierMerchantLink, não em usuario_merchants.
+    Entregador = 2
 }
 
 public sealed class Usuario

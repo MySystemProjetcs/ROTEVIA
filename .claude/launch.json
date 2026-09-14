@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev"],
       "port": 5273,
       "cwd": "web"
+    },
+    {
+      "name": "deliveryhub-api",
+      "runtimeExecutable": "/opt/homebrew/opt/dotnet@9/bin/dotnet",
+      "runtimeArgs": ["run", "--project", "src/DeliveryHub.Api", "--", "--urls", "http://localhost:5300"],
+      "port": 5300
     }
   ]
 }

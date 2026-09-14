@@ -7,9 +7,12 @@ import type { StatusPedido } from '@/dominio/pedido'
 const POR_ESTADO: Record<StatusPedido, { rotulo: string; classe: string }> = {
   Recebido: { rotulo: 'Recebido', classe: 'bg-estado-recebido-fundo text-estado-recebido' },
   Confirmado: { rotulo: 'Confirmado', classe: 'bg-estado-confirmado-fundo text-estado-confirmado' },
-  EmPreparo: { rotulo: 'Em preparo', classe: 'bg-estado-preparo-fundo text-estado-preparo' },
+  EmPreparo: { rotulo: 'Em Preparo', classe: 'bg-estado-preparo-fundo text-estado-preparo' },
   Pronto: { rotulo: 'Pronto', classe: 'bg-estado-pronto-fundo text-estado-pronto' },
-  Despachado: { rotulo: 'Despachado', classe: 'bg-estado-despachado-fundo text-estado-despachado' },
+  Despachado: { rotulo: 'Aguard. Aceite', classe: 'bg-estado-despachado-fundo text-estado-despachado' },
+  Aceito: { rotulo: 'Aceito', classe: 'bg-estado-aceito-fundo text-estado-aceito' },
+  EmRota: { rotulo: 'A caminho', classe: 'bg-estado-emrota-fundo text-estado-emrota' },
+  Chegou: { rotulo: 'No local', classe: 'bg-estado-chegou-fundo text-estado-chegou' },
   Concluido: { rotulo: 'Concluído', classe: 'bg-estado-concluido-fundo text-estado-concluido' },
   Cancelado: { rotulo: 'Cancelado', classe: 'bg-estado-cancelado-fundo text-estado-cancelado' },
 }

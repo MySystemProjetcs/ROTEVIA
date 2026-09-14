@@ -33,14 +33,14 @@ public sealed class IsolamentoMultiTenantTests : IAsyncLifetime
     private readonly List<string> _idsExternos = [];
 
     private static AppDbContext Contexto(ITenantContext tenant) =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(ConnectionString).Options, tenant);
+        new(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(ConnectionString).Options, tenant, new CifradorDeTeste());
 
     public async Task InitializeAsync()
     {
         await using var db = Contexto(new TenantContextSistema());
 
-        var a = Merchant.Criar("Loja A", Guid.CreateVersion7(), DateTimeOffset.UtcNow);
-        var b = Merchant.Criar("Loja B", Guid.CreateVersion7(), DateTimeOffset.UtcNow);
+        var a = Merchant.Criar("Loja A", DateTimeOffset.UtcNow);
+        var b = Merchant.Criar("Loja B", DateTimeOffset.UtcNow);
         db.Merchants.AddRange(a, b);
         await db.SaveChangesAsync();
 

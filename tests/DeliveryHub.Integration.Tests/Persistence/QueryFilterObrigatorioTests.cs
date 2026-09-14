@@ -13,7 +13,8 @@ public sealed class QueryFilterObrigatorioTests
         new(new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql("Host=localhost;Database=deliveryhub;Username=deliveryhub;Password=deliveryhub_dev")
             .Options,
-            new TenantContextSistema());
+            new TenantContextSistema(),
+            new CifradorDeTeste());
 
     [Fact]
     public void Toda_entidade_ITenantOwned_tem_query_filter_registrado()
