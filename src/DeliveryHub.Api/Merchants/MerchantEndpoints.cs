@@ -10,6 +10,16 @@ public sealed record ConfirmarConexaoRequest(string AuthorizationCode);
 public sealed record DefinirTaxaRequest(decimal Valor);
 public sealed record TaxaEntregaResponse(decimal Valor);
 
+// Latitude/longitude opcionais: só são necessárias quando o geocoder não
+// encontra o logradouro, o que acontece de verdade em rua fora do OpenStreetMap.
+public sealed record EnderecoDaLojaRequest(
+    string Cep,
+    string Numero,
+    string? Complemento,
+    string? Referencia,
+    double? Latitude,
+    double? Longitude);
+
 public static class MerchantEndpoints
 {
     public static void MapMerchantEndpoints(this IEndpointRouteBuilder app)
@@ -22,6 +32,7 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/ifood/confirmar", ConfirmarConexao);
         group.MapPut("/{merchantId:guid}/taxa-entrega", DefinirTaxa);
         group.MapGet("/{merchantId:guid}/endereco", ObterEndereco);
+        group.MapPut("/{merchantId:guid}/endereco", DefinirEndereco);
     }
 
     private static async Task<Results<Ok<EnderecoDaLojaDto>, NotFound, ProblemHttpResult>> ObterEndereco(
@@ -36,6 +47,30 @@ public static class MerchantEndpoints
         var endereco = await obter.ExecutarAsync(merchantId, ct);
 
         return endereco is null ? TypedResults.NotFound() : TypedResults.Ok(endereco);
+    }
+
+    private static async Task<Results<Ok<EnderecoDaLojaDto>, ProblemHttpResult>> DefinirEndereco(
+        Guid merchantId,
+        EnderecoDaLojaRequest request,
+        ITenantContext tenant,
+        IDefinirEnderecoDaLoja definir,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var resultado = await definir.ExecutarAsync(
+            merchantId,
+            new NovoEnderecoDaLoja(
+                request.Cep,
+                request.Numero,
+                request.Complemento,
+                request.Referencia,
+                request.Latitude,
+                request.Longitude),
+            ct);
+
+        return resultado.IsSuccess ? TypedResults.Ok(resultado.Value) : ProblemaDe(resultado.Error);
     }
 
     private static async Task<Results<Ok<IniciarConexaoResponse>, ProblemHttpResult>> IniciarConexao(

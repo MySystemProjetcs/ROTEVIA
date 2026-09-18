@@ -158,6 +158,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
 
+                    b.Property<string>("FotoBase64")
+                        .HasColumnType("text")
+                        .HasColumnName("foto_base64");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)

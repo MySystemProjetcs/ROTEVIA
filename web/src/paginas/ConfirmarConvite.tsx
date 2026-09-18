@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Botao } from '@/components/Botao'
-import { Campo } from '@/components/Campo'
+import { CampoSenha } from '@/components/CampoSenha'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { Logo } from '@/components/Logo'
 import { api, ErroDaApi } from '@/lib/api'
@@ -91,9 +91,8 @@ export function ConfirmarConvite() {
               </p>
 
               <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4">
-                <Campo
+                <CampoSenha
                   rotulo="Nova senha"
-                  type="password"
                   autoComplete="new-password"
                   required
                   minLength={8}
@@ -101,9 +100,8 @@ export function ConfirmarConvite() {
                   onChange={(e) => setSenha(e.target.value)}
                 />
 
-                <Campo
+                <CampoSenha
                   rotulo="Confirmar senha"
-                  type="password"
                   autoComplete="new-password"
                   required
                   value={confirmacao}

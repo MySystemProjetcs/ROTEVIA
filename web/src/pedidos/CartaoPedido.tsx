@@ -47,6 +47,9 @@ interface CartaoPedidoProps {
   agora: number
   onAvancar: (pedido: Pedido) => void
   arrastavel?: boolean
+  /** Abrir rota no Waze/Maps é ação de quem dirige. O dono acompanha o pedido
+   *  pelo mapa da operação; botão de navegação no quadro dele é ruído. */
+  mostrarNavegacao?: boolean
   // Fora do Kanban não há coluna dizendo em que etapa o pedido está, então o
   // próprio cartão precisa mostrar. É o caso da lista do motoboy.
   mostrarEstado?: boolean
@@ -59,7 +62,6 @@ interface CartaoPedidoProps {
   // Posições em tempo real dos motoboys da loja — vêm do PainelDono, que
   // mantém a conexão SignalR. O cartão escolhe a do próprio pedido.
   posicoes?: PosicaoEntregador[]
-  trilhaRastreio?: PosicaoEntregador[]
 }
 
 export function CartaoPedido({
@@ -67,13 +69,13 @@ export function CartaoPedido({
   agora,
   onAvancar,
   arrastavel = true,
+  mostrarNavegacao = false,
   mostrarEstado = false,
   className,
   obterProximoPasso = proximoPasso,
   entregadoresAtivos,
   onAlocar,
   posicoes = [],
-  trilhaRastreio = [],
 }: CartaoPedidoProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: pedido.id,
@@ -173,7 +175,6 @@ export function CartaoPedido({
       {mostrarMapa && (
         <MapaEntrega
           posicoes={posicaoDoPedido ? [posicaoDoPedido] : []}
-          trilha={trilhaRastreio}
           className="h-44 w-full rounded-b-controle"
         />
       )}
@@ -221,7 +222,7 @@ export function CartaoPedido({
         <CartaoRodape className="flex-col items-stretch">
           {/* Navegação antes da ação: o motoboy precisa sair dirigindo, e só
               volta ao app para marcar o passo seguinte. */}
-          <BotoesDeNavegacao pedido={pedido} />
+          {mostrarNavegacao && <BotoesDeNavegacao pedido={pedido} />}
 
           <div className="flex items-center gap-2">
             <ChipTempoDecorrido desde={pedido.recebidoEm} agora={agora} />

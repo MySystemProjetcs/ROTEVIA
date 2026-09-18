@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryHub.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3c9333c3df71c4bfef1eb7ce43a11051eae0fbff")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+17ff6247cc9de763bf460be3f303af9645939fe9")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryHub.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryHub.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

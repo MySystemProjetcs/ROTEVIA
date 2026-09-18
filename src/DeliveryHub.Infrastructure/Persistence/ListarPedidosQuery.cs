@@ -23,6 +23,11 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         StatusPedido.Cobrar
     ];
 
+    // Mesmo fuso do resumo do painel: "hoje" para o lojista começa à meia-noite
+    // de São Paulo, não em UTC.
+    private static readonly TimeZoneInfo FusoLoja =
+        TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+
     private readonly AppDbContext _db;
 
     public ListarPedidosQuery(AppDbContext db)
@@ -37,7 +42,20 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         var consulta = _db.Pedidos.AsNoTracking();
 
         if (apenasAtivos)
-            consulta = consulta.Where(x => Ativos.Contains(x.Status));
+        {
+            // O painel também mostra a coluna "Finalizados", mas só a do dia: o
+            // concluído de ontem não é operação de hoje, e trazer o histórico
+            // inteiro faria a listagem crescer sem teto — ela roda a cada 4s.
+            var agoraNaLoja = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, FusoLoja);
+            var inicioDoDia = new DateTimeOffset(
+                    agoraNaLoja.Date,
+                    FusoLoja.GetUtcOffset(agoraNaLoja.Date))
+                .ToUniversalTime();
+
+            consulta = consulta.Where(x =>
+                Ativos.Contains(x.Status)
+                || (x.Status == StatusPedido.Concluido && x.RecebidoEm >= inicioDoDia));
+        }
 
         return await consulta
             .OrderByDescending(x => x.RecebidoEm)

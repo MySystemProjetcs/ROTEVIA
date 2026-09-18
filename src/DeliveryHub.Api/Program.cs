@@ -99,6 +99,8 @@ builder.Services.AddScoped<IListarEntregadores, ListarEntregadores>();
 builder.Services.AddScoped<IObterPreviaDoConvite, ObterPreviaDoConvite>();
 builder.Services.AddScoped<IDisponibilidadeEntrega, DisponibilidadeEntrega>();
 builder.Services.AddScoped<IDefinirTaxaPorEntrega, DefinirTaxaPorEntrega>();
+builder.Services.AddScoped<IDefinirEnderecoDaLoja, DefinirEnderecoDaLoja>();
+builder.Services.AddScoped<IDefinirFotoDePerfil, DefinirFotoDePerfil>();
 
 // SignalR com backplane no Redis: é o que permite o worker de polling, que
 // vive em outro container de DI, alcançar as conexões abertas aqui.
@@ -119,6 +121,7 @@ app.MapPedidoInternoEndpoints();
 app.MapMerchantEndpoints();
 app.MapCourierEndpoints();
 app.MapDashboardEndpoints();
+app.MapPerfilEndpoints();
 app.MapWhatsAppEndpoints();
 app.MapIFoodDiagnosticsEndpoints();
 app.MapHub<RastreioHub>("/hubs/rastreio");

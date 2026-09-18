@@ -55,12 +55,46 @@ export interface Pedido {
 // final, não etapa de operação. A partir de "Despachado" quem avança é o
 // motoboy — o dono só acompanha o texto/etiqueta do card, não tem coluna nova
 // pra cada passo dele.
-export const COLUNAS: StatusPedido[] = [
-  'Recebido',
-  'Confirmado',
-  'EmPreparo',
-  'Pronto',
-  'Despachado',
+// Uma coluna do quadro do dono. Deixou de ser "um status = uma coluna" porque
+// a entrega tem quatro status (aceito, a caminho, no local, cobrando) que para
+// quem está na cozinha são um só: o pedido saiu com o motoboy.
+export interface ColunaDoQuadro {
+  id: string
+  titulo: string
+  /** Pedidos nestes status aparecem aqui. */
+  status: StatusPedido[]
+  /** Status de onde a coluna tira sua cor. */
+  cor: StatusPedido
+  /** Destino ao arrastar um cartão para cá. Sem isto, a coluna não recebe. */
+  destino?: StatusPedido
+  /** Rola dentro de si em vez de esticar a página. */
+  rolavel?: boolean
+}
+
+export const COLUNAS: ColunaDoQuadro[] = [
+  { id: 'recebido', titulo: 'Aguardando', status: ['Recebido'], cor: 'Recebido', destino: 'Recebido' },
+  { id: 'confirmado', titulo: 'Confirmados', status: ['Confirmado'], cor: 'Confirmado', destino: 'Confirmado' },
+  { id: 'preparo', titulo: 'Em Preparo', status: ['EmPreparo'], cor: 'EmPreparo', destino: 'EmPreparo' },
+  { id: 'pronto', titulo: 'Prontos', status: ['Pronto'], cor: 'Pronto', destino: 'Pronto' },
+  { id: 'despachado', titulo: 'Aguard. Aceite', status: ['Despachado'], cor: 'Despachado', destino: 'Despachado' },
+  // Sem `destino`: quem move o pedido daqui para frente é o motoboy, pelo app
+  // dele. Arrastar um cartão para cá pela cozinha seria mentir sobre onde a
+  // moto está.
+  {
+    id: 'em-rota',
+    titulo: 'Em Rota',
+    status: ['Aceito', 'EmRota', 'Chegou', 'Cobrar'],
+    cor: 'EmRota',
+  },
+  // Rolável: a coluna só cresce ao longo do dia, e sem teto ela esticaria a
+  // página inteira enquanto as outras ficam vazias no rodapé.
+  {
+    id: 'finalizados',
+    titulo: 'Finalizados',
+    status: ['Concluido'],
+    cor: 'Concluido',
+    rolavel: true,
+  },
 ]
 
 // Entrega em curso (aguardando aceite incluso): é o que separa "Em Entrega"

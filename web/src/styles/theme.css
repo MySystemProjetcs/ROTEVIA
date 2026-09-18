@@ -110,3 +110,58 @@
      44px é o mínimo confortável para o dedo. */
   --spacing-toque: 2.75rem;
 }
+
+/* Moldura dos balões do mapa.
+   O MapLibre traz um popup branco de cantos quadrados e sombra dura, alheio ao
+   resto da interface. O conteúdo é montado em DOM no MapaEntrega; aqui fica só
+   a moldura, pelos mesmos tokens de cartão que o sistema usa — CSS de biblioteca
+   de terceiro não tem como sair de classe utilitária. */
+.maplibregl-popup-content {
+  padding: 0;
+  border-radius: var(--radius-cartao);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borda);
+  box-shadow: var(--shadow-elevado);
+}
+
+/* A setinha do balão precisa acompanhar a cor da superfície, senão fica um
+   triângulo branco pendurado num cartão que mudou de cor. */
+.maplibregl-popup-tip {
+  border-top-color: var(--color-superficie);
+  border-bottom-color: var(--color-superficie);
+  border-left-color: var(--color-superficie);
+  border-right-color: var(--color-superficie);
+}
+
+/* Some com o X padrão: os balões do mapa abrem ao passar o mouse e fecham ao
+   sair, então o botão de fechar não tem função e só rouba espaço. */
+.maplibregl-popup-close-button {
+  display: none;
+}
+
+/* Barra de rolagem fina, nos tokens do tema.
+   Usada pela AreaDeRolagem. Fica aqui e não no componente porque pseudo-
+   elemento de scrollbar não existe como classe utilitária. As duas sintaxes
+   são necessárias: a padrão (Firefox) e a do WebKit (Chrome, Safari, Edge). */
+.barra-fina {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-borda-forte) transparent;
+}
+
+.barra-fina::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.barra-fina::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.barra-fina::-webkit-scrollbar-thumb {
+  background: var(--color-borda-forte);
+  border-radius: var(--radius-controle);
+}
+
+.barra-fina:hover::-webkit-scrollbar-thumb {
+  background: var(--color-texto-fraco);
+}

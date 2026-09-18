@@ -1,16 +1,24 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { esquecerEmail, lerEmailSalvo, pedirParaNavegadorSalvar, salvarEmail } from '@/auth/acessoSalvo'
 import { useSessao } from '@/auth/SessaoProvider'
 import { Botao } from '@/components/Botao'
 import { Campo } from '@/components/Campo'
+import { CampoSenha } from '@/components/CampoSenha'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { Logo } from '@/components/Logo'
+import { Switch } from '@/components/Switch'
 import { ErroDaApi } from '@/lib/api'
 
 export function Login() {
   const { entrar } = useSessao()
-  const [email, setEmail] = useState('')
+  // Inicializador lazy: o e-mail lembrado entra antes da primeira renderização,
+  // sem o campo piscar vazio.
+  const [email, setEmail] = useState(lerEmailSalvo)
   const [senha, setSenha] = useState('')
+  // Marcado quando já há e-mail lembrado: quem salvou uma vez quer continuar
+  // salvando, e desmarcar é o que precisa ser explícito.
+  const [salvarAcesso, setSalvarAcesso] = useState(() => lerEmailSalvo() !== '')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -21,6 +29,15 @@ export function Login() {
 
     try {
       await entrar(email, senha)
+
+      // Só depois do login dar certo: salvar credencial recusada pelo servidor
+      // deixaria o cofre do navegador com uma senha que não funciona.
+      if (salvarAcesso) {
+        salvarEmail(email)
+        await pedirParaNavegadorSalvar(email, senha)
+      } else {
+        esquecerEmail()
+      }
     } catch (e) {
       // A API devolve a mesma mensagem para e-mail inexistente e senha errada,
       // de propósito: distinguir os dois entrega a lista de quem tem conta.
@@ -51,14 +68,19 @@ export function Login() {
               onChange={(e) => setEmail(e.target.value)}
             />
 
-            <Campo
+            <CampoSenha
               rotulo="Senha"
-              type="password"
               autoComplete="current-password"
               required
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               erro={erro ?? undefined}
+            />
+
+            <Switch
+              marcado={salvarAcesso}
+              onMudar={setSalvarAcesso}
+              rotulo="Salvar meu acesso neste dispositivo"
             />
 
             <Botao type="submit" carregando={enviando} larguraTotal>

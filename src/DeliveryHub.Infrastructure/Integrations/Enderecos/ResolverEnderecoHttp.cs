@@ -57,13 +57,43 @@ internal sealed class ResolverEnderecoHttp : IResolverEndereco
         }
     }
 
+    // Duas tentativas, da mais precisa para a menos. A segunda derruba número e
+    // bairro de propósito: o OpenStreetMap não tem todo número predial do
+    // Brasil, e o bairro do ViaCEP frequentemente discorda do que o OSM
+    // registra — "Vila Damaceno" no ViaCEP é "Jardim Ângela" no OSM, e mandar o
+    // bairro junto faz a busca voltar vazia mesmo com a rua mapeada.
+    //
+    // Sem esse segundo tiro o pedido é gravado sem coordenada e some do mapa; a
+    // rua certa já resolve para quem está acompanhando a entrega.
     private async Task<(double Latitude, double Longitude)?> GeocodificarAsync(
         RespostaViaCep endereco, string numero, CancellationToken ct)
     {
+        // Só os dígitos: o lojista digita "#8989", "8989 fundos", "s/n", e
+        // qualquer um desses no meio da consulta zera o resultado.
+        var numeroLimpo = new string(numero.Where(char.IsDigit).ToArray());
+
+        var precisa = $"{endereco.Logradouro} {numeroLimpo}, {endereco.Bairro}, {endereco.Localidade}, {endereco.Uf}, Brasil";
+        var apenasRua = $"{endereco.Logradouro}, {endereco.Localidade}, {endereco.Uf}, Brasil";
+
+        if (numeroLimpo.Length > 0)
+        {
+            var exato = await BuscarCoordenadaAsync(precisa, endereco.Cep, ct);
+            if (exato is not null)
+                return exato;
+
+            _logger.LogInformation(
+                "CEP {Cep} não casou com número e bairro; tentando só o logradouro.", endereco.Cep);
+        }
+
+        return await BuscarCoordenadaAsync(apenasRua, endereco.Cep, ct);
+    }
+
+    private async Task<(double Latitude, double Longitude)?> BuscarCoordenadaAsync(
+        string enderecoEscrito, string? cep, CancellationToken ct)
+    {
         // Nominatim pede User-Agent identificando a aplicação; sem ele a
         // requisição é recusada.
-        var consulta = Uri.EscapeDataString(
-            $"{endereco.Logradouro} {numero}, {endereco.Bairro}, {endereco.Localidade}, {endereco.Uf}, Brasil");
+        var consulta = Uri.EscapeDataString(enderecoEscrito);
 
         try
         {
@@ -81,7 +111,7 @@ internal sealed class ResolverEnderecoHttp : IResolverEndereco
         catch (Exception ex)
         {
             // Sem coordenada o pedido ainda é válido — só não vai para o mapa.
-            _logger.LogWarning(ex, "Falha ao geocodificar o CEP {Cep}.", endereco.Cep);
+            _logger.LogWarning(ex, "Falha ao geocodificar o CEP {Cep}.", cep);
             return null;
         }
     }

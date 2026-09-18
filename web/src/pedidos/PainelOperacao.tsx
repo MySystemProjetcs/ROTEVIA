@@ -6,7 +6,7 @@ import { Botao } from '@/components/Botao'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { Etiqueta } from '@/components/Etiqueta'
 import type { Entregador } from '@/dominio/entregador'
-import type { ObterProximoPasso, Pedido, StatusPedido } from '@/dominio/pedido'
+import type { ColunaDoQuadro, ObterProximoPasso, Pedido, StatusPedido } from '@/dominio/pedido'
 import {
   COLUNAS,
   COLUNAS_ENTREGADOR,
@@ -50,7 +50,7 @@ function PainelDono() {
 
   // Uma única conexão SignalR por sessão do dono — recebe pings de todos os
   // pedidos da loja e o Kanban filtra pelo pedido de cada cartão.
-  const { posicoes, trilha } = useRastreio(usuario?.merchantId)
+  const { posicoes } = useRastreio(usuario?.merchantId)
   const loja = useEnderecoDaLoja(usuario?.merchantId)
 
   const emRota = pedidos.find((p) => p.status === 'EmRota' || p.status === 'Chegou')
@@ -93,7 +93,6 @@ function PainelDono() {
         entregadoresAtivos={entregadoresAtivos}
         onAlocar={alocar}
         posicoes={posicoes}
-        trilhaRastreio={trilha}
       />
 
       {/* Mapa da operação: a loja fica fixa e o motoboy se move em tempo real
@@ -112,8 +111,9 @@ function PainelDono() {
           {loja ? (
             <MapaEntrega
               posicoes={posicoes}
-              trilha={trilha}
+              pedidos={pedidos}
               loja={loja}
+              nomeDaLoja={usuario?.nomeRestaurante}
               className="h-96 w-full overflow-hidden rounded-cartao"
             />
           ) : (
@@ -189,7 +189,11 @@ function ListaDeEntregas({
   return (
     // w-72 é a mesma largura da coluna do Kanban: o cartão mantém a proporção
     // que já tinha, em vez de esticar até a borda da tela.
-    <div className="flex flex-col items-center gap-3">
+    //
+    // Alinhado à esquerda, sob o alternador Online/Offline. Centralizado, numa
+    // tela larga o cartão flutuava sozinho no meio do vazio, desencostado do
+    // controle que manda nele.
+    <div className="flex flex-col items-start gap-3">
       {erro && (
         <Cartao className="w-72 border-perigo">
           <CartaoCorpo className="flex items-center gap-3">
@@ -211,6 +215,7 @@ function ListaDeEntregas({
             agora={agora}
             arrastavel={false}
             mostrarEstado
+            mostrarNavegacao
             className="w-72"
             obterProximoPasso={proximoPassoEntregador}
             onAvancar={(p) => {
@@ -228,14 +233,13 @@ interface KanbanProps {
   pedidos: Pedido[]
   carregando: boolean
   erro: string | null
-  colunas: StatusPedido[]
+  colunas: ColunaDoQuadro[]
   podeMoverParaFn: (pedido: Pedido, destino: StatusPedido) => boolean
   obterProximoPasso: ObterProximoPasso
   onMover: (pedido: Pedido, destino: StatusPedido) => void
   entregadoresAtivos?: Entregador[]
   onAlocar?: (pedido: Pedido, entregadorId: string) => void
   posicoes?: PosicaoEntregador[]
-  trilhaRastreio?: PosicaoEntregador[]
 }
 
 function Kanban({
@@ -249,7 +253,6 @@ function Kanban({
   entregadoresAtivos,
   onAlocar,
   posicoes,
-  trilhaRastreio = [],
 }: KanbanProps) {
   const agora = useAgora()
   const [arrastando, setArrastando] = useState<Pedido | null>(null)
@@ -268,7 +271,9 @@ function Kanban({
     setArrastando(null)
 
     const pedido = pedidos.find((p) => p.id === evento.active.id)
-    const destino = evento.over?.id as StatusPedido | undefined
+    // O alvo agora é a coluna, não o status: "Em Rota" agrupa quatro status e
+    // "Finalizados" nem recebe cartão.
+    const destino = colunas.find((c) => c.id === evento.over?.id)?.destino
 
     // A interface só permite o movimento que a máquina de estados aceita: o
     // pedido anda para frente, um passo por vez.
@@ -298,20 +303,24 @@ function Kanban({
       )}
 
       <DndContext sensors={sensores} onDragStart={aoIniciar} onDragEnd={aoSoltar}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {colunas.map((estado) => (
+        {/* Sem rolagem lateral: as colunas se ajustam à largura disponível.
+            Em tela estreita elas quebram para a linha de baixo, que é melhor
+            que empurrar metade do quadro para fora da vista. */}
+        <div className="flex flex-wrap gap-3">
+          {colunas.map((coluna) => (
             <ColunaPedidos
-              key={estado}
-              estado={estado}
-              pedidos={pedidos.filter((p) => p.status === estado)}
+              key={coluna.id}
+              coluna={coluna}
+              pedidos={pedidos.filter((p) => coluna.status.includes(p.status))}
               agora={agora}
-              aceitaSolto={arrastando ? podeMoverParaFn(arrastando, estado) : false}
+              aceitaSolto={
+                arrastando && coluna.destino ? podeMoverParaFn(arrastando, coluna.destino) : false
+              }
               onAvancar={avancar}
               obterProximoPasso={obterProximoPasso}
               entregadoresAtivos={entregadoresAtivos}
               onAlocar={onAlocar}
               posicoes={posicoes}
-              trilhaRastreio={trilhaRastreio}
             />
           ))}
         </div>

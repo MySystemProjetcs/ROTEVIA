@@ -20,6 +20,10 @@ internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(x => x.Ativo).HasColumnName("ativo").IsRequired();
         builder.Property(x => x.CriadoEm).HasColumnName("criado_em").IsRequired();
 
+        // Sem HasMaxLength: o teto de tamanho é regra do domínio (DefinirFoto),
+        // e text no Postgres não custa mais que varchar(n).
+        builder.Property(x => x.FotoBase64).HasColumnName("foto_base64");
+
         // Consultado a cada login, e duplicidade de e-mail permitiria dois
         // usuários disputando o mesmo acesso.
         builder.HasIndex(x => x.Email).IsUnique().HasDatabaseName("ux_usuarios_email");

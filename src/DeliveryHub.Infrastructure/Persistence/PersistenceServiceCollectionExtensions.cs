@@ -1,6 +1,7 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Couriers;
 using DeliveryHub.Application.Dashboard;
+using DeliveryHub.Application.Identity;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Application.Tracking;
@@ -39,6 +40,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IListarPedidos, ListarPedidosQuery>();
         services.AddScoped<IListarMinhasEntregas, ListarMinhasEntregasQuery>();
         services.AddScoped<IObterResumoDashboard, ResumoDashboardQuery>();
+        services.AddScoped<IObterPerfil, PerfilQuery>();
         services.AddScoped<IObterEnderecoDaLoja, ObterEnderecoDaLojaQuery>();
         services.AddScoped<IObterGanhosEntregador, GanhosEntregadorQuery>();
         services.AddScoped<IRegistrarPosicao, RegistrarPosicao>();
