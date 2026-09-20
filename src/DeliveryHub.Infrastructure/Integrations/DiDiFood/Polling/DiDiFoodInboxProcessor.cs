@@ -96,16 +96,17 @@ internal sealed class DiDiFoodInboxProcessor : IDiDiFoodInboxProcessor
         AplicarTransicao(pedido, evento);
     }
 
+    // Nomes reais do guia da 99Food ("Receber informações sobre Pedidos"):
+    // orderNew, orderCancel, orderFinish, deliveryStatus. orderNew só chega
+    // aqui numa reentrega (a primeira vez cai no ramo "pedido is null" acima),
+    // e deliveryStatus não distingue qual etapa mudou — as duas seguem pelo
+    // status numérico do pedido, que é o único sinal granular disponível.
     private void AplicarTransicao(Pedido pedido, DiDiWebhookEvent evento)
     {
         Result resultado = evento.EventType switch
         {
-            "confirmOrder" => pedido.Confirmar(),
-            "startPreparation" => pedido.IniciarPreparo(),
-            "readyToPickup" => pedido.MarcarPronto(),
-            "dispatchOrder" => pedido.Despachar(),
-            "completeOrder" => pedido.Concluir(),
-            "cancelOrder" => pedido.Cancelar(),
+            "orderCancel" => pedido.Cancelar(),
+            "orderFinish" => pedido.Concluir(),
             _ => ProcessarPorStatus(pedido, evento.Order?.Status)
         };
 

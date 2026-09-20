@@ -1,20 +1,17 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood;
-using DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Polling;
-using DeliveryHub.Infrastructure.Integrations.IFood;
 using DeliveryHub.Infrastructure.Persistence;
-using Microsoft.Extensions.Options;
 
 namespace DeliveryHub.Api.Integracoes;
 
 // Porta de entrada dos pedidos da DiDi Food (99Food no Brasil).
 // Transporte push: a DiDi chama este endpoint quando um pedido muda de estado.
 //
-// Autenticação: MD5(app_id + timestamp + app_secret) — spec §shop/list.
-// O sign e o timestamp chegam no corpo JSON, não em headers.
+// Este endpoint nunca importa DeliveryHub.Infrastructure.Integrations.DiDiFood
+// .Contracts — todo o contrato interno (DiDiWebhookEvent, DiDiOrderModel) fica
+// atrás de IDiDiFoodWebhookGateway. É a mesma fronteira ACL que a CLAUDE.md §4
+// já exige entre o domínio e o marketplace, estendida aqui para a Api: quem
+// recebe o webhook não precisa (e não deve) conhecer o formato de ninguém.
 public static class NoventaENoveWebhookEndpoints
 {
     public const string Origem = "99food";
@@ -30,58 +27,34 @@ public static class NoventaENoveWebhookEndpoints
         HttpRequest request,
         IIntegrationInboxWriter inbox,
         IDiDiFoodInboxProcessor processor,
-        IMerchantResolver merchantResolver,
-        IOptions<DiDiFoodOptions> opcoes,
+        IDiDiFoodWebhookGateway gateway,
+        INoventaENoveMerchantResolver merchantResolver,
         ILoggerFactory logs,
         CancellationToken ct)
     {
         var log = logs.CreateLogger("Webhook99Food");
 
-        // Lê o corpo uma vez — HttpRequest.Body não é rewind
-        using var leitor = new StreamReader(request.Body, Encoding.UTF8);
+        // Lê o corpo uma vez — HttpRequest.Body não é rewind.
+        using var leitor = new StreamReader(request.Body, System.Text.Encoding.UTF8);
         var corpo = await leitor.ReadToEndAsync(ct);
 
         if (string.IsNullOrWhiteSpace(corpo))
-            return Results.BadRequest();
+            return Erro("corpo vazio");
 
-        DiDiWebhookEvent? evento;
-        try
+        var recebido = gateway.Validar(corpo);
+        if (recebido is null)
         {
-            evento = JsonSerializer.Deserialize<DiDiWebhookEvent>(corpo);
-        }
-        catch (JsonException ex)
-        {
-            log.LogWarning(ex, "Webhook da 99Food: JSON inválido.");
-            return Results.BadRequest();
+            log.LogWarning("Webhook da 99Food recusado: JSON ilegível ou assinatura inválida.");
+            return Erro("assinatura inválida");
         }
 
-        if (evento is null)
-            return Results.BadRequest();
-
-        // Verifica assinatura antes de qualquer processamento.
-        // Fórmula da spec: MD5(app_id + timestamp + app_secret), hex uppercase.
-        if (!AssinaturaValida(evento, opcoes.Value))
-        {
-            log.LogWarning(
-                "Webhook da 99Food recusado: assinatura inválida. order_id={OrderId}",
-                evento.OrderId);
-            return Results.Unauthorized();
-        }
-
-        // Tenta resolver o merchant pelo AppShopId se fornecido
-        var appShopId = evento.Order?.Shop?.AppShopId;
-        Guid? merchantId = null;
-        if (Guid.TryParse(appShopId, out var parsedShopId))
-        {
-            merchantId = await merchantResolver.ResolverAsync(parsedShopId, ct);
-        }
-
-        // event_id = combinação de event_type + order_id.
-        var eventId = $"{evento.EventType}:{evento.OrderId}";
+        var merchantId = recebido.AppShopId is null
+            ? null
+            : await merchantResolver.ResolverAsync(recebido.AppShopId, ct);
 
         var gravado = await inbox.TentarGravarAsync(
             Origem,
-            eventId,
+            recebido.EventId,
             externalMerchantId: Guid.Empty,
             merchantId: merchantId,
             payloadJson: corpo,
@@ -89,9 +62,10 @@ public static class NoventaENoveWebhookEndpoints
 
         log.LogInformation(
             "Webhook 99Food recebido. event={EventType} order={OrderId} novo={Novo}.",
-            evento.EventType, evento.OrderId, gravado);
+            recebido.EventType, recebido.OrderId, gravado);
 
-        // Processa eventos pendentes do inbox do 99Food em segundo plano/assíncrono
+        // Processa o inbox em segundo plano — grava e reconhece rápido,
+        // processa depois (CLAUDE.md §7: desacoplar ingestão de processamento).
         _ = Task.Run(async () =>
         {
             try
@@ -104,25 +78,14 @@ public static class NoventaENoveWebhookEndpoints
             }
         }, CancellationToken.None);
 
-        // 200 em todos os casos: evento duplicado não é erro, é reentrega normal.
-        return Results.Ok();
+        return Ok();
     }
 
-    // MD5(app_id + timestamp + app_secret) — mesmos parâmetros do /shop/list.
-    // Comparação em tempo constante: webhook é porta anônima, timing attack
-    // permitiria descobrir qual parte da assinatura está correta.
-    private static bool AssinaturaValida(DiDiWebhookEvent evento, DiDiFoodOptions opcoes)
-    {
-        if (string.IsNullOrEmpty(evento.Sign) || string.IsNullOrEmpty(opcoes.AppSecret))
-            return false;
+    // Envelope exigido pelo guia da 99Food ("Webhook de Pedidos"): sem esta
+    // resposta exata, o evento pode ser tratado como não processado do lado
+    // deles, e o pedido nunca avança. HTTP 200 nos dois casos — a doc só
+    // documenta o corpo, não distingue status HTTP para erro de validação.
+    private static IResult Ok() => Results.Json(new { errno = 0, errmsg = "ok" });
 
-        var entrada = $"{opcoes.AppId}{evento.Timestamp}{opcoes.AppSecret}";
-        var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(entrada));
-        var esperado = Convert.ToHexString(hashBytes); // uppercase
-
-        var a = Encoding.UTF8.GetBytes(evento.Sign.ToUpperInvariant());
-        var b = Encoding.UTF8.GetBytes(esperado);
-
-        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
-    }
+    private static IResult Erro(string motivo) => Results.Json(new { errno = 1, errmsg = motivo });
 }

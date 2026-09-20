@@ -70,4 +70,54 @@ public sealed class DiDiFoodOrderMapperTests
         Assert.Equal(30.00m, pedido.Pagamento.ValorJaPago);
         Assert.Equal(0m, pedido.Pagamento.ValorACobrar);
     }
+
+    // Regressão do achado da auditoria: "Para pedidos em que a entrega é pela
+    // plataforma 99, o estabelecimento irá receber o dinheiro diretamente como
+    // método 'online', independente se o pagamento for em dinheiro... —
+    // considerar o pedido como já pago e sem valores pendentes" (guia da
+    // 99Food, "Obs: Pagamentos"). Antes da correção, pay_type=2 (dinheiro)
+    // virava "a cobrar" mesmo com delivery_type=1 (entrega pela 99) — um
+    // motoboy que não existe (é da 99, não da loja) nunca cobraria ninguém.
+    [Fact]
+    public void ParaPedido_com_entrega_pela_99_e_pagamento_em_dinheiro_e_tratado_como_ja_pago()
+    {
+        var model = new DiDiOrderModel
+        {
+            OrderId = 111,
+            OrderIndex = 1,
+            PayType = 2, // dinheiro
+            DeliveryType = 1, // entrega pela DiDi/99Food
+            Price = new DiDiPriceModel { OrderPrice = 4000, RealPayPrice = 4000 },
+        };
+
+        var pedido = DiDiFoodOrderMapper.ParaPedido(model, Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        Assert.True(pedido.EntregaPeloParceiro);
+        Assert.False(pedido.Pagamento.PrecisaCobrarNaEntrega);
+        Assert.Equal(40.00m, pedido.Pagamento.ValorJaPago);
+        Assert.Equal(0m, pedido.Pagamento.ValorACobrar);
+    }
+
+    // O espelho: mesma forma de pagamento, mas entrega pela loja (delivery_type
+    // = 2) — aí sim o motoboy da loja precisa cobrar, então o pay_type continua
+    // valendo como antes.
+    [Fact]
+    public void ParaPedido_com_entrega_pela_loja_e_pagamento_em_dinheiro_continua_a_cobrar()
+    {
+        var model = new DiDiOrderModel
+        {
+            OrderId = 112,
+            OrderIndex = 2,
+            PayType = 2, // dinheiro
+            DeliveryType = 2, // entrega pela loja
+            Price = new DiDiPriceModel { OrderPrice = 4000, RealPayPrice = 4000 },
+        };
+
+        var pedido = DiDiFoodOrderMapper.ParaPedido(model, Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        Assert.False(pedido.EntregaPeloParceiro);
+        Assert.True(pedido.Pagamento.PrecisaCobrarNaEntrega);
+        Assert.Equal(0m, pedido.Pagamento.ValorJaPago);
+        Assert.Equal(40.00m, pedido.Pagamento.ValorACobrar);
+    }
 }

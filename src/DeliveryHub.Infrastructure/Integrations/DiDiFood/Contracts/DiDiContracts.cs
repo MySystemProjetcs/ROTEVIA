@@ -10,7 +10,7 @@ namespace DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts;
 // OrderModel que são relevantes para o fluxo de ingestão do DeliveryHub.
 // Campos não usados no ACL estão presentes para que o fixture fique íntegro
 // e o processador futuro não precise reler a spec.
-public sealed class DiDiWebhookEvent
+internal sealed class DiDiWebhookEvent
 {
     // Tipo do evento: "newOrder", "cancelOrder", "orderStatusChange", etc.
     // A DiDi não documenta o envelope explicitamente — capturamos tudo e
@@ -36,7 +36,7 @@ public sealed class DiDiWebhookEvent
     public string? Sign { get; init; }
 }
 
-public sealed class DiDiOrderModel
+internal sealed class DiDiOrderModel
 {
     [JsonPropertyName("order_id")]
     public long OrderId { get; init; }
@@ -110,7 +110,7 @@ public sealed class DiDiOrderModel
     public IReadOnlyList<DiDiPromotionModel> Promotions { get; init; } = [];
 }
 
-public sealed class DiDiPriceModel
+internal sealed class DiDiPriceModel
 {
     // Preço original dos itens, em centavos
     [JsonPropertyName("order_price")]
@@ -145,7 +145,7 @@ public sealed class DiDiPriceModel
     public int CustomerNeedPayingMoney { get; init; }
 }
 
-public sealed class DiDiOrderShopModel
+internal sealed class DiDiOrderShopModel
 {
     [JsonPropertyName("shop_id")]
     public long ShopId { get; init; }
@@ -162,7 +162,7 @@ public sealed class DiDiOrderShopModel
     public string? ShopAddr { get; init; }
 }
 
-public sealed class DiDiCustomerAddressModel
+internal sealed class DiDiCustomerAddressModel
 {
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -201,7 +201,7 @@ public sealed class DiDiCustomerAddressModel
     public string? PoiDisplayName { get; init; }
 }
 
-public sealed class DiDiOrderItemModel
+internal sealed class DiDiOrderItemModel
 {
     // ID do item no sistema do parceiro
     [JsonPropertyName("app_item_id")]
@@ -232,7 +232,7 @@ public sealed class DiDiOrderItemModel
     public int RealPrice { get; init; }
 }
 
-public sealed class DiDiOrderSubItemModel
+internal sealed class DiDiOrderSubItemModel
 {
     [JsonPropertyName("app_item_id")]
     public string? AppItemId { get; init; }
@@ -253,7 +253,7 @@ public sealed class DiDiOrderSubItemModel
     public IReadOnlyList<DiDiOrderSubItemModel> SubItemList { get; init; } = [];
 }
 
-public sealed class DiDiPromotionModel
+internal sealed class DiDiPromotionModel
 {
     // 0: sem promoção; 1: desconto; 2: preço especial; 3: entrega grátis;
     // 4: compre X ganhe Y; 10: cupom no pedido; 12: cupom na entrega

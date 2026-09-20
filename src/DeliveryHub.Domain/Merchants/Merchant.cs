@@ -16,6 +16,13 @@ public sealed class Merchant
     public Guid Id { get; private set; }
     public string Nome { get; private set; } = string.Empty;
     public Guid? IFoodMerchantId { get; private set; }
+
+    // Identificador da loja no cadastro da 99Food. Não é Guid: o guia de
+    // integração é explícito que quem escolhe o formato é o próprio
+    // integrador ("números, códigos, letras, o que for melhor") — nasce nulo
+    // até a loja ser configurada lá, e vive isolado do IFoodMerchantId acima:
+    // são identidades de marketplaces diferentes, sem relação entre si.
+    public string? NoventaENoveAppShopId { get; private set; }
     public DateTimeOffset CriadoEm { get; private set; }
 
     // Quanto a loja paga ao motoboy por entrega concluída. É o valor vigente —
@@ -40,6 +47,18 @@ public sealed class Merchant
         };
 
     public void DefinirEndereco(Endereco endereco) => Endereco = endereco;
+
+    // Sem handshake OAuth como o iFood: o app_shop_id da 99Food é escolhido
+    // por nós na criação manual da loja no painel deles, então vincular aqui é
+    // só registrar o valor combinado — não há token nem autorização a trocar.
+    public Result VincularNoventaENove(string appShopId)
+    {
+        if (string.IsNullOrWhiteSpace(appShopId))
+            return Result.Failure(MerchantErrors.AppShopIdInvalido);
+
+        NoventaENoveAppShopId = appShopId.Trim();
+        return Result.Success();
+    }
 
     // Gera o par userCode/verifier a guardar até o dono da loja voltar com o
     // código de autorização. Reiniciar uma conexão pendente é permitido (o

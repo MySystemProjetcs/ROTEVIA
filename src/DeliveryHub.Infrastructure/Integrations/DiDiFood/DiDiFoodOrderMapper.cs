@@ -30,7 +30,9 @@ internal static class DiDiFoodOrderMapper
             ? DateTimeOffset.FromUnixTimeSeconds(model.CreateTime)
             : recebidoEm;
 
-        var pagamento = MapearPagamento(model);
+        // 1: entrega pela DiDi (frota deles); 2: entrega pela loja.
+        var entregaPeloParceiro = model.DeliveryType == 1;
+        var pagamento = MapearPagamento(model, entregaPeloParceiro);
 
         var pedido = Pedido.Receber(
             merchantId,
@@ -44,7 +46,8 @@ internal static class DiDiFoodOrderMapper
             criadoNaOrigem,
             recebidoEm,
             pagamento,
-            exigeCodigoDeEntrega: false);
+            exigeCodigoDeEntrega: false,
+            entregaPeloParceiro: entregaPeloParceiro);
 
         var indice = 1;
         foreach (var item in model.OrderItems)
@@ -101,9 +104,23 @@ internal static class DiDiFoodOrderMapper
             Longitude: lng ?? 0.0);
     }
 
-    private static Pagamento MapearPagamento(DiDiOrderModel model)
+    private static Pagamento MapearPagamento(DiDiOrderModel model, bool entregaPeloParceiro)
     {
         var total = (model.Price?.RealPayPrice ?? model.Price?.OrderPrice ?? 0) / 100m;
+
+        // Regra do guia ("Obs: Pagamentos"): quando a entrega é pela
+        // plataforma 99, o estabelecimento recebe o dinheiro diretamente como
+        // 'online', independente do pay_type declarado — tratar como já pago
+        // e sem valor pendente. Ignorar isso faria um pedido pago em dinheiro
+        // pela 99 aparecer como "a cobrar" para o motoboy, que nunca vai
+        // cobrar ninguém porque quem entrega é a frota deles.
+        if (entregaPeloParceiro)
+        {
+            return new Pagamento(
+                ValorJaPago: total,
+                ValorACobrar: 0,
+                Descricao: "Pago via 99Food");
+        }
 
         // pay_type: 1: online, 2: dinheiro, 3: POS (cartão na entrega), 4: carteira DiDi (online)
         var ehOnline = model.PayType == 1 || model.PayType == 4;

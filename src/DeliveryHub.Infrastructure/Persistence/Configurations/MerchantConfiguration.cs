@@ -22,6 +22,7 @@ internal sealed class MerchantConfiguration : IEntityTypeConfiguration<Merchant>
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.Nome).HasColumnName("nome").HasMaxLength(200).IsRequired();
         builder.Property(x => x.IFoodMerchantId).HasColumnName("ifood_merchant_id");
+        builder.Property(x => x.NoventaENoveAppShopId).HasColumnName("noventa_e_nove_app_shop_id").HasMaxLength(64);
         builder.Property(x => x.CriadoEm).HasColumnName("criado_em").IsRequired();
         builder.Property(x => x.TaxaPadraoPorEntrega).HasColumnName("taxa_padrao_por_entrega").IsRequired();
 
@@ -30,6 +31,12 @@ internal sealed class MerchantConfiguration : IEntityTypeConfiguration<Merchant>
         builder.HasIndex(x => x.IFoodMerchantId)
             .IsUnique()
             .HasDatabaseName("ux_merchants_ifood_id");
+
+        // Mesmo raciocínio do índice do iFood: nulo até a loja ser cadastrada
+        // na 99Food, e múltiplos nulos convivem bem com índice único no Postgres.
+        builder.HasIndex(x => x.NoventaENoveAppShopId)
+            .IsUnique()
+            .HasDatabaseName("ux_merchants_noventa_e_nove_app_shop_id");
 
         // Endereço da loja por table splitting, igual ao endereço de entrega do
         // pedido: é dado do merchant, não entidade com vida própria.

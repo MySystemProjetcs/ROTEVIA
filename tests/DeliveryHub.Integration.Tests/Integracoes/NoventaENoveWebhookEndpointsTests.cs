@@ -1,69 +1,90 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood;
-using DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace DeliveryHub.Integration.Tests.Integracoes;
 
+// Testa o gateway de verdade (DiDiFoodWebhookGateway.Validar), não uma cópia
+// da fórmula MD5 ao lado dela — os dois testes anteriores recalculavam a
+// mesma fórmula e comparavam consigo mesmos, sem nunca chamar o código de
+// produção (CLAUDE.md §10: não escrever teste que só repete a implementação).
 public sealed class NoventaENoveWebhookEndpointsTests
 {
+    private const long AppId = 3458764610605350993L;
+    private const string AppSecret = "secret_key_123";
+
+    private static DiDiFoodWebhookGateway CriarGateway() =>
+        new(Options.Create(new DiDiFoodOptions { AppId = AppId, AppSecret = AppSecret }));
+
+    private static string AssinaturaValida(long timestamp) =>
+        Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes($"{AppId}{timestamp}{AppSecret}")));
+
+    private static string PayloadCom(string eventType, long orderId, long timestamp, string sign, string? appShopId = "loja-001") =>
+        $$"""
+        {
+          "event_type": "{{eventType}}",
+          "order_id": {{orderId}},
+          "timestamp": {{timestamp}},
+          "sign": "{{sign}}",
+          "order": { "order_id": {{orderId}}, "shop": { "app_shop_id": {{(appShopId is null ? "null" : $"\"{appShopId}\"")}} } }
+        }
+        """;
+
     [Fact]
-    public void Assinatura_MD5_valida_calculo_conforme_spec_didi()
+    public void Validar_com_assinatura_correta_extrai_os_campos_do_evento()
     {
-        // Arrange
-        var appId = 3458764610605350993L;
-        var appSecret = "secret_key_123";
         var timestamp = 1726776000L;
+        var payload = PayloadCom("orderCancel", 2352921557674426622L, timestamp, AssinaturaValida(timestamp));
 
-        // Fórmula da spec OpenAPI: MD5(app_id + timestamp + app_secret) em hex uppercase
-        var entrada = $"{appId}{timestamp}{appSecret}";
-        var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(entrada));
-        var signEsperado = Convert.ToHexString(hashBytes);
+        var recebido = CriarGateway().Validar(payload);
 
-        var opcoes = Options.Create(new DiDiFoodOptions
-        {
-            AppId = appId,
-            AppSecret = appSecret
-        });
-
-        var evento = new DiDiWebhookEvent
-        {
-            EventType = "newOrder",
-            OrderId = 2352921557674426622L,
-            Timestamp = timestamp,
-            Sign = signEsperado
-        };
-
-        // Act & Assert
-        Assert.NotNull(evento.Sign);
-        Assert.Equal(signEsperado, evento.Sign);
+        Assert.NotNull(recebido);
+        Assert.Equal("orderCancel", recebido.EventType);
+        Assert.Equal(2352921557674426622L, recebido.OrderId);
+        Assert.Equal("loja-001", recebido.AppShopId);
+        Assert.Equal("orderCancel:2352921557674426622", recebido.EventId);
     }
 
     [Fact]
-    public void Assinatura_invalida_deve_ser_rejeitada()
+    public void Validar_com_assinatura_falsa_e_recusado()
     {
-        // Arrange
-        var opcoes = Options.Create(new DiDiFoodOptions
-        {
-            AppId = 12345,
-            AppSecret = "segredo_correto"
-        });
+        var payload = PayloadCom("orderNew", 9999, 1726776000L, "ASSINATURA_FALSA");
 
-        var evento = new DiDiWebhookEvent
-        {
-            EventType = "newOrder",
-            OrderId = 9999,
-            Timestamp = 1726776000L,
-            Sign = "ASSINATURA_FALSA"
-        };
+        var recebido = CriarGateway().Validar(payload);
 
-        // Act
-        var entradaEsperada = $"{opcoes.Value.AppId}{evento.Timestamp}{opcoes.Value.AppSecret}";
-        var hashEsperado = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(entradaEsperada)));
+        Assert.Null(recebido);
+    }
 
-        // Assert
-        Assert.NotEqual(hashEsperado, evento.Sign);
+    [Fact]
+    public void Validar_com_timestamp_diferente_do_assinado_e_recusado()
+    {
+        // Assina para um timestamp e manda outro no corpo — simula replay ou
+        // adulteração; o hash não bate porque o timestamp entra na fórmula.
+        var payload = PayloadCom("orderFinish", 1234, 1726776999L, AssinaturaValida(1726776000L));
+
+        var recebido = CriarGateway().Validar(payload);
+
+        Assert.Null(recebido);
+    }
+
+    [Fact]
+    public void Validar_com_json_ilegivel_nao_lanca_e_devolve_nulo()
+    {
+        var recebido = CriarGateway().Validar("{ isto não é json");
+
+        Assert.Null(recebido);
+    }
+
+    [Fact]
+    public void Validar_sem_app_shop_id_devolve_appshopid_nulo_sem_falhar()
+    {
+        var timestamp = 1726776000L;
+        var payload = PayloadCom("deliveryStatus", 555, timestamp, AssinaturaValida(timestamp), appShopId: null);
+
+        var recebido = CriarGateway().Validar(payload);
+
+        Assert.NotNull(recebido);
+        Assert.Null(recebido.AppShopId);
     }
 }

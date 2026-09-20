@@ -34,6 +34,7 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         // confirmado. O código em si nunca é guardado — quem valida é o iFood,
         // e reter dado do cliente sem uso seria só risco (CLAUDE.md §10).
         builder.Property(x => x.ExigeCodigoDeEntrega).HasColumnName("exige_codigo_entrega").IsRequired();
+        builder.Property(x => x.EntregaPeloParceiro).HasColumnName("entrega_pelo_parceiro").IsRequired();
         builder.Property(x => x.CodigoConfirmadoEm).HasColumnName("codigo_confirmado_em");
 
         // Pagamento por table splitting, igual a Cliente e Endereço: é dado do

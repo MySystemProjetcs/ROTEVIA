@@ -23,4 +23,9 @@ public static class MerchantErrors
         "merchant.taxa_invalida",
         "A taxa por entrega não pode ser negativa.",
         ErrorType.Validation);
+
+    public static readonly Error AppShopIdInvalido = new(
+        "merchant.app_shop_id_invalido",
+        "Informe o identificador da loja cadastrado na 99Food.",
+        ErrorType.Validation);
 }

@@ -96,11 +96,13 @@ public sealed class Pedido : ITenantOwned
         DateTimeOffset criadoNaOrigemEm,
         DateTimeOffset recebidoEm,
         Pagamento? pagamento = null,
-        bool exigeCodigoDeEntrega = false) =>
+        bool exigeCodigoDeEntrega = false,
+        bool entregaPeloParceiro = false) =>
         new(Guid.CreateVersion7(), merchantId, idExterno, numeroExibicao, ehTeste, cliente,
             enderecoEntrega, valorTotal, taxaEntrega, criadoNaOrigemEm, recebidoEm)
         {
             Pagamento = pagamento ?? Pagamento.Indefinido,
+            EntregaPeloParceiro = entregaPeloParceiro,
             ExigeCodigoDeEntrega = exigeCodigoDeEntrega
         };
 
@@ -165,6 +167,13 @@ public sealed class Pedido : ITenantOwned
     // direito de pedir cancelamento por "pedido não entregue" — é esse
     // prejuízo que o código evita.
     public bool ExigeCodigoDeEntrega { get; private set; }
+
+    // A frota do próprio marketplace faz a entrega (courier deles, não o
+    // motoboy da loja). Conceito de negócio, não vocabulário de marketplace —
+    // nasce do "deliveredBy" do iFood e do "delivery_type" da 99Food, mas o
+    // domínio nunca vê esses nomes (CLAUDE.md §4). É o que decide se a loja
+    // ainda tem uma etapa de entrega própria a percorrer depois do "Pronto".
+    public bool EntregaPeloParceiro { get; private set; }
 
     public DateTimeOffset? CodigoConfirmadoEm { get; private set; }
 

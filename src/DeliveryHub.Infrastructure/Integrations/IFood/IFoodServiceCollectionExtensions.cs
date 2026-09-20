@@ -42,6 +42,12 @@ public static class IFoodServiceCollectionExtensions
         services.AddScoped<IIFoodEventIngestor, IFoodEventIngestor>();
         services.AddScoped<IIFoodInboxProcessor, IFoodInboxProcessor>();
         services.AddScoped<IOrderSource, IFoodOrderSource>();
+        // Self-bind do tipo concreto: o OrderSourceResolver (Infrastructure
+        // raiz) injeta IFoodOrderSource por classe, não só pela porta
+        // IOrderSource, para poder rotear entre marketplaces por ele mesmo.
+        // Fica aqui, no módulo do iFood — não no da 99Food, que não deveria
+        // conhecer nem precisar registrar nada do iFood.
+        services.AddScoped<IFoodOrderSource>();
 
         // Sem estado a manter entre chamadas — cada troca de token já devolve
         // seu próprio expiresIn, então não precisa ser singleton como o
