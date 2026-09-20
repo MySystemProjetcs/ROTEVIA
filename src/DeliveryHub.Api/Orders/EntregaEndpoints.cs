@@ -2,6 +2,7 @@ using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Couriers;
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Application.Tracking;
+using DeliveryHub.Domain.Orders;
 using DeliveryHub.Infrastructure.RealTime;
 using DeliveryHub.Domain.SharedKernel;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -17,6 +18,9 @@ public sealed record RegistrarPosicaoRequest(
     DateTimeOffset CapturadoEm);
 
 public sealed record DefinirDisponibilidadeRequest(bool Disponivel);
+
+// O código de 4 dígitos que o cliente informa ao entregador na porta.
+public sealed record CodigoDeEntregaRequest(string Codigo);
 public sealed record DisponibilidadeResponse(bool Disponivel);
 public sealed record ItemGanhoResponse(
     Guid PedidoId,
@@ -62,6 +66,9 @@ public static class EntregaEndpoints
         group.MapPost("/pedidos/{id:guid}/cobrar", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
             Avancar(t, id, AcaoDeEntrega.Cobrar, a, ct));
 
+        // Único do motoboy com corpo: o código vai no body, nunca na URL —
+        // é dado do cliente e URL vaza em log de proxy (CLAUDE.md §10).
+        group.MapPost("/pedidos/{id:guid}/confirmar-codigo", ConfirmarCodigo);
         group.MapPost("/pedidos/{id:guid}/finalizar", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
             Avancar(t, id, AcaoDeEntrega.Finalizar, a, ct));
 
@@ -199,6 +206,21 @@ public static class EntregaEndpoints
         ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
         _ => StatusCodes.Status500InternalServerError
     };
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ConfirmarCodigo(
+        Guid id,
+        CodigoDeEntregaRequest request,
+        ITenantContext tenant,
+        IConfirmarEntregaComCodigo confirmar,
+        CancellationToken ct)
+    {
+        if (tenant.UsuarioId is not { } usuarioId)
+            return ProblemaDe(PedidoErrors.EntregadorNaoPertenceAoPedido);
+
+        var resultado = await confirmar.ExecutarAsync(usuarioId, id, request.Codigo, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
+    }
 
     private static ProblemHttpResult ProblemaDe(Error erro) => TypedResults.Problem(
         title: erro.Message,

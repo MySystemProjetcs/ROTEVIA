@@ -51,7 +51,7 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
         // Eventos em quarentena (merchant_id nulo) ficam de fora: são
         // reprocessáveis depois que a loja for cadastrada.
         var pendentes = await _db.IntegrationInbox
-            .Where(x => x.ProcessedAt == null && x.MerchantId != null)
+            .Where(x => x.ProcessedAt == null && x.MerchantId != null && x.Source == "ifood")
             .OrderBy(x => x.ReceivedAt)
             .Take(limite)
             .ToListAsync(ct);

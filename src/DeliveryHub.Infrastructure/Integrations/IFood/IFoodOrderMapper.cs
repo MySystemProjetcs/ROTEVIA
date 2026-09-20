@@ -23,7 +23,11 @@ internal static class IFoodOrderMapper
             taxaEntrega: origem.Total.DeliveryFee,
             criadoNaOrigemEm: origem.CreatedAt,
             recebidoEm: recebidoEm,
-            pagamento: MapearPagamento(origem.Payments));
+            pagamento: MapearPagamento(origem.Payments),
+            // Entrega feita pela frota da própria loja é onde o código de
+            // confirmação existe. Pedido entregue pelo iFood não tem esse
+            // passo — quem valida lá é o entregador deles.
+            exigeCodigoDeEntrega: origem.Delivery?.DeliveredBy == "MERCHANT");
 
         foreach (var item in origem.Items)
         {

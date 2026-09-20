@@ -19,6 +19,7 @@ import { useMotoboys } from '@/motoboys/useMotoboys'
 import { FaixaResumo } from '@/dashboard/FaixaResumo'
 import { AlternadorDisponibilidade } from '@/entregador/AlternadorDisponibilidade'
 import { useDisponibilidade } from '@/entregador/useDisponibilidade'
+import { useTelaAcesa } from '@/entregador/useTelaAcesa'
 import { STATUS_EM_ENTREGA } from '@/dominio/pedido'
 import { CartaoPedido } from './CartaoPedido'
 import { ColunaPedidos } from './ColunaPedidos'
@@ -136,6 +137,10 @@ function PainelEntregador() {
   // alimenta o mapa do restaurante.
   const { disponivel, erro: erroDisponibilidade, definir } = useDisponibilidade()
   const { estado: estadoGps } = useEnviarPosicao(pedidos, disponivel)
+
+  // Tela apagada é aba congelada, e aba congelada é motoboy sumido do mapa da
+  // loja. Enquanto ele está online, a tela fica acesa.
+  useTelaAcesa(disponivel === true)
 
   return (
     <div className="flex flex-col gap-4">

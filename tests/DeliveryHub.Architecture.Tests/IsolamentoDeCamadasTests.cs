@@ -17,6 +17,7 @@ public sealed class IsolamentoDeCamadasTests
 
     private const string NamespaceInfrastructure = "DeliveryHub.Infrastructure";
     private const string NamespaceContratosIFood = "DeliveryHub.Infrastructure.Integrations.IFood.Contracts";
+    private const string NamespaceContratosDiDi = "DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts";
 
     [Fact]
     public void Domain_nao_depende_de_nenhuma_outra_camada()
@@ -59,6 +60,20 @@ public sealed class IsolamentoDeCamadasTests
     }
 
     [Fact]
+    public void Contratos_da_DiDi_nao_vazam_para_Domain_nem_Application()
+    {
+        foreach (var assembly in new[] { Domain, Application })
+        {
+            var resultado = Types.InAssembly(assembly)
+                .Should()
+                .NotHaveDependencyOn(NamespaceContratosDiDi)
+                .GetResult();
+
+            Assert.True(resultado.IsSuccessful, Descrever(resultado));
+        }
+    }
+
+    [Fact]
     public void Contratos_do_iFood_sao_internos_ao_assembly_de_Infrastructure()
     {
         // Ser internal é o que torna o vazamento impossível por construção, e
@@ -66,6 +81,19 @@ public sealed class IsolamentoDeCamadasTests
         var publicos = Types.InAssembly(Infrastructure)
             .That()
             .ResideInNamespace(NamespaceContratosIFood)
+            .And()
+            .ArePublic()
+            .GetTypes();
+
+        Assert.Empty(publicos);
+    }
+
+    [Fact]
+    public void Contratos_da_DiDi_sao_internos_ao_assembly_de_Infrastructure()
+    {
+        var publicos = Types.InAssembly(Infrastructure)
+            .That()
+            .ResideInNamespace(NamespaceContratosDiDi)
             .And()
             .ArePublic()
             .GetTypes();

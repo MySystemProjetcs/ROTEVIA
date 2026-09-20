@@ -56,7 +56,10 @@ public sealed class AvancarEntrega : IAvancarEntrega
             AcaoDeEntrega.SairParaEntrega => pedido.SairParaEntrega(),
             AcaoDeEntrega.ChegarNoLocal => pedido.ChegarNoLocal(),
             AcaoDeEntrega.Cobrar => pedido.Cobrar(),
-            AcaoDeEntrega.Finalizar => pedido.Concluir(),
+            // Pela porta do entregador, que recusa enquanto o código do
+            // cliente não foi confirmado. O Concluir() cru continua valendo
+            // para o evento CONCLUDED do iFood.
+            AcaoDeEntrega.Finalizar => pedido.ConcluirPeloEntregador(),
             _ => throw new ArgumentOutOfRangeException(nameof(acao)),
         };
 

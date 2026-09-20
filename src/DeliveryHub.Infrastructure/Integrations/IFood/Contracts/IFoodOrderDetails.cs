@@ -220,3 +220,11 @@ internal sealed record IFoodAdditionalFee(
 internal sealed record IFoodLiability(
     [property: JsonPropertyName("name")] string? Name,
     [property: JsonPropertyName("percentage")] decimal Percentage);
+
+// Corpo e resposta do verifyDeliveryCode. Ficam aqui junto dos demais
+// contratos do pedido, e como todo Contracts/ não podem vazar para Application.
+internal sealed record IFoodVerifyDeliveryCodeRequest(
+    [property: JsonPropertyName("code")] string Code);
+
+internal sealed record IFoodVerifyDeliveryCodeResponse(
+    [property: JsonPropertyName("valid")] bool Valid);

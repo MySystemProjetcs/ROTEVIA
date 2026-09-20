@@ -44,6 +44,30 @@ internal sealed class IFoodOrderSource : IOrderSource
     public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) =>
         ExecutarAsync(idExternoPedido, "despachar", _client.DispatchAsync, ct);
 
+    // Fora do ExecutarAsync porque devolve valor, não só sucesso. O código em
+    // si nunca entra em log: é dado do cliente (CLAUDE.md §10).
+    public async Task<Result<bool>> VerificarCodigoDeEntregaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct)
+    {
+        if (!Guid.TryParse(idExternoPedido, out var orderId))
+            return Result.Failure<bool>(OrderSourceErrors.OrigemRecusou);
+
+        try
+        {
+            return Result.Success(await _client.VerifyDeliveryCodeAsync(orderId, codigo, ct));
+        }
+        catch (IFoodApiException ex)
+        {
+            _logger.LogWarning(ex, "iFood recusou a validação de código do pedido {PedidoId}.", idExternoPedido);
+            return Result.Failure<bool>(OrderSourceErrors.OrigemRecusou);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Falha de rede ao validar código do pedido {PedidoId}.", idExternoPedido);
+            return Result.Failure<bool>(OrderSourceErrors.OrigemIndisponivel);
+        }
+    }
+
     private async Task<Result> ExecutarAsync(
         string idExternoPedido,
         string descricao,

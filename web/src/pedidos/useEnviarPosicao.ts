@@ -12,6 +12,31 @@ const MAX_TRILHA = 200
 // escrita à toa no banco.
 const INTERVALO_MINIMO_MS = 4_000
 
+// Leitura pior que isto não é posição, é palpite: a 96 m de incerteza — valor
+// real visto nos dados — o ponto cai a um quarteirão de distância e põe o
+// motoboy na rua errada. Melhor manter a última posição boa do que desenhar
+// uma mentira precisa.
+const PRECISAO_MAXIMA_M = 50
+
+// Distância em metros entre duas coordenadas (Haversine). Aproximação de
+// esfera basta: a mil metros o erro é de centímetros.
+function distanciaEmMetros(
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number,
+): number {
+  const R = 6_371_000
+  const rad = Math.PI / 180
+  const dLat = (bLat - aLat) * rad
+  const dLon = (bLon - aLon) * rad
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2
+
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
 function entregaEmCurso(pedidos: Pedido[]): Pedido | undefined {
   return pedidos.find((p) => p.status === 'EmRota' || p.status === 'Chegou')
 }
@@ -26,6 +51,8 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
   const [posicaoAtual, setPosicaoAtual] = useState<PosicaoEntregador | null>(null)
   const [trilha, setTrilha] = useState<PosicaoEntregador[]>([])
   const ultimoEnvioRef = useRef(0)
+  // Última leitura aceita, para medir se houve deslocamento de verdade.
+  const ultimaBoaRef = useRef<{ lat: number; lon: number } | null>(null)
 
   const pedido = entregaEmCurso(pedidos)
   const pedidoId = pedido?.id ?? null
@@ -57,15 +84,33 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
       (posicao) => {
         setEstado('emitindo')
 
+        const { latitude, longitude, accuracy } = posicao.coords
+
+        // Descarta a leitura ruim em vez de teleportar o marcador.
+        if (accuracy > PRECISAO_MAXIMA_M) return
+
+        // Parado, o GPS treme dentro do próprio raio de erro e o marcador fica
+        // dançando na calçada. Só move quando o deslocamento supera a
+        // incerteza da leitura — aí é caminhada, não ruído.
+        const anterior = ultimaBoaRef.current
+        if (
+          anterior &&
+          distanciaEmMetros(anterior.lat, anterior.lon, latitude, longitude) < accuracy
+        ) {
+          return
+        }
+
+        ultimaBoaRef.current = { lat: latitude, lon: longitude }
+
         // O motoboy não recebe os próprios pings de volta pelo SignalR — eles
         // vão para o grupo da loja. Então o mapa dele é alimentado aqui mesmo.
         const lida: PosicaoEntregador = {
           merchantId: '',
           entregadorId: 'eu',
           entregadorNome: 'Você',
-          latitude: posicao.coords.latitude,
-          longitude: posicao.coords.longitude,
-          precisaoEmMetros: posicao.coords.accuracy,
+          latitude,
+          longitude,
+          precisaoEmMetros: accuracy,
           capturadoEm: new Date(posicao.timestamp).toISOString(),
           pedidoId,
           pedidoNumero: numero,
@@ -88,9 +133,9 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
 
         void api
           .post('/entregador/posicao', {
-            latitude: posicao.coords.latitude,
-            longitude: posicao.coords.longitude,
-            precisaoEmMetros: posicao.coords.accuracy,
+            latitude,
+            longitude,
+            precisaoEmMetros: accuracy,
             capturadoEm: new Date(posicao.timestamp).toISOString(),
           })
           // Ping perdido não é erro que valha interromper a entrega: o próximo

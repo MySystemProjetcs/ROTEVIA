@@ -95,11 +95,13 @@ public sealed class Pedido : ITenantOwned
         decimal taxaEntrega,
         DateTimeOffset criadoNaOrigemEm,
         DateTimeOffset recebidoEm,
-        Pagamento? pagamento = null) =>
+        Pagamento? pagamento = null,
+        bool exigeCodigoDeEntrega = false) =>
         new(Guid.CreateVersion7(), merchantId, idExterno, numeroExibicao, ehTeste, cliente,
             enderecoEntrega, valorTotal, taxaEntrega, criadoNaOrigemEm, recebidoEm)
         {
-            Pagamento = pagamento ?? Pagamento.Indefinido
+            Pagamento = pagamento ?? Pagamento.Indefinido,
+            ExigeCodigoDeEntrega = exigeCodigoDeEntrega
         };
 
     // O item herda o tenant do pedido: é o pedido que sabe de quem ele é, e
@@ -157,6 +159,35 @@ public sealed class Pedido : ITenantOwned
     }
 
     public Result Concluir() => AvancarPara(StatusPedido.Concluido);
+
+    // O pedido do iFood entregue pela frota da própria loja pede um código de
+    // 4 dígitos que o cliente informa na porta. Validado, o cliente perde o
+    // direito de pedir cancelamento por "pedido não entregue" — é esse
+    // prejuízo que o código evita.
+    public bool ExigeCodigoDeEntrega { get; private set; }
+
+    public DateTimeOffset? CodigoConfirmadoEm { get; private set; }
+
+    public bool CodigoDeEntregaPendente => ExigeCodigoDeEntrega && CodigoConfirmadoEm is null;
+
+    // Idempotente: rede instável faz o motoboy tocar duas vezes, e a segunda
+    // não pode reescrever a hora da primeira confirmação.
+    public void RegistrarCodigoConfirmado(DateTimeOffset em)
+    {
+        CodigoConfirmadoEm ??= em;
+    }
+
+    // Porta separada do Concluir() de propósito. Concluir() tem duas entradas:
+    // este fluxo e o evento CONCLUDED do iFood, que chega pelo polling. Pôr a
+    // guarda lá dentro faria o próprio iFood não conseguir concluir o pedido
+    // dele quando o motoboy pulou o código — travaria a ingestão.
+    public Result ConcluirPeloEntregador()
+    {
+        if (CodigoDeEntregaPendente)
+            return Result.Failure(PedidoErrors.CodigoDeEntregaPendente);
+
+        return Concluir();
+    }
 
     // Como o pedido foi pago, e quanto ainda falta receber. Nunca nulo: pedido
     // sem informação de pagamento vale como pago (Pagamento.Indefinido), para

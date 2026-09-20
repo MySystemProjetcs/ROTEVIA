@@ -29,6 +29,16 @@ public static class PedidoErrors
         "Este pedido não está atribuído a você.",
         ErrorType.NotFound);
 
+    public static readonly Error CodigoDeEntregaPendente = new(
+        "pedido.codigo_entrega_pendente",
+        "Confirme o código de entrega com o cliente antes de finalizar.",
+        ErrorType.Conflict);
+
+    public static readonly Error CodigoDeEntregaInvalido = new(
+        "pedido.codigo_entrega_invalido",
+        "Código incorreto. Confira com o cliente e tente de novo.",
+        ErrorType.Validation);
+
     public static readonly Error ValorRepasseInvalido = new(
         "pedido.valor_repasse_invalido",
         "O valor pago ao entregador não pode ser negativo.",

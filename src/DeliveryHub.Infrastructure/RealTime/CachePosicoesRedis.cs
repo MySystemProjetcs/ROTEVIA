@@ -60,7 +60,7 @@ internal sealed class CachePosicoesRedis : ICachePosicoes
                 continue;
             }
 
-            var posicao = JsonSerializer.Deserialize<PosicaoRegistrada>(bruto!);
+            var posicao = JsonSerializer.Deserialize<PosicaoRegistrada>((string)bruto!);
             if (posicao is not null)
                 posicoes.Add(posicao);
         }

@@ -52,6 +52,15 @@ public sealed class AvancarPedidoTests
         public Task<Result> IniciarPreparoAsync(string id, CancellationToken ct) => Registrar("iniciar-preparo");
         public Task<Result> MarcarProntoAsync(string id, CancellationToken ct) => Registrar("pronto");
         public Task<Result> DespacharAsync(string id, CancellationToken ct) => Registrar("despachar");
+
+        // O AvancarPedido não valida código — só o fluxo do entregador faz
+        // isso. Aqui o método existe para satisfazer a porta.
+        public Task<Result<bool>> VerificarCodigoDeEntregaAsync(
+            string id, string codigo, CancellationToken ct)
+        {
+            Chamadas.Add("verificar-codigo");
+            return Task.FromResult(Result.Success(true));
+        }
     }
 
     private sealed class FakeNotificador : INotificadorPainel

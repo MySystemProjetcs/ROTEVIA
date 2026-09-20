@@ -11,4 +11,10 @@ public interface IOrderSource
     Task<Result> IniciarPreparoAsync(string idExternoPedido, CancellationToken ct);
     Task<Result> MarcarProntoAsync(string idExternoPedido, CancellationToken ct);
     Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct);
+
+    // Valida na origem o código que o cliente informa ao entregador na porta.
+    // Devolve bool, não tipo da origem: Application não pode enxergar contrato
+    // de marketplace (teste de arquitetura quebra o build se vazar).
+    Task<Result<bool>> VerificarCodigoDeEntregaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct);
 }

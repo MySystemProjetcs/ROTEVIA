@@ -15,6 +15,10 @@ internal interface IIFoodOrderClient
     Task StartPreparationAsync(Guid orderId, CancellationToken ct);
     Task ReadyToPickupAsync(Guid orderId, CancellationToken ct);
     Task DispatchAsync(Guid orderId, CancellationToken ct);
+
+    // Diferente das demais: manda corpo e lê a resposta. Devolve se o código
+    // confere — código errado é 200 com valid:false, não erro HTTP.
+    Task<bool> VerifyDeliveryCodeAsync(Guid orderId, string code, CancellationToken ct);
 }
 
 internal sealed class IFoodOrderClient : IIFoodOrderClient
@@ -61,6 +65,29 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
 
     public Task DispatchAsync(Guid orderId, CancellationToken ct) =>
         AcionarAsync(orderId, "dispatch", ct);
+
+    // Não dá para reusar o AcionarAsync: ele posta sem corpo e descarta a
+    // resposta, e aqui os dois importam.
+    public async Task<bool> VerifyDeliveryCodeAsync(Guid orderId, string code, CancellationToken ct)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"orders/{orderId}/verifyDeliveryCode",
+            new IFoodVerifyDeliveryCodeRequest(code),
+            ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<IFoodErrorResponse>(ct);
+            throw new IFoodApiException(
+                response.StatusCode,
+                error?.Error.Message ?? $"O iFood recusou a validação do código (HTTP {(int)response.StatusCode}).",
+                error?.Error.Code);
+        }
+
+        var corpo = await response.Content.ReadFromJsonAsync<IFoodVerifyDeliveryCodeResponse>(ct);
+
+        return corpo?.Valid ?? false;
+    }
 
     private async Task AcionarAsync(Guid orderId, string acao, CancellationToken ct)
     {
