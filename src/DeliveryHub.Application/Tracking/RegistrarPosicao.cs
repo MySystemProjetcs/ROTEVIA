@@ -17,6 +17,8 @@ public sealed record PosicaoRegistrada(
     double Longitude,
     double PrecisaoEmMetros,
     DateTimeOffset CapturadoEm,
+    DateTimeOffset RecebidoEm,
+    bool EhHeartbeat,
     Guid? PedidoId,
     string? PedidoNumero,
     string? PedidoStatus,
@@ -33,6 +35,7 @@ public interface IRegistrarPosicao
         double longitude,
         double precisaoEmMetros,
         DateTimeOffset capturadoEm,
+        bool ehHeartbeat,
         CancellationToken ct);
 }
 
@@ -64,6 +67,7 @@ public sealed class RegistrarPosicao : IRegistrarPosicao
         double longitude,
         double precisaoEmMetros,
         DateTimeOffset capturadoEm,
+        bool ehHeartbeat,
         CancellationToken ct)
     {
         var courier = await _couriers.ObterPorUsuarioIdAsync(usuarioLogadoId, ct);
@@ -78,25 +82,31 @@ public sealed class RegistrarPosicao : IRegistrarPosicao
         if (entrega is null && !courier.DisponivelParaEntrega)
             return Result.Failure<IReadOnlyList<PosicaoRegistrada>>(TrackingErrors.RastreioForaDeTurno);
 
+        var recebidoEm = _relogio.GetUtcNow();
+
         if (entrega is not null)
         {
-            // Durante a entrega o trajeto é gravado: serve de prova do que foi
+            // Heartbeat atualiza a saúde do cache sem criar novo ponto histórico.
+            if (!ehHeartbeat)
+            {
+                // Durante a entrega o trajeto é gravado: serve de prova do que foi
             // percorrido se o pedido for contestado depois.
-            _rastreio.Adicionar(PosicaoEntregador.Registrar(
-                merchantId: entrega.MerchantId,
-                entregadorId: courier.Id,
-                pedidoId: entrega.Id,
-                latitude: latitude,
-                longitude: longitude,
-                precisaoEmMetros: precisaoEmMetros,
-                capturadoEm: capturadoEm,
-                recebidoEm: _relogio.GetUtcNow()));
+                _rastreio.Adicionar(PosicaoEntregador.Registrar(
+                    merchantId: entrega.MerchantId,
+                    entregadorId: courier.Id,
+                    pedidoId: entrega.Id,
+                    latitude: latitude,
+                    longitude: longitude,
+                    precisaoEmMetros: precisaoEmMetros,
+                    capturadoEm: capturadoEm,
+                    recebidoEm: recebidoEm));
 
-            await _rastreio.SalvarAsync(ct);
+                await _rastreio.SalvarAsync(ct);
+            }
 
             var daEntrega = new PosicaoRegistrada(
                 entrega.MerchantId, courier.Id, courier.Nome,
-                latitude, longitude, precisaoEmMetros, capturadoEm,
+                latitude, longitude, precisaoEmMetros, capturadoEm, recebidoEm, ehHeartbeat,
                 entrega.Id,
                 entrega.NumeroExibicao,
                 entrega.Status.ToString(),
@@ -116,7 +126,7 @@ public sealed class RegistrarPosicao : IRegistrarPosicao
         var ociosas = merchantIds
             .Select(merchantId => new PosicaoRegistrada(
                 merchantId, courier.Id, courier.Nome,
-                latitude, longitude, precisaoEmMetros, capturadoEm,
+                latitude, longitude, precisaoEmMetros, capturadoEm, recebidoEm, ehHeartbeat,
                 null, null, null, null, null))
             .ToList();
 

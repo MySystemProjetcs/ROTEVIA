@@ -158,7 +158,7 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
             "READY_TO_PICKUP" => pedido.MarcarPronto(),
             "DISPATCHED" => pedido.Despachar(),
             "CONCLUDED" => pedido.Concluir(),
-            "CANCELLED" => pedido.Cancelar(),
+            "CANCELLED" => pedido.Cancelar("Cancelado pela origem (iFood)."),
             // Eventos que não mudam status (logística, handshake, patch) são
             // reconhecidos e marcados como processados sem efeito no pedido.
             _ => Result.Success()

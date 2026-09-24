@@ -15,7 +15,8 @@ public sealed record RegistrarPosicaoRequest(
     double Latitude,
     double Longitude,
     double PrecisaoEmMetros,
-    DateTimeOffset CapturadoEm);
+    DateTimeOffset CapturadoEm,
+    bool EhHeartbeat = false);
 
 public sealed record DefinirDisponibilidadeRequest(bool Disponivel);
 
@@ -93,6 +94,7 @@ public static class EntregaEndpoints
             request.Longitude,
             request.PrecisaoEmMetros,
             request.CapturadoEm,
+            request.EhHeartbeat,
             ct);
 
         if (!resultado.IsSuccess)

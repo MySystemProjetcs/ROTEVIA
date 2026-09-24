@@ -63,5 +63,22 @@ export function usePedidos() {
     [recarregar],
   )
 
-  return { pedidos, carregando, erro, mover, alocar, recarregar }
+  // Cancela em qualquer status não terminal. Motivo é obrigatório (o backend
+  // recusa vazio). Devolve a mensagem de erro para exibir junto ao campo, ou
+  // null em sucesso — não é otimista de propósito: o dono precisa ver a origem
+  // (iFood) aceitar antes do cartão sair do quadro.
+  const cancelar = useCallback(
+    async (pedido: Pedido, motivo: string): Promise<string | null> => {
+      try {
+        await api.post(`/pedidos/${pedido.id}/cancelar`, { motivo })
+        await recarregar()
+        return null
+      } catch (e) {
+        return e instanceof ErroDaApi ? e.message : 'Não foi possível cancelar o pedido.'
+      }
+    },
+    [recarregar],
+  )
+
+  return { pedidos, carregando, erro, mover, alocar, cancelar, recarregar }
 }

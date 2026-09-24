@@ -68,7 +68,10 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
                     .ToList(),
                 x.EntregadorId,
                 courier.Nome,
-                _db.Merchants.Where(m => m.Id == x.MerchantId).Select(m => m.Nome).FirstOrDefault()))
+                _db.Merchants.Where(m => m.Id == x.MerchantId).Select(m => m.Nome).FirstOrDefault(),
+                x.IdExterno.StartsWith("local-") ? OrigemDoPedido.Interno : OrigemDoPedido.IFood,
+                x.ExigeCodigoDeEntrega,
+                x.CodigoConfirmadoEm))
             .ToListAsync(ct);
     }
 }

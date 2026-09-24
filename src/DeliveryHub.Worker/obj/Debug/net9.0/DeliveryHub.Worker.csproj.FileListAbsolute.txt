@@ -50,12 +50,6 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.build.json
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.development.json
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.build.endpoints.json
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.DeliveryHub.Worker.Microsoft.AspNetCore.StaticWebAssets.props
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.DeliveryHub.Worker.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.build.DeliveryHub.Worker.props
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.DeliveryHub.Worker.props
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.DeliveryHub.Worker.props
-/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.pack.json
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/Delivery.6354662A.Up2Date
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/DeliveryHub.Worker.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/refint/DeliveryHub.Worker.dll
@@ -68,3 +62,9 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Microsoft.NET.StringTools.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Pipelines.Sockets.Unofficial.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/StackExchange.Redis.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.DeliveryHub.Worker.Microsoft.AspNetCore.StaticWebAssets.props
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.DeliveryHub.Worker.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.build.DeliveryHub.Worker.props
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.DeliveryHub.Worker.props
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.DeliveryHub.Worker.props
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.pack.json

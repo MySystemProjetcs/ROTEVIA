@@ -44,6 +44,19 @@ internal sealed class IFoodOrderSource : IOrderSource
     public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) =>
         ExecutarAsync(idExternoPedido, "despachar", _client.DispatchAsync, ct);
 
+    // Código de cancelamento pelo estabelecimento. O iFood exige um código de
+    // uma lista que varia por pedido (GET orders/{id}/cancellationReasons);
+    // enquanto essa etapa não é capturada, mandamos um padrão de "problema no
+    // estabelecimento". Homologação: buscar a lista e validar o código.
+    private const string CodigoCancelamentoPadrao = "501";
+
+    public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct) =>
+        ExecutarAsync(
+            idExternoPedido,
+            "cancelar",
+            (orderId, token) => _client.RequestCancellationAsync(orderId, motivo, CodigoCancelamentoPadrao, token),
+            ct);
+
     // Fora do ExecutarAsync porque devolve valor, não só sucesso. O código em
     // si nunca entra em log: é dado do cliente (CLAUDE.md §10).
     public async Task<Result<bool>> VerificarCodigoDeEntregaAsync(
@@ -58,7 +71,12 @@ internal sealed class IFoodOrderSource : IOrderSource
         }
         catch (IFoodApiException ex)
         {
-            _logger.LogWarning(ex, "iFood recusou a validação de código do pedido {PedidoId}.", idExternoPedido);
+            // Log completo: precisa mostrar HTTP e código de erro do iFood
+            // pra distinguir "código errado" (o esperado) de "pedido sumido
+            // do sandbox" (o normal em teste) sem depender de stack trace.
+            _logger.LogWarning(
+                "iFood recusou a validação de código do pedido {PedidoId} — HTTP {StatusCode} · code={IFoodErrorCode} · {Mensagem}",
+                idExternoPedido, (int)ex.StatusCode, ex.IFoodErrorCode ?? "?", ex.Message);
             return Result.Failure<bool>(OrderSourceErrors.OrigemRecusou);
         }
         catch (HttpRequestException ex)

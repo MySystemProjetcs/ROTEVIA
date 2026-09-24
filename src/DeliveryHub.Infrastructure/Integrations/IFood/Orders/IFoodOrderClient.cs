@@ -16,6 +16,10 @@ internal interface IIFoodOrderClient
     Task ReadyToPickupAsync(Guid orderId, CancellationToken ct);
     Task DispatchAsync(Guid orderId, CancellationToken ct);
 
+    // Solicita o cancelamento no iFood. Manda corpo (motivo + código de
+    // cancelamento) — diferente das ações acima, que são POST sem corpo.
+    Task RequestCancellationAsync(Guid orderId, string reason, string cancellationCode, CancellationToken ct);
+
     // Diferente das demais: manda corpo e lê a resposta. Devolve se o código
     // confere — código errado é 200 com valid:false, não erro HTTP.
     Task<bool> VerifyDeliveryCodeAsync(Guid orderId, string code, CancellationToken ct);
@@ -66,6 +70,42 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
     public Task DispatchAsync(Guid orderId, CancellationToken ct) =>
         AcionarAsync(orderId, "dispatch", ct);
 
+    // O corpo carrega o motivo em texto e o cancellationCode do iFood (o código
+    // válido varia por pedido — a lista vem de GET orders/{id}/cancellationReasons;
+    // enquanto não capturamos essa etapa, o adapter manda um código padrão de
+    // cancelamento pelo estabelecimento). Homologação: validar contra a lista real.
+    public async Task RequestCancellationAsync(
+        Guid orderId, string reason, string cancellationCode, CancellationToken ct)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"orders/{orderId}/requestCancellation",
+            new IFoodRequestCancellationRequest(reason, cancellationCode),
+            ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var corpoCru = await response.Content.ReadAsStringAsync(ct);
+            var codigoErro = default(string);
+            var mensagem = $"O iFood recusou o cancelamento (HTTP {(int)response.StatusCode}). Corpo: {corpoCru}";
+            try
+            {
+                var error = System.Text.Json.JsonSerializer.Deserialize<IFoodErrorResponse>(corpoCru);
+                if (error is not null)
+                {
+                    codigoErro = error.Error.Code;
+                    mensagem = error.Error.Message;
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Corpo fora do formato esperado — segue com o corpo cru na
+                // mensagem, que é o que precisamos ver pra diagnosticar.
+            }
+
+            throw new IFoodApiException(response.StatusCode, mensagem, codigoErro);
+        }
+    }
+
     // Não dá para reusar o AcionarAsync: ele posta sem corpo e descarta a
     // resposta, e aqui os dois importam.
     public async Task<bool> VerifyDeliveryCodeAsync(Guid orderId, string code, CancellationToken ct)
@@ -77,11 +117,31 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<IFoodErrorResponse>(ct);
-            throw new IFoodApiException(
-                response.StatusCode,
-                error?.Error.Message ?? $"O iFood recusou a validação do código (HTTP {(int)response.StatusCode}).",
-                error?.Error.Code);
+            // Corpo cru: quando o iFood devolve 400 com formato diferente do
+            // IFoodErrorResponse (ou vazio), ler direto como string é a única
+            // forma de descobrir o que ele está reclamando. O `code` do
+            // motoboy nunca aparece aqui — só o que veio de resposta.
+            var corpoCru = await response.Content.ReadAsStringAsync(ct);
+
+            var codigoErro = default(string);
+            var mensagem = $"O iFood recusou a validação do código (HTTP {(int)response.StatusCode}). Corpo: {corpoCru}";
+            try
+            {
+                var error = System.Text.Json.JsonSerializer.Deserialize<IFoodErrorResponse>(corpoCru);
+                if (error is not null)
+                {
+                    codigoErro = error.Error.Code;
+                    mensagem = error.Error.Message;
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Corpo não é JSON ou não é o formato esperado — segue com o
+                // corpo cru na mensagem, que é justamente o que precisamos ver
+                // pra diagnosticar. Não relança: é caminho previsto.
+            }
+
+            throw new IFoodApiException(response.StatusCode, mensagem, codigoErro);
         }
 
         var corpo = await response.Content.ReadFromJsonAsync<IFoodVerifyDeliveryCodeResponse>(ct);

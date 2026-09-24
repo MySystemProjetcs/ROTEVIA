@@ -71,6 +71,14 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
             (id, token, cancellationToken) => _client.OrderDeliveredAsync(id, token, cancellationToken), ct);
     }
 
+    public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct)
+    {
+        // 99Food (DiDiFood) está pausado (CLAUDE.md §9 / diretriz do produto).
+        // Cancelamento na origem da 99 fica como no-op de sucesso até o escopo
+        // ser retomado — o cancelamento local no domínio segue valendo.
+        return Task.FromResult(Result.Success());
+    }
+
     public Task<Result<bool>> VerificarCodigoDeEntregaAsync(
         string idExternoPedido, string codigo, CancellationToken ct)
     {

@@ -50,5 +50,23 @@ export function useMinhasEntregas() {
     [recarregar],
   )
 
-  return { pedidos, carregando, erro, mover, recarregar }
+  // Não move status (o backend só grava a confirmação — quem avança é o
+  // "Finalizar entrega" seguinte), então não há nada pra fazer otimista aqui.
+  // Devolve a mensagem de erro (ou null se deu certo) em vez de jogar no
+  // `erro` compartilhado: "código incorreto" só faz sentido ao lado do campo
+  // daquele cartão, não como aviso solto no topo da lista.
+  const confirmarCodigo = useCallback(
+    async (pedido: Pedido, codigo: string): Promise<string | null> => {
+      try {
+        await api.post(`/entregador/pedidos/${pedido.id}/confirmar-codigo`, { codigo })
+        await recarregar()
+        return null
+      } catch (e) {
+        return e instanceof ErroDaApi ? e.message : 'Não foi possível confirmar o código.'
+      }
+    },
+    [recarregar],
+  )
+
+  return { pedidos, carregando, erro, mover, confirmarCodigo, recarregar }
 }

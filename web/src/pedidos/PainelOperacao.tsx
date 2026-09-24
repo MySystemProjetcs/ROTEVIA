@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSessao } from '@/auth/SessaoProvider'
 import { Botao } from '@/components/Botao'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
@@ -32,6 +32,7 @@ import { useEnviarPosicao } from './useEnviarPosicao'
 import { useMinhasEntregas } from './useMinhasEntregas'
 import { usePedidos } from './usePedidos'
 import { useRastreio } from './useRastreio'
+import { useNovoPedido } from './NovoPedidoContext'
 import type { PosicaoEntregador } from './useRastreio'
 
 // Mesmo Kanban pros dois papéis — só muda a fonte de dados e as ações
@@ -43,11 +44,18 @@ export function PainelOperacao() {
 }
 
 function PainelDono() {
-  const { pedidos, carregando, erro, mover, alocar, recarregar } = usePedidos()
+  const { pedidos, carregando, erro, mover, alocar, cancelar, recarregar } = usePedidos()
   const [lancando, setLancando] = useState(false)
   const { usuario } = useSessao()
   const { entregadores } = useMotoboys()
   const entregadoresAtivos = entregadores.filter((e) => e.status === 'Ativo')
+  const { registrar } = useNovoPedido()
+
+  // Registra o callback para o botão do header poder abrir o formulário.
+  // useEffect garante re-registro se o componente remontar.
+  useEffect(() => {
+    registrar(() => setLancando(true))
+  }, [registrar])
 
   // Uma única conexão SignalR por sessão do dono — recebe pings de todos os
   // pedidos da loja e o Kanban filtra pelo pedido de cada cartão.
@@ -77,11 +85,7 @@ function PainelDono() {
             }}
           />
         </div>
-      ) : (
-        <Botao className="self-start" onClick={() => setLancando(true)}>
-          Novo pedido
-        </Botao>
-      )}
+      ) : null}
 
       <Kanban
         pedidos={pedidos}
@@ -93,13 +97,26 @@ function PainelDono() {
         onMover={mover}
         entregadoresAtivos={entregadoresAtivos}
         onAlocar={alocar}
+        onCancelar={cancelar}
         posicoes={posicoes}
       />
 
       {/* Mapa da operação: a loja fica fixa e o motoboy se move em tempo real
-          enquanto houver entrega em curso. */}
-      <Cartao>
-        <CartaoCorpo className="flex flex-col gap-3">
+          enquanto houver entrega em curso.
+
+          Cartão externo com o mesmo gradiente/borda do "Taxa por entrega" da
+          FaixaResumo — a moldura vive aqui, envolvendo cabeçalho e mapa. Sem
+          Cartao/CartaoCorpo pra não brigar com o próprio border/background
+          padrão do componente. */}
+      <div
+        className="rounded-[14px] p-3.5"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(79,70,229,0.22), rgba(79,70,229,0.06))',
+          border: '1px solid rgba(79,70,229,0.35)',
+        }}
+      >
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-titulo text-texto">Mapa da operação</h2>
             <span className="text-apoio text-texto-suave">
@@ -110,20 +127,39 @@ function PainelDono() {
           </div>
 
           {loja ? (
-            <MapaEntrega
-              posicoes={posicoes}
-              pedidos={pedidos}
-              loja={loja}
-              nomeDaLoja={usuario?.nomeRestaurante}
-              className="h-96 w-full overflow-hidden rounded-cartao"
-            />
+            // resize é do navegador — mesma alça de arrastar de um <textarea>.
+            // O MapLibre já observa o próprio container por ResizeObserver
+            // (trackResize por padrão), então basta o CSS: nenhum JavaScript
+            // extra pra ele redesenhar. O wrapper existe só pra hospedar a
+            // alça de arrastar e a alça visível — nada mais.
+            <div className="relative h-96 w-full min-h-64 min-w-72 resize overflow-hidden rounded-[10px]">
+              <MapaEntrega
+                posicoes={posicoes}
+                pedidos={pedidos}
+                loja={loja}
+                nomeDaLoja={usuario?.nomeRestaurante}
+                className="size-full"
+              />
+              {/* Alça visível — dois traços diagonais sobre a alça nativa do
+                  navegador. pointer-events-none pra não capturar o mouse: quem
+                  redimensiona é a alça nativa embaixo, esta camada é só um
+                  aviso visual de que aquele canto agarra. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute bottom-1 right-1 size-3.5 opacity-80"
+                style={{
+                  background:
+                    'linear-gradient(135deg, transparent 0 45%, rgba(199,203,255,0.9) 45% 55%, transparent 55% 70%, rgba(199,203,255,0.9) 70% 80%, transparent 80%)',
+                }}
+              />
+            </div>
           ) : (
             <p className="py-8 text-center text-apoio text-texto-fraco">
               Cadastre o endereço da loja para ancorar o mapa.
             </p>
           )}
-        </CartaoCorpo>
-      </Cartao>
+        </div>
+      </div>
     </div>
   )
 }
@@ -138,9 +174,11 @@ function PainelEntregador() {
   const { disponivel, erro: erroDisponibilidade, definir } = useDisponibilidade()
   const { estado: estadoGps } = useEnviarPosicao(pedidos, disponivel)
 
-  // Tela apagada é aba congelada, e aba congelada é motoboy sumido do mapa da
-  // loja. Enquanto ele está online, a tela fica acesa.
-  useTelaAcesa(disponivel === true)
+  // O Wake Lock reduz o risco de o navegador congelar o GPS, mas não é
+  // requisito para continuar emitindo posição.
+  const { estado: estadoTela, abaVisivel } = useTelaAcesa(disponivel === true || emEntrega)
+  const avisoTela =
+    estadoTela === 'indisponivel' || estadoTela === 'erro' || estadoTela === 'perdida' || !abaVisivel
 
   return (
     <div className="flex flex-col gap-4">
@@ -152,9 +190,19 @@ function PainelEntregador() {
         />
         {emEntrega && <Etiqueta tom="sucesso">Em entrega agora</Etiqueta>}
         <EtiquetaGps estado={estadoGps} />
+        {avisoTela && (
+          <Etiqueta tom="alerta">
+            Mantenha o aplicativo aberto para melhorar o rastreamento.
+          </Etiqueta>
+        )}
       </div>
 
-      <ListaDeEntregas pedidos={pedidos} carregando={carregando} erro={erro} onMover={mover} />
+      <ListaDeEntregas
+        pedidos={pedidos}
+        carregando={carregando}
+        erro={erro}
+        onMover={mover}
+      />
     </div>
   )
 }
@@ -244,6 +292,7 @@ interface KanbanProps {
   onMover: (pedido: Pedido, destino: StatusPedido) => void
   entregadoresAtivos?: Entregador[]
   onAlocar?: (pedido: Pedido, entregadorId: string) => void
+  onCancelar?: (pedido: Pedido, motivo: string) => Promise<string | null>
   posicoes?: PosicaoEntregador[]
 }
 
@@ -257,6 +306,7 @@ function Kanban({
   onMover,
   entregadoresAtivos,
   onAlocar,
+  onCancelar,
   posicoes,
 }: KanbanProps) {
   const agora = useAgora()
@@ -325,6 +375,7 @@ function Kanban({
               obterProximoPasso={obterProximoPasso}
               entregadoresAtivos={entregadoresAtivos}
               onAlocar={onAlocar}
+              onCancelar={onCancelar}
               posicoes={posicoes}
             />
           ))}

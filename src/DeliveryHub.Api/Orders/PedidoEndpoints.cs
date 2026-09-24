@@ -6,6 +6,8 @@ namespace DeliveryHub.Api.Orders;
 
 public sealed record AlocarEntregadorRequest(Guid EntregadorId);
 
+public sealed record CancelarPedidoRequest(string Motivo);
+
 public static class PedidoEndpoints
 {
     public static void MapPedidoEndpoints(this IEndpointRouteBuilder app)
@@ -34,6 +36,26 @@ public static class PedidoEndpoints
 
         group.MapPost("/{id:guid}/despachar", (Guid id, IAvancarPedido a, CancellationToken ct) =>
             Avancar(id, AcaoDePedido.Despachar, a, ct));
+
+        // Cancelamento pelo dono, alcançável em qualquer status não terminal.
+        // Motivo obrigatório (validado no caso de uso).
+        group.MapPost("/{id:guid}/cancelar", Cancelar);
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> Cancelar(
+        Guid id,
+        CancelarPedidoRequest request,
+        ICancelarPedido cancelar,
+        CancellationToken ct)
+    {
+        var resultado = await cancelar.ExecutarAsync(id, request.Motivo, ct);
+
+        return resultado.IsSuccess
+            ? TypedResults.NoContent()
+            : TypedResults.Problem(
+                title: resultado.Error.Message,
+                detail: resultado.Error.Code,
+                statusCode: ParaStatusHttp(resultado.Error.Type));
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> AlocarEntregador(

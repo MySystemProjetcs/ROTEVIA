@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 type Variante =
@@ -10,27 +10,52 @@ type Variante =
   | 'acaoIniciarPreparo'
   | 'acaoMarcarPronto'
   | 'acaoDespachar'
-type Tamanho = 'medio' | 'grande'
+type Tamanho = 'pequeno' | 'medio' | 'grande'
 
-// Toda diferença de aparência é uma variante declarada aqui. Precisou de um
-// botão diferente? Entra como variante nova — nunca alterando as existentes,
-// que já estão em uso em outras telas.
-const VARIANTES: Record<Variante, string> = {
-  primario: 'bg-marca-600 text-texto-invertido hover:bg-marca-700 active:bg-marca-800',
-  secundario: 'bg-superficie text-texto border border-borda-forte hover:bg-superficie-alt',
-  sutil: 'bg-transparent text-marca-600 hover:bg-marca-50',
-  perigo: 'bg-perigo text-texto-invertido hover:opacity-90',
-  // Ações do Kanban na cor da etapa de destino. Texto branco em todas: os tons
-  // foram escolhidos escuros de propósito para o contraste.
-  acaoConfirmar: 'bg-alerta text-texto-invertido hover:opacity-90',
-  acaoIniciarPreparo: 'bg-marca-600 text-texto-invertido hover:bg-marca-700',
-  acaoMarcarPronto: 'bg-estado-preparo text-texto-invertido hover:opacity-90',
-  acaoDespachar: 'bg-sucesso text-texto-invertido hover:opacity-90',
+// Silhueta única, do "Novo pedido" do App.tsx (App.tsx:106-121):
+// gradiente vertical no fundo, sombra colorida como halo, canto 10px, fonte
+// semibold 13px, sem borda. As variantes só trocam a cor de fundo — a forma
+// é a mesma em todo lugar; o alerta é o que muda.
+//
+// `perigo` e as três variantes de ação do Kanban existem porque a cor
+// codifica a etapa: verde=despachar, âmbar=confirmar, roxo=preparo. Trocar
+// pra tudo índigo apagaria o atalho visual da máquina de estados —
+// consciente e mantido.
+interface EstiloDoFundo {
+  gradiente: string
+  halo: string
 }
 
+const FUNDOS: Record<Variante, EstiloDoFundo | null> = {
+  primario:            { gradiente: 'linear-gradient(180deg,#5A52EA,#4338CA)', halo: 'rgba(79,70,229,0.9)'  },
+  perigo:              { gradiente: 'linear-gradient(180deg,#EF6A3A,#C2410C)', halo: 'rgba(194,65,12,0.8)'  },
+  acaoConfirmar:       { gradiente: 'linear-gradient(180deg,#F5B341,#B45309)', halo: 'rgba(180,83,9,0.7)'   },
+  acaoIniciarPreparo:  { gradiente: 'linear-gradient(180deg,#5A52EA,#4338CA)', halo: 'rgba(79,70,229,0.9)'  },
+  acaoMarcarPronto:    { gradiente: 'linear-gradient(180deg,#9B6BE3,#7C3AED)', halo: 'rgba(124,58,237,0.7)' },
+  acaoDespachar:       { gradiente: 'linear-gradient(180deg,#22C55E,#15803D)', halo: 'rgba(21,128,61,0.7)'  },
+
+  // Duas variantes fogem do gradiente por natureza — CTA secundário e link:
+  //   secundario: card outline, não ação principal.
+  //   sutil: ação de texto (cancelar, dispensar) — nunca deve competir
+  //     visualmente com o CTA principal.
+  secundario: null,
+  sutil: null,
+}
+
+const CLASSES_ESPECIAIS: Partial<Record<Variante, string>> = {
+  secundario: 'border border-borda-forte bg-superficie text-texto hover:bg-superficie-alt',
+  sutil: 'border-0 bg-transparent text-marca-600 hover:bg-marca-50',
+}
+
+// Todos com o mesmo raio e peso da fonte, o resto é altura/padding.
 const TAMANHOS: Record<Tamanho, string> = {
-  medio: 'h-toque px-4 text-corpo',
-  grande: 'h-12 px-6 text-titulo',
+  // Abaixo do alvo mínimo de toque de 44px (--spacing-toque) — só para o
+  // botão de ação dentro do cartão recolhido do Kanban, onde a densidade da
+  // grade importa mais que o toque de dedo. Não usar em tela onde o clique é
+  // a única forma de avançar sem alternativa maior por perto.
+  pequeno: 'h-7 px-2.5 text-[12px]',
+  medio:   'h-10 px-3.5 text-[13px]',
+  grande:  'h-12 px-6 text-[15px]',
 }
 
 interface BotaoProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -48,18 +73,34 @@ export function Botao({
   larguraTotal = false,
   disabled,
   className,
+  style,
   children,
   ...props
 }: BotaoProps) {
+  const fundo = FUNDOS[variante]
+
+  // Gradiente vive no atributo style, não em classe: o Tailwind não gera
+  // linear-gradient com stops arbitrários por classe utilitária. `style`
+  // vindo de quem chama tem precedência via spread — quem quiser cobrir cor
+  // continua conseguindo.
+  const estiloGradiente: CSSProperties | undefined = fundo
+    ? {
+        background: fundo.gradiente,
+        boxShadow: `0 10px 24px -12px ${fundo.halo}`,
+        ...style,
+      }
+    : style
+
   return (
     <button
       {...props}
       disabled={disabled || carregando}
+      style={estiloGradiente}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-controle font-medium',
+        'inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold',
         'transition-colors outline-offset-2 focus-visible:outline-2 focus-visible:outline-marca-600',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        VARIANTES[variante],
+        fundo ? 'border-0 text-white hover:brightness-110 active:brightness-95' : CLASSES_ESPECIAIS[variante],
         TAMANHOS[tamanho],
         larguraTotal && 'w-full',
         className,

@@ -161,3 +161,4 @@
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Microsoft.NET.StringTools.dll
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/Pipelines.Sockets.Unofficial.dll
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/StackExchange.Redis.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net9.0/fixtures/didi/webhook-new-order.json

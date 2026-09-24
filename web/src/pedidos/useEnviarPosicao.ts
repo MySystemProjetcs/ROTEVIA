@@ -11,6 +11,7 @@ const MAX_TRILHA = 200
 // Abaixo disso o navegador reenvia praticamente a mesma coordenada e só gera
 // escrita à toa no banco.
 const INTERVALO_MINIMO_MS = 4_000
+const INTERVALO_HEARTBEAT_MS = 30_000
 
 // Leitura pior que isto não é posição, é palpite: a 96 m de incerteza — valor
 // real visto nos dados — o ponto cai a um quarteirão de distância e põe o
@@ -51,6 +52,7 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
   const [posicaoAtual, setPosicaoAtual] = useState<PosicaoEntregador | null>(null)
   const [trilha, setTrilha] = useState<PosicaoEntregador[]>([])
   const ultimoEnvioRef = useRef(0)
+  const ultimaPosicaoRef = useRef<PosicaoEntregador | null>(null)
   // Última leitura aceita, para medir se houve deslocamento de verdade.
   const ultimaBoaRef = useRef<{ lat: number; lon: number } | null>(null)
 
@@ -64,6 +66,20 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
   const status = pedido?.status ?? null
   const cliente = pedido?.clienteNome ?? null
   const endereco = pedido?.enderecoResumido ?? null
+
+  const enviarPosicao = async (posicao: PosicaoEntregador, ehHeartbeat: boolean) => {
+    await api
+      .post('/entregador/posicao', {
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+        precisaoEmMetros: posicao.precisaoEmMetros,
+        capturadoEm: posicao.capturadoEm,
+        ehHeartbeat,
+      })
+      // Ping perdido não interrompe a entrega: o próximo heartbeat ou posição
+      // carrega novamente o estado mais recente.
+      .catch(() => {})
+  }
 
   useEffect(() => {
     if (!deveEmitir) {
@@ -119,6 +135,7 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
           enderecoResumido: endereco,
         }
 
+        ultimaPosicaoRef.current = lida
         setPosicaoAtual(lida)
         if (pedidoId) {
           setTrilha((anterior) => {
@@ -131,16 +148,7 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
         if (agora - ultimoEnvioRef.current < INTERVALO_MINIMO_MS) return
         ultimoEnvioRef.current = agora
 
-        void api
-          .post('/entregador/posicao', {
-            latitude,
-            longitude,
-            precisaoEmMetros: accuracy,
-            capturadoEm: new Date(posicao.timestamp).toISOString(),
-          })
-          // Ping perdido não é erro que valha interromper a entrega: o próximo
-          // chega em segundos e carrega a posição mais recente de qualquer jeito.
-          .catch(() => {})
+        void enviarPosicao(lida, false)
       },
       (erro) => {
         setEstado(erro.code === erro.PERMISSION_DENIED ? 'negado' : 'erro')
@@ -148,7 +156,15 @@ export function useEnviarPosicao(pedidos: Pedido[], disponivel: boolean | null) 
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
     )
 
-    return () => navigator.geolocation.clearWatch(observador)
+    const heartbeat = window.setInterval(() => {
+      const ultima = ultimaPosicaoRef.current
+      if (ultima) void enviarPosicao(ultima, true)
+    }, INTERVALO_HEARTBEAT_MS)
+
+    return () => {
+      navigator.geolocation.clearWatch(observador)
+      window.clearInterval(heartbeat)
+    }
   }, [deveEmitir, pedidoId, numero, status, cliente, endereco])
 
   return { estado, pedidoEmRota: pedido ?? null, posicaoAtual, trilha }

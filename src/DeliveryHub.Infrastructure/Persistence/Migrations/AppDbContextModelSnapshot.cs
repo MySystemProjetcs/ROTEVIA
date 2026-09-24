@@ -326,6 +326,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CanceladoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelado_em");
+
                     b.Property<DateTimeOffset?>("CodigoConfirmadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("codigo_confirmado_em");
@@ -359,6 +363,11 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("MerchantId")
                         .HasColumnType("uuid")
                         .HasColumnName("merchant_id");
+
+                    b.Property<string>("MotivoCancelamento")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("motivo_cancelamento");
 
                     b.Property<string>("NumeroExibicao")
                         .IsRequired()

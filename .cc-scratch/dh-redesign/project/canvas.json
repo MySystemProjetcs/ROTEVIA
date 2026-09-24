@@ -1,0 +1,32 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-09-20T12:00:00Z" },
+  "title": "Painel de Pedidos — Redesign",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "A — Command Center (dark)" },
+    "Editorial.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "B — Focused Flow (editorial)" },
+    "LiveOps.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "C — Live Ops (mapa central)" }
+  },
+  "order": ["Main.dc.html", "Editorial.dc.html", "LiveOps.dc.html"],
+  "notes": {
+    "hdr": {
+      "x": 0,
+      "y": -320,
+      "text": "DeliveryHub · três direções para o Painel de Pedidos",
+      "kind": "title1",
+      "maxW": 4480,
+      "size": "xl"
+    },
+    "sub": {
+      "x": 0,
+      "y": -220,
+      "text": "Cada frame é um painel completo em 1440×900, mantendo a marca (índigo #4F46E5 · lima #A3E635) e o mesmo conteúdo do painel atual — kanban de pedidos, KPIs, mapa e operação.",
+      "w": 4480,
+      "size": "s",
+      "color": "gray"
+    }
+  },
+  "designSystems": []
+}

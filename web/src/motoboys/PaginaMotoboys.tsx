@@ -4,6 +4,9 @@ import { Botao } from '@/components/Botao'
 import { Campo } from '@/components/Campo'
 import { Cartao, CartaoCorpo, CartaoCabecalho } from '@/components/Cartao'
 import { AvatarIniciais } from '@/components/AvatarIniciais'
+import { IconeBusca } from '@/components/icones/IconeBusca'
+import { MenuHorizontal } from '@/components/MenuHorizontal'
+import { CartaoTaxaPorEntrega } from '@/dashboard/CartaoTaxaPorEntrega'
 import type { Entregador, EntregadorConvidado, NovoEntregador } from '@/dominio/entregador'
 import { STATUS_EM_ENTREGA } from '@/dominio/pedido'
 import { ErroDaApi } from '@/lib/api'
@@ -47,29 +50,21 @@ function avatarDaSituacao(situacao: Situacao): string {
   return 'border-borda-forte bg-superficie-afundada text-texto-suave'
 }
 
-function CartaoKpi({
-  rotulo,
-  valor,
-  cartao,
-  numero,
-}: {
-  rotulo: string
-  valor: number
-  cartao: string
-  numero: string
-}) {
-  return (
-    <div className={cn('rounded-cartao border p-4 shadow-cartao', cartao)}>
-      <p className="text-rotulo uppercase text-texto-suave">{rotulo}</p>
-      <p className={cn('text-destaque tabular-nums', numero)}>{valor}</p>
-    </div>
-  )
+// Um painel por vez: taxa e formulário de cadastro dividem o mesmo espaço
+// abaixo do menu, e nenhum aparece quando não foi pedido — a lista de
+// motoboys fica em primeiro plano por padrão.
+type PainelAtivo = 'nenhum' | 'taxa' | 'cadastrar'
+
+// Remove acento e caixa alta pra que "joao" case com "João".
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
 export function PaginaMotoboys() {
   const { entregadores, carregando, erro, convidar } = useMotoboys()
   const { pedidos } = usePedidos()
-  const [formAberto, setFormAberto] = useState(false)
+  const [painel, setPainel] = useState<PainelAtivo>('nenhum')
+  const [busca, setBusca] = useState('')
   const [form, setForm] = useState<NovoEntregador>(VAZIO)
   const [enviando, setEnviando] = useState(false)
   const [erroForm, setErroForm] = useState<string | null>(null)
@@ -85,19 +80,29 @@ export function PaginaMotoboys() {
     [pedidos],
   )
 
-  const disponiveis = entregadores.filter((e) => situacaoDe(e, emEntrega) === 'Disponivel').length
-  const emEntregaQtd = entregadores.filter((e) => situacaoDe(e, emEntrega) === 'EmEntrega').length
-  const offline = entregadores.length - disponiveis - emEntregaQtd
+  // Filtro de nome com normalização — casa acento, caixa e substring.
+  const buscaNormalizada = normalizar(busca.trim())
+  const entregadoresVisiveis = useMemo(
+    () =>
+      buscaNormalizada
+        ? entregadores.filter((e) => normalizar(e.nome).includes(buscaNormalizada))
+        : entregadores,
+    [entregadores, buscaNormalizada],
+  )
 
-  function abrirFormulario() {
+  function abrirCadastrar() {
     setUltimoConvite(null)
     setErroForm(null)
     setForm(VAZIO)
-    setFormAberto(true)
+    setPainel(painel === 'cadastrar' ? 'nenhum' : 'cadastrar')
   }
 
-  function fecharFormulario() {
-    setFormAberto(false)
+  function abrirTaxa() {
+    setPainel(painel === 'taxa' ? 'nenhum' : 'taxa')
+  }
+
+  function fecharPainel() {
+    setPainel('nenhum')
   }
 
   async function aoEnviar(evento: FormEvent) {
@@ -125,40 +130,28 @@ export function PaginaMotoboys() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-stretch">
-        <div className="grid flex-1 grid-cols-2 gap-3 xl:grid-cols-4">
-          <CartaoKpi
-            rotulo="Disponíveis"
-            valor={disponiveis}
-            cartao="border-sucesso/30 bg-sucesso-fundo"
-            numero="text-sucesso"
+      {/* Menu horizontal (padrão do react-admin HorizontalMenu, reimplementado
+          local — CLAUDE.md §10) com as ações da página. Ativo destaca por
+          fundo pra ler como pill selecionada. À direita, na mesma linha, um
+          campo pra filtrar a lista abaixo pelo nome — encolhe primeiro em
+          tela estreita. */}
+      <MenuHorizontal
+        itens={[
+          { chave: 'taxa',      rotulo: 'Taxa por entrega', ativo: painel === 'taxa',      aoClicar: abrirTaxa },
+          { chave: 'cadastrar', rotulo: '+ Cadastrar',      ativo: painel === 'cadastrar', aoClicar: abrirCadastrar },
+        ]}
+      >
+        <label className="flex min-w-0 items-center gap-2 rounded-[10px] border border-borda bg-superficie px-2.5 py-1.5">
+          <IconeBusca className="size-3.5 shrink-0 text-texto-fraco" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar motoboy"
+            className="w-40 min-w-0 bg-transparent text-[13px] text-texto placeholder:text-texto-mudo outline-none sm:w-56"
           />
-          <CartaoKpi
-            rotulo="Em entrega"
-            valor={emEntregaQtd}
-            cartao="border-marca-200 bg-marca-50"
-            numero="text-marca-700"
-          />
-          <CartaoKpi
-            rotulo="Offline"
-            valor={offline}
-            cartao="border-borda bg-superficie-afundada"
-            numero="text-texto"
-          />
-          <CartaoKpi
-            rotulo="Total"
-            valor={entregadores.length}
-            cartao="border-borda bg-superficie"
-            numero="text-texto"
-          />
-        </div>
-
-        {!formAberto && (
-          <Botao variante="acaoConfirmar" className="xl:w-44" onClick={abrirFormulario}>
-            + Cadastrar
-          </Botao>
-        )}
-      </div>
+        </label>
+      </MenuHorizontal>
 
       {erro && (
         <Cartao className="border-perigo">
@@ -166,7 +159,9 @@ export function PaginaMotoboys() {
         </Cartao>
       )}
 
-      {formAberto && (
+      {painel === 'taxa' && <CartaoTaxaPorEntrega />}
+
+      {painel === 'cadastrar' && (
         <Cartao elevacao="elevada">
           <CartaoCabecalho>
             <h2 className="text-corpo font-semibold text-texto">Novo motoboy</h2>
@@ -192,7 +187,7 @@ export function PaginaMotoboys() {
                 <Botao type="submit" carregando={enviando}>
                   Gerar convite
                 </Botao>
-                <Botao type="button" variante="secundario" onClick={fecharFormulario}>
+                <Botao type="button" variante="secundario" onClick={fecharPainel}>
                   Cancelar
                 </Botao>
               </div>
@@ -235,8 +230,14 @@ export function PaginaMotoboys() {
                   Nenhum motoboy cadastrado ainda.
                 </td>
               </tr>
+            ) : entregadoresVisiveis.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-apoio text-texto-suave">
+                  Nenhum motoboy corresponde a “{busca}”.
+                </td>
+              </tr>
             ) : (
-              entregadores.map((entregador) => {
+              entregadoresVisiveis.map((entregador) => {
                 const situacao = situacaoDe(entregador, emEntrega)
                 const pill = pillDoStatus(entregador, situacao)
 

@@ -34,6 +34,9 @@ internal sealed class OrderSourceResolver : IOrderSource
     public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) =>
         ObterSource(idExternoPedido).DespacharAsync(idExternoPedido, ct);
 
+    public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct) =>
+        ObterSource(idExternoPedido).CancelarPedidoAsync(idExternoPedido, motivo, ct);
+
     public Task<Result<bool>> VerificarCodigoDeEntregaAsync(
         string idExternoPedido, string codigo, CancellationToken ct) =>
         ObterSource(idExternoPedido).VerificarCodigoDeEntregaAsync(idExternoPedido, codigo, ct);
@@ -59,6 +62,7 @@ internal sealed class OrderSourceResolver : IOrderSource
         public Task<Result> IniciarPreparoAsync(string idExternoPedido, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result> MarcarProntoAsync(string idExternoPedido, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) => Task.FromResult(Result.Success());
+        public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result<bool>> VerificarCodigoDeEntregaAsync(string idExternoPedido, string codigo, CancellationToken ct) => Task.FromResult(Result.Success(true));
     }
 }

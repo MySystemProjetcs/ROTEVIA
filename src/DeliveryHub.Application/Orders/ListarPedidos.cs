@@ -43,7 +43,23 @@ public sealed record PedidoDto(
     // restaurante, e não tem outro jeito de saber de qual loja é o pedido.
     // Sem valor padrão de propósito: as duas projeções são árvore de expressão
     // do EF, e árvore de expressão não aceita argumento omitido (CS0854).
-    string? NomeLoja);
+    string? NomeLoja,
+    // De onde o pedido veio, pra tela mostrar o selo de origem no card. Só
+    // distingue "IFood" de "Interno" por ora — a 99Food está pausada, e sem
+    // merchant real cadastrado nenhum pedido dela chega aqui de verdade; o
+    // dia que voltar, este campo precisa aprender a terceira origem.
+    string Origem,
+    // Sem estes dois, a tela do motoboy não tem como saber que precisa pedir
+    // o código ao cliente antes de "Finalizar entrega" — e o botão falharia
+    // contra Pedido.ConcluirPeloEntregador sem explicação nenhuma na tela.
+    bool ExigeCodigoDeEntrega,
+    DateTimeOffset? CodigoConfirmadoEm);
+
+public static class OrigemDoPedido
+{
+    public const string Interno = "Interno";
+    public const string IFood = "IFood";
+}
 
 public interface IListarPedidos
 {

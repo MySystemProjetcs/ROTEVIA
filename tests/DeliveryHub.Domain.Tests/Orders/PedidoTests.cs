@@ -204,6 +204,32 @@ public sealed class PedidoTests
     }
 
     [Fact]
+    public void Cancelar_guarda_motivo_e_data()
+    {
+        var pedido = Novo();
+        var quando = DateTimeOffset.Parse("2026-09-23T12:00:00Z");
+
+        pedido.Cancelar("Item em falta", quando);
+
+        Assert.Equal(StatusPedido.Cancelado, pedido.Status);
+        Assert.Equal("Item em falta", pedido.MotivoCancelamento);
+        Assert.Equal(quando, pedido.CanceladoEm);
+    }
+
+    [Fact]
+    public void Cancelar_de_novo_nao_reescreve_motivo_nem_data()
+    {
+        var pedido = Novo();
+        var primeira = DateTimeOffset.Parse("2026-09-23T12:00:00Z");
+        pedido.Cancelar("Primeiro motivo", primeira);
+
+        pedido.Cancelar("Segundo motivo", primeira.AddHours(1));
+
+        Assert.Equal("Primeiro motivo", pedido.MotivoCancelamento);
+        Assert.Equal(primeira, pedido.CanceladoEm);
+    }
+
+    [Fact]
     public void Transicao_invalida_devolve_Result_e_nao_lanca_excecao()
     {
         // ENGINEERING-GUIDE §3: falha de negócio é Result, exceção é para o

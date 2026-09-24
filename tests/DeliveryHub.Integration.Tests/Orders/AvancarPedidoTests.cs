@@ -52,6 +52,7 @@ public sealed class AvancarPedidoTests
         public Task<Result> IniciarPreparoAsync(string id, CancellationToken ct) => Registrar("iniciar-preparo");
         public Task<Result> MarcarProntoAsync(string id, CancellationToken ct) => Registrar("pronto");
         public Task<Result> DespacharAsync(string id, CancellationToken ct) => Registrar("despachar");
+        public Task<Result> CancelarPedidoAsync(string id, string motivo, CancellationToken ct) => Registrar("cancelar");
 
         // O AvancarPedido não valida código — só o fluxo do entregador faz
         // isso. Aqui o método existe para satisfazer a porta.

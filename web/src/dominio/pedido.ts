@@ -49,6 +49,14 @@ export interface Pedido {
   pagamentoValorACobrar: number
   /** Só vem preenchido na listagem do motoboy — ele pode atender mais de uma loja. */
   nomeLoja?: string | null
+  /** De onde o pedido veio. "NoventaENove" existe no tipo porque a integração
+   *  está só pausada, não removida — o backend ainda não emite esse valor. */
+  origem: 'Interno' | 'IFood' | 'NoventaENove'
+  /** Entrega própria do iFood exige que o cliente informe um código de 4
+   *  dígitos na porta antes de finalizar — sem isso o iFood não confirma a
+   *  entrega, e o cliente pode contestar como "não entregue". */
+  exigeCodigoDeEntrega: boolean
+  codigoConfirmadoEm?: string | null
 }
 
 // As colunas do painel do dono. Concluído e Cancelado ficam fora: são destino
@@ -175,6 +183,19 @@ const FINALIZAR: PassoPedido = { destino: 'Concluido', acao: 'finalizar', rotulo
 
 export function proximoPasso(pedido: Pedido) {
   return PROXIMO[pedido.status] ?? null
+}
+
+// "Chegou" e "Cobrar" são as duas etapas de onde se finaliza — o código, se
+// exigido, precisa ser confirmado em qualquer uma delas antes do botão
+// "Finalizar entrega" fazer sentido. O backend recusa Finalizar sem isso
+// (Pedido.ConcluirPeloEntregador); esta função é o que impede a tela de nem
+// oferecer o botão que o servidor já sabe que vai rejeitar.
+export function precisaConfirmarCodigoDeEntrega(pedido: Pedido): boolean {
+  return (
+    (pedido.status === 'Chegou' || pedido.status === 'Cobrar') &&
+    pedido.exigeCodigoDeEntrega &&
+    !pedido.codigoConfirmadoEm
+  )
 }
 
 // O estado só anda para frente (regra da máquina de estados do backend: um

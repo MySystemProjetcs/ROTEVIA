@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>DeliveryHub — Focused Flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body { margin: 0; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; background: #F6F4EF; color: #16150F; }
+a { color: #4F46E5; } a:hover { color: #3B34C7; }
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #F6F4EF; color: #16150F; display: grid; grid-template-columns: 260px 1fr 360px; overflow: hidden;">
+
+  <!-- SIDEBAR -->
+  <aside style="padding: 28px 22px; border-right: 1px solid #E8E3D6; display: flex; flex-direction: column; gap: 28px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 34px; height: 34px; border-radius: 10px; background: #16150F; display: grid; place-items: center;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#A3E635" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l8-8 8 8-8 8z"/></svg>
+        </div>
+        <div style="font-family: 'Instrument Serif', serif; font-size: 26px; letter-spacing: -0.01em; line-height: 1;">DeliveryHub</div>
+      </div>
+      <div style="margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #EFECE1; border: 1px solid #E1DBC9; font-size: 12px; color: #55503E;">
+        <div style="font-weight: 600; color: #16150F;">Loja de Teste Jonathan</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+          <span style="width: 6px; height: 6px; border-radius: 999px; background: #4F46E5;"></span>
+          iFood · último polling 4s
+        </div>
+      </div>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 10px; letter-spacing: 0.14em; color: #8B856E; padding: 0 12px 6px;">OPERAÇÃO</div>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; background: #16150F; color: #F6F4EF; text-decoration: none; font-weight: 600; font-size: 14px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v3h12V2M6 22V8h12v14z"/></svg>
+        Pedidos
+        <span style="margin-left: auto; background: #A3E635; color: #16150F; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px;">3</span>
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #16150F; text-decoration: none; font-size: 14px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3"/><path d="M6 20a6 6 0 0112 0"/></svg>
+        Motoboys <span style="margin-left: auto; color: #4F46E5; font-size: 12px;">3 online</span>
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #16150F; text-decoration: none; font-size: 14px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18l4-4h14V3z"/></svg>
+        Conversas
+      </a>
+
+      <div style="font-size: 10px; letter-spacing: 0.14em; color: #8B856E; padding: 18px 12px 6px;">GESTÃO</div>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #16150F; text-decoration: none; font-size: 14px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+        Cardápio
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #16150F; text-decoration: none; font-size: 14px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        Relatórios
+      </a>
+    </nav>
+
+    <div style="margin-top: auto; padding: 14px; border-radius: 12px; background: #16150F; color: #F6F4EF;">
+      <div style="font-family: 'Instrument Serif', serif; font-size: 20px; letter-spacing: -0.01em; line-height: 1.1;">Você entregou<br>7 pedidos hoje.</div>
+      <div style="font-size: 12px; color: #C6C0AB; margin-top: 10px;">Tempo médio 40 min · 6 min mais rápido que ontem.</div>
+    </div>
+  </aside>
+
+  <!-- CENTER: pipeline -->
+  <section style="padding: 28px 32px 20px; display: flex; flex-direction: column; gap: 20px; min-width: 0; overflow: hidden;">
+
+    <header style="display: flex; align-items: flex-end; gap: 20px;">
+      <div>
+        <div style="font-size: 11px; letter-spacing: 0.16em; color: #8B856E;">SEXTA · 20 DE SETEMBRO</div>
+        <h1 style="margin: 4px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 40px; letter-spacing: -0.02em; line-height: 1;">Pedidos, ao vivo.</h1>
+      </div>
+      <div style="flex-grow: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <label style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E1DBC9; color: #55503E; font-size: 13px; width: 240px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+          <input placeholder="Buscar…" style="background: transparent; border: 0; color: #16150F; font: inherit; outline: none; width: 100%;">
+        </label>
+        <button style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: #4F46E5; color: #fff; border: 0; font: 600 14px 'Instrument Sans'; cursor: pointer;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Novo pedido
+        </button>
+      </div>
+    </header>
+
+    <!-- KPI ribbon -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #E8E3D6; border: 1px solid #E8E3D6; border-radius: 14px; overflow: hidden;">
+      <div style="padding: 14px 18px; background: #FBFAF5;">
+        <div style="font-size: 11px; letter-spacing: 0.14em; color: #8B856E;">MOTOBOYS ONLINE</div>
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1;">3</div>
+          <div style="font-size: 12px; color: #55503E;">1 em entrega</div>
+        </div>
+      </div>
+      <div style="padding: 14px 18px; background: #FBFAF5;">
+        <div style="font-size: 11px; letter-spacing: 0.14em; color: #8B856E;">PEDIDOS HOJE</div>
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1;">7</div>
+          <div style="font-size: 12px; color: #4F46E5;">+3 vs. ontem</div>
+        </div>
+      </div>
+      <div style="padding: 14px 18px; background: #FBFAF5;">
+        <div style="font-size: 11px; letter-spacing: 0.14em; color: #8B856E;">RECEITA HOJE</div>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1;">R$ 54,00</div>
+        </div>
+      </div>
+      <div style="padding: 14px 18px; background: #16150F; color: #F6F4EF;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 11px; letter-spacing: 0.14em; color: #C6C0AB;">TAXA POR ENTREGA</div>
+          <span style="margin-left: auto; font-size: 10px; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,0.1);">EDITAR</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1; color: #A3E635;">R$ 5,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline timeline -->
+    <div style="display: flex; align-items: center; gap: 0; padding: 4px 10px 12px; border-bottom: 1px solid #E8E3D6;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #F59E0B;"></span>
+        <span style="font-size: 12px; font-weight: 600;">Aguardando</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8B856E;">3</span>
+      </div>
+      <div style="flex-grow: 1; height: 1px; background: repeating-linear-gradient(to right, #C6C0AB 0 4px, transparent 4px 8px); margin: 0 10px;"></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #7C3AED;"></span>
+        <span style="font-size: 12px; font-weight: 600;">Preparo</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8B856E;">0</span>
+      </div>
+      <div style="flex-grow: 1; height: 1px; background: repeating-linear-gradient(to right, #C6C0AB 0 4px, transparent 4px 8px); margin: 0 10px;"></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #4F46E5;"></span>
+        <span style="font-size: 12px; font-weight: 600;">Pronto</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8B856E;">0</span>
+      </div>
+      <div style="flex-grow: 1; height: 1px; background: repeating-linear-gradient(to right, #C6C0AB 0 4px, transparent 4px 8px); margin: 0 10px;"></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #06B6D4;"></span>
+        <span style="font-size: 12px; font-weight: 600;">Em rota</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8B856E;">2</span>
+      </div>
+      <div style="flex-grow: 1; height: 1px; background: repeating-linear-gradient(to right, #C6C0AB 0 4px, transparent 4px 8px); margin: 0 10px;"></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #A3E635;"></span>
+        <span style="font-size: 12px; font-weight: 600;">Finalizados</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8B856E;">2</span>
+      </div>
+    </div>
+
+    <!-- Pedido list -->
+    <div style="display: flex; flex-direction: column; gap: 10px; overflow: hidden;">
+
+      <article style="display: grid; grid-template-columns: 44px 1fr 220px 200px; align-items: center; gap: 20px; padding: 16px 18px; background: #FFFFFF; border: 1px solid #E8E3D6; border-radius: 14px; box-shadow: 0 1px 0 rgba(22,21,15,0.02);">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #FFF3DE; display: grid; place-items: center; color: #B45309; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px;">5898</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 600; font-size: 15px;">Pedido de Teste · Teste Teste</div>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 5px; background: #FFF3DE; color: #B45309; font-weight: 600;">iFood</span>
+          </div>
+          <div style="font-size: 12px; color: #55503E; margin-top: 3px;">3 itens · R$ 27,00 · Rua Batatais, 512</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="flex-grow: 1; height: 6px; border-radius: 999px; background: #F5EFDD; overflow: hidden;">
+            <div style="width: 92%; height: 100%; background: linear-gradient(90deg,#F59E0B,#B45309);"></div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: #B45309;">0:47</div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button style="padding: 9px 14px; border-radius: 8px; border: 1px solid #E1DBC9; background: #FBFAF5; color: #16150F; font: 500 13px 'Instrument Sans'; cursor: pointer;">Rejeitar</button>
+          <button style="padding: 9px 14px; border-radius: 8px; border: 0; background: #16150F; color: #A3E635; font: 700 13px 'Instrument Sans'; cursor: pointer;">Aceitar agora</button>
+        </div>
+      </article>
+
+      <article style="display: grid; grid-template-columns: 44px 1fr 220px 200px; align-items: center; gap: 20px; padding: 16px 18px; background: #FFFFFF; border: 1px solid #E8E3D6; border-radius: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #FFF3DE; display: grid; place-items: center; color: #B45309; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px;">1902</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 600; font-size: 15px;">Pedido de Teste · Teste Teste</div>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 5px; background: #FFF3DE; color: #B45309; font-weight: 600;">iFood</span>
+          </div>
+          <div style="font-size: 12px; color: #55503E; margin-top: 3px;">3 itens · R$ 27,00 · Av. Cursino, 1204</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="flex-grow: 1; height: 6px; border-radius: 999px; background: #F5EFDD; overflow: hidden;">
+            <div style="width: 68%; height: 100%; background: linear-gradient(90deg,#F59E0B,#D97706);"></div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: #B45309;">2:25</div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button style="padding: 9px 14px; border-radius: 8px; border: 1px solid #E1DBC9; background: #FBFAF5; color: #16150F; font: 500 13px 'Instrument Sans'; cursor: pointer;">Detalhes</button>
+          <button style="padding: 9px 14px; border-radius: 8px; border: 0; background: #16150F; color: #F6F4EF; font: 600 13px 'Instrument Sans'; cursor: pointer;">Aceitar</button>
+        </div>
+      </article>
+
+      <article style="display: grid; grid-template-columns: 44px 1fr 220px 200px; align-items: center; gap: 20px; padding: 16px 18px; background: #FFFFFF; border: 1px solid #E8E3D6; border-radius: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #FFF3DE; display: grid; place-items: center; color: #B45309; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px;">8880</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 600; font-size: 15px;">Pedido de Teste · Teste Teste</div>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 5px; background: #FFF3DE; color: #B45309; font-weight: 600;">iFood</span>
+          </div>
+          <div style="font-size: 12px; color: #55503E; margin-top: 3px;">3 itens · R$ 27,00 · Rua Ubaltaba, 88</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="flex-grow: 1; height: 6px; border-radius: 999px; background: #F5EFDD; overflow: hidden;">
+            <div style="width: 55%; height: 100%; background: linear-gradient(90deg,#F59E0B,#D97706);"></div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: #B45309;">2:19</div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button style="padding: 9px 14px; border-radius: 8px; border: 1px solid #E1DBC9; background: #FBFAF5; color: #16150F; font: 500 13px 'Instrument Sans'; cursor: pointer;">Detalhes</button>
+          <button style="padding: 9px 14px; border-radius: 8px; border: 0; background: #16150F; color: #F6F4EF; font: 600 13px 'Instrument Sans'; cursor: pointer;">Aceitar</button>
+        </div>
+      </article>
+
+      <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+        <span style="width: 10px; height: 10px; border-radius: 999px; background: #06B6D4;"></span>
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: #55503E;">Em rota</div>
+        <div style="flex-grow: 1; height: 1px; background: #E8E3D6;"></div>
+      </div>
+
+      <article style="display: grid; grid-template-columns: 44px 1fr 220px 200px; align-items: center; gap: 20px; padding: 16px 18px; background: #FFFFFF; border: 1px solid #E8E3D6; border-radius: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #E6F3FA; display: grid; place-items: center; color: #0369A1; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px;">4659</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 600; font-size: 15px;">Teste Teste · Carlos Mota</div>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 5px; background: #E6F3FA; color: #0369A1; font-weight: 600;">1,2 km</span>
+          </div>
+          <div style="font-size: 12px; color: #55503E; margin-top: 3px;">Aguardando código do cliente para finalização.</div>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: #FBFAF5; border: 1px solid #E1DBC9;">
+          <span style="font-size: 10px; letter-spacing: 0.1em; color: #8B856E;">CÓDIGO</span>
+          <input placeholder="0000" style="background: transparent; border: 0; color: #16150F; font: 600 15px 'JetBrains Mono', monospace; letter-spacing: 0.35em; width: 100%; outline: none;">
+        </label>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button style="padding: 9px 14px; border-radius: 8px; border: 0; background: #A3E635; color: #16150F; font: 700 13px 'Instrument Sans'; cursor: pointer;">Confirmar</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- RIGHT: courier tracker -->
+  <aside style="background: #FBFAF5; border-left: 1px solid #E8E3D6; padding: 28px 22px; display: flex; flex-direction: column; gap: 18px; min-height: 0;">
+    <div>
+      <div style="font-size: 11px; letter-spacing: 0.14em; color: #8B856E;">FROTA · AGORA</div>
+      <h2 style="margin: 4px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 24px; letter-spacing: -0.01em;">Motoboys</h2>
+    </div>
+
+    <div style="border-radius: 14px; overflow: hidden; border: 1px solid #E1DBC9; position: relative; height: 220px; background: linear-gradient(180deg,#EFECE1,#E8E3D6);">
+      <svg viewBox="0 0 320 220" width="100%" height="100%" preserveAspectRatio="none">
+        <path d="M20 200 Q 100 40 200 90 T 310 60" stroke="#4F46E5" stroke-width="2" fill="none" opacity="0.35"/>
+        <path d="M40 40 Q 120 150 220 130 T 300 200" stroke="#A3E635" stroke-width="2" fill="none" opacity="0.55"/>
+        <circle cx="60" cy="70" r="6" fill="#4F46E5"/>
+        <circle cx="180" cy="100" r="6" fill="#A3E635"/>
+        <circle cx="240" cy="150" r="6" fill="#06B6D4"/>
+        <text x="14" y="214" font-family="JetBrains Mono" font-size="9" fill="#8B856E">OpenFreeMap · OpenStreetMap</text>
+      </svg>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E8E3D6;">
+        <div style="width: 30px; height: 30px; border-radius: 999px; background: #4F46E5; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 11px;">CM</div>
+        <div style="flex-grow: 1;">
+          <div style="font-size: 13px; font-weight: 600;">Carlos Mota</div>
+          <div style="font-size: 11px; color: #55503E;">#4659 · 1,2 km</div>
+        </div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4F46E5;">chegando</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E8E3D6;">
+        <div style="width: 30px; height: 30px; border-radius: 999px; background: #65A30D; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 11px;">RS</div>
+        <div style="flex-grow: 1;">
+          <div style="font-size: 13px; font-weight: 600;">Rafael Silva</div>
+          <div style="font-size: 11px; color: #55503E;">#2330 · saiu há 6 min</div>
+        </div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #65A30D;">em rota</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E8E3D6;">
+        <div style="width: 30px; height: 30px; border-radius: 999px; background: #C6C0AB; color: #16150F; display: grid; place-items: center; font-weight: 700; font-size: 11px;">JP</div>
+        <div style="flex-grow: 1;">
+          <div style="font-size: 13px; font-weight: 600;">João Pereira</div>
+          <div style="font-size: 11px; color: #55503E;">livre · 2 entregas hoje</div>
+        </div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55503E;">livre</span>
+      </div>
+    </div>
+
+    <div style="padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E8E3D6;">
+      <div style="font-size: 11px; letter-spacing: 0.14em; color: #8B856E;">SLA HOJE</div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+        <div style="font-family: 'Instrument Serif', serif; font-size: 30px; line-height: 1;">98%</div>
+        <div style="font-size: 12px; color: #55503E;">no prazo</div>
+      </div>
+      <div style="height: 6px; border-radius: 999px; background: #F5EFDD; overflow: hidden; margin-top: 8px;">
+        <div style="width: 98%; height: 100%; background: #4F46E5;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; font-size: 11px; color: #8B856E; font-family: 'JetBrains Mono', monospace;">v0.9 · redesign proposta B</div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

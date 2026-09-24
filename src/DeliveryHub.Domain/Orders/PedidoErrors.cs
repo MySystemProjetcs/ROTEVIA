@@ -29,6 +29,11 @@ public static class PedidoErrors
         "Este pedido não está atribuído a você.",
         ErrorType.NotFound);
 
+    public static readonly Error MotivoCancelamentoObrigatorio = new(
+        "pedido.motivo_cancelamento_obrigatorio",
+        "Informe o motivo do cancelamento.",
+        ErrorType.Validation);
+
     public static readonly Error CodigoDeEntregaPendente = new(
         "pedido.codigo_entrega_pendente",
         "Confirme o código de entrega com o cliente antes de finalizar.",

@@ -228,3 +228,10 @@ internal sealed record IFoodVerifyDeliveryCodeRequest(
 
 internal sealed record IFoodVerifyDeliveryCodeResponse(
     [property: JsonPropertyName("valid")] bool Valid);
+
+// Corpo do requestCancellation. cancellationCode é o código do iFood (varia por
+// pedido — a lista real vem de GET orders/{id}/cancellationReasons); reason é o
+// texto que o lojista informou.
+internal sealed record IFoodRequestCancellationRequest(
+    [property: JsonPropertyName("reason")] string Reason,
+    [property: JsonPropertyName("cancellationCode")] string CancellationCode);

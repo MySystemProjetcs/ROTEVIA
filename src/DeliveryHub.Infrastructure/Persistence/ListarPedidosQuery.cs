@@ -94,7 +94,13 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                     : _db.Couriers.Where(c => c.Id == x.EntregadorId).Select(c => c.Nome).FirstOrDefault(),
                 // O dono já sabe de que loja é o pedido: só a listagem do
                 // motoboy preenche isso.
-                null))
+                null,
+                // "local-" é o único prefixo que o próprio sistema gera
+                // (Pedido.PrefixoOrigemLocal); qualquer outra coisa hoje só
+                // pode ser o iFood, a única origem externa em produção.
+                x.IdExterno.StartsWith("local-") ? OrigemDoPedido.Interno : OrigemDoPedido.IFood,
+                x.ExigeCodigoDeEntrega,
+                x.CodigoConfirmadoEm))
             .ToListAsync(ct);
     }
 }

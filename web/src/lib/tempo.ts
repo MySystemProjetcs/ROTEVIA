@@ -40,3 +40,13 @@ export function formatarDinheiro(valor: number): string {
 export function formatarHora(agora: number): string {
   return new Date(agora).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
+
+// "SEXTA · 20 SET · 20:41" — topbar do Command Center.
+export function formatarDataHora(agora: number): string {
+  const d = new Date(agora)
+  const dia = d.toLocaleString('pt-BR', { weekday: 'long' }).toUpperCase().split('-')[0].trim()
+  const numDia = d.getDate()
+  const mes = d.toLocaleString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '')
+  const hora = d.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${dia} · ${numDia} ${mes} · ${hora}`
+}

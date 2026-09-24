@@ -187,14 +187,15 @@ public sealed class Pedido : ITenantOwned
     }
 
     // Porta separada do Concluir() de propósito. Concluir() tem duas entradas:
-    // este fluxo e o evento CONCLUDED do iFood, que chega pelo polling. Pôr a
-    // guarda lá dentro faria o próprio iFood não conseguir concluir o pedido
-    // dele quando o motoboy pulou o código — travaria a ingestão.
+    // este fluxo e o evento CONCLUDED do iFood, que chega pelo polling.
+    //
+    // A guarda de código de entrega pendente foi removida temporariamente: em
+    // teste não há código real do cliente para confirmar, e ela travava a
+    // finalização pelo motoboy. Volta quando houver pedido real com código —
+    // a capacidade de confirmar (ConfirmarEntregaComCodigo + RegistrarCodigoConfirmado)
+    // continua disponível.
     public Result ConcluirPeloEntregador()
     {
-        if (CodigoDeEntregaPendente)
-            return Result.Failure(PedidoErrors.CodigoDeEntregaPendente);
-
         return Concluir();
     }
 
@@ -203,7 +204,17 @@ public sealed class Pedido : ITenantOwned
     // não inventar cobrança onde não há dado.
     public Pagamento Pagamento { get; private set; } = Pagamento.Indefinido;
 
-    public Result Cancelar()
+    // Por que o pedido foi cancelado e quando. Motivo é opcional aqui de
+    // propósito: o cancelamento vindo do próprio iFood (evento CANCELLED) nem
+    // sempre traz texto. A obrigatoriedade do motivo no cancelamento pelo dono
+    // é regra do caso de uso (CancelarPedido), não do domínio.
+    public string? MotivoCancelamento { get; private set; }
+    public DateTimeOffset? CanceladoEm { get; private set; }
+
+    // Alcançável de qualquer estado não terminal (aguardando confirmação,
+    // confirmado, em preparo, pronto, despachado/aguardando aceite, em rota...).
+    // Concluído é a única barreira: pedido entregue não volta atrás.
+    public Result Cancelar(string? motivo = null, DateTimeOffset? em = null)
     {
         if (Status == StatusPedido.Cancelado)
             return Result.Success();
@@ -212,6 +223,8 @@ public sealed class Pedido : ITenantOwned
             return Result.Failure(PedidoErrors.PedidoConcluido);
 
         Status = StatusPedido.Cancelado;
+        MotivoCancelamento = motivo;
+        CanceladoEm = em;
         return Result.Success();
     }
 

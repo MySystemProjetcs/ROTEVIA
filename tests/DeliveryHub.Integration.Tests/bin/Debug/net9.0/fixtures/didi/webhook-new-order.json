@@ -1,0 +1,88 @@
+{
+  "_comment": "FIXTURE DE EXEMPLO baseado na spec openapi.didi-food.com. SUBSTITUIR pelo payload real capturado do sandbox assim que disponível (CLAUDE.md §2 passo 4).",
+  "event_type": "newOrder",
+  "order_id": 2352921557674426622,
+  "timestamp": 1726776000,
+  "sign": "MD5_DE_APP_ID_TIMESTAMP_APP_SECRET",
+  "order": {
+    "order_id": 2352921557674426622,
+    "status": 0,
+    "before_status": -1,
+    "order_index": 42,
+    "remark": "Sem cebola por favor",
+    "country": "BR",
+    "timezone": "America/Sao_Paulo",
+    "pay_type": 1,
+    "delivery_type": 1,
+    "create_time": 1726776000,
+    "pay_time": 1726776010,
+    "complete_time": 0,
+    "cancel_time": 0,
+    "shop_confirm_time": 0,
+    "expected_cook_eta": 1726776900,
+    "expected_arrived_eta": 1726777500,
+    "price": {
+      "order_price": 3500,
+      "real_price": 3500,
+      "real_pay_price": 3000,
+      "delivery_price": 500,
+      "refund_price": 0,
+      "currency": "BRL",
+      "items_discount": 0,
+      "delivery_discount": 0,
+      "customer_need_paying_money": 3000
+    },
+    "shop": {
+      "shop_id": 1152921645439779073,
+      "app_shop_id": "loja-001",
+      "shop_name": "Restaurante Exemplo",
+      "shop_addr": "Rua Exemplo, 123"
+    },
+    "receive_address": {
+      "name": "João Silva",
+      "first_name": "João",
+      "last_name": "Silva",
+      "calling_code": "55",
+      "phone": "11999990000",
+      "city": "São Paulo",
+      "country_code": "BR",
+      "poi_address": "Av. Paulista, 1000",
+      "house_number": "1000",
+      "poi_lat": "-23.5614",
+      "poi_lng": "-46.6560",
+      "poi_display_name": "Av. Paulista, 1000 - Bela Vista, São Paulo"
+    },
+    "order_items": [
+      {
+        "app_item_id": "item-001",
+        "name": "X-Burguer",
+        "total_price": 2500,
+        "sku_price": 2500,
+        "amount": 1,
+        "remark": "",
+        "real_price": 2500,
+        "sub_item_list": [
+          {
+            "app_item_id": "subitem-001",
+            "name": "Sem cebola",
+            "total_price": 0,
+            "sku_price": 0,
+            "amount": 1,
+            "sub_item_list": []
+          }
+        ]
+      },
+      {
+        "app_item_id": "item-002",
+        "name": "Refrigerante 350ml",
+        "total_price": 500,
+        "sku_price": 500,
+        "amount": 1,
+        "remark": "",
+        "real_price": 500,
+        "sub_item_list": []
+      }
+    ],
+    "promotions": []
+  }
+}

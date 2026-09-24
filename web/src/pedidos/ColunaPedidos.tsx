@@ -16,6 +16,7 @@ interface ColunaPedidosProps {
   obterProximoPasso: ObterProximoPasso
   entregadoresAtivos?: Entregador[]
   onAlocar?: (pedido: Pedido, entregadorId: string) => void
+  onCancelar?: (pedido: Pedido, motivo: string) => Promise<string | null>
   posicoes?: PosicaoEntregador[]
 }
 
@@ -28,6 +29,7 @@ export function ColunaPedidos({
   obterProximoPasso,
   entregadoresAtivos,
   onAlocar,
+  onCancelar,
   posicoes = [],
 }: ColunaPedidosProps) {
   // Coluna sem destino não recebe cartão: o dnd-kit só a registra como alvo se
@@ -83,6 +85,7 @@ export function ColunaPedidos({
               obterProximoPasso={obterProximoPasso}
               entregadoresAtivos={entregadoresAtivos}
               onAlocar={onAlocar}
+              onCancelar={onCancelar}
               posicoes={posicoes}
             />
           ))}

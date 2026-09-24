@@ -1,117 +1,131 @@
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { useSessao } from '@/auth/SessaoProvider'
-import { AvatarUsuario } from '@/components/AvatarUsuario'
 import { BarraLateral } from '@/components/BarraLateral'
+import { Botao } from '@/components/Botao'
 import { BarraLateralProvider } from '@/components/barra-lateral/BarraLateralProvider'
 import { GatilhoDaBarra } from '@/components/barra-lateral/GatilhoDaBarra'
-import { Etiqueta } from '@/components/Etiqueta'
-import { IconeRelogio } from '@/components/icones/IconeRelogio'
+import { IconeBusca } from '@/components/icones/IconeBusca'
 import type { DadosDoToken } from '@/lib/sessao'
-import { formatarHora, useAgora } from '@/lib/tempo'
+import { formatarDataHora, useAgora } from '@/lib/tempo'
 import { PaginaMotoboys } from '@/motoboys/PaginaMotoboys'
 import { ConfirmarConvite } from '@/paginas/ConfirmarConvite'
 import { Login } from '@/paginas/Login'
 import { PainelOperacao } from '@/pedidos/PainelOperacao'
-import { usePerfil } from '@/perfil/contexto'
+import { NovoPedidoProvider, useNovoPedido } from '@/pedidos/NovoPedidoContext'
 import { PerfilProvider } from '@/perfil/PerfilProvider'
 import { PaginaGanhos } from '@/entregador/PaginaGanhos'
 import { PaginaWhatsapp } from '@/whatsapp/PaginaWhatsapp'
 
-const ROTULO_DO_PAPEL: Record<DadosDoToken['papel'], string> = {
-  AdministradorSistema: 'Administrador',
-  DonoRestaurante: 'Loja',
-  Entregador: 'Entregador',
-}
-
 export function App() {
   return (
     <Routes>
-      {/* Sem sessão: o motoboy chega aqui direto do link do WhatsApp. */}
       <Route path="/convite/:linkId" element={<ConfirmarConvite />} />
       <Route path="/*" element={<AreaAutenticada />} />
     </Routes>
   )
 }
 
-// A sessão é quem decide se há tela; o perfil só existe depois disso. Separar
-// os dois evita buscar /perfil sem token e quebrar a tela de login.
 function AreaAutenticada() {
   const { usuario } = useSessao()
-
   if (!usuario) return <Login />
 
   return (
     <PerfilProvider>
       <BarraLateralProvider>
-        <PainelDaSessao usuario={usuario} />
+        {/* NovoPedidoProvider envolve tudo: o botão do header e o PainelOperacao
+            compartilham o mesmo contexto. */}
+        <NovoPedidoProvider>
+          <PainelDaSessao usuario={usuario} />
+        </NovoPedidoProvider>
       </BarraLateralProvider>
     </PerfilProvider>
   )
 }
 
 function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
-  const { perfil } = usePerfil()
-  const agora = useAgora(1000)
+  const agora = useAgora(60_000)
   const localizacao = useLocation()
-  const foto = perfil?.fotoBase64
+  const ehDono = usuario.papel === 'DonoRestaurante'
+  const { abrir: abrirNovoPedido } = useNovoPedido()
 
   const titulo =
-    localizacao.pathname === '/motoboys'
-      ? 'Motoboys'
-      : localizacao.pathname === '/whatsapp'
-        ? 'WhatsApp'
-        : localizacao.pathname === '/meus-ganhos'
-          ? 'Meus ganhos'
-          : 'Painel de Pedidos'
+    localizacao.pathname === '/motoboys'      ? 'Motoboys'
+    : localizacao.pathname === '/whatsapp'    ? 'Conversas'
+    : localizacao.pathname === '/meus-ganhos' ? 'Meus ganhos'
+    : 'Central de Pedidos'
 
   return (
-    <div className="flex min-h-dvh bg-superficie-alt">
+    <div className="fundo-app flex min-h-dvh">
       <BarraLateral />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-borda bg-superficie">
-          <div className="flex items-center justify-between gap-3 p-4">
-            <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* ── Topbar ─────────────────────────────────── */}
+        <header className="flex items-center gap-4 px-6 pt-5 pb-0">
+          <div className="flex min-w-0 flex-col">
+            <span className="font-mono text-rotulo uppercase text-texto-mudo">
+              {formatarDataHora(agora)}
+            </span>
+            <div className="flex items-center gap-2">
+              {/* Sem lg:hidden: a barra recolhe pra trilho de ícones no
+                  desktop também (Casca.tsx já sabe fazer isso), não só abre
+                  a gaveta no celular — o botão precisa existir nos dois
+                  tamanhos de tela, senão o desktop nunca alcança o trilho. */}
               <GatilhoDaBarra />
-              <h1 className="truncate text-titulo text-texto">{titulo}</h1>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="hidden items-center gap-1.5 rounded-controle border border-borda px-2.5 py-1.5 font-mono text-apoio text-texto tabular-nums sm:inline-flex">
-                <IconeRelogio className="size-4 text-texto-fraco" />
-                {formatarHora(agora)}
-              </span>
-              {usuario.papel === 'Entregador' && (
-                <span className="flex items-center gap-2">
-                  <AvatarUsuario
-                    nome={usuario.nomeUsuario || usuario.email}
-                    foto={foto}
-                    className="border-borda-forte bg-superficie-afundada text-texto"
-                  />
-                  {/* O nome some no celular: o avatar já identifica, e a linha
-                      do cabeçalho não comporta nome inteiro mais etiqueta mais
-                      botão numa tela de 375px. */}
-                  <span className="hidden text-apoio font-medium text-texto sm:inline">
-                    {usuario.nomeUsuario || usuario.email}
-                  </span>
-                </span>
-              )}
-              <Etiqueta>{ROTULO_DO_PAPEL[usuario.papel]}</Etiqueta>
+              <h1 className="text-[22px] font-bold leading-tight tracking-tight text-texto">
+                {titulo}
+              </h1>
             </div>
           </div>
+
+          <div className="flex-1" />
+
+          {/* Busca — escondida por página em vez de "sempre visível":
+              foi pedido pra sair da Central de Pedidos e de Motoboys, e não
+              há tela hoje que faça uso real do que o campo dispararia (não
+              há endpoint global de busca). Mantido por ora como visual, mas
+              omitido onde a ausência foi pedida explicitamente. */}
+          {ehDono
+            && localizacao.pathname !== '/'
+            && localizacao.pathname !== '/motoboys' && (
+            <label
+              className="hidden items-center gap-2 rounded-[10px] border border-borda bg-superficie-alt px-3 py-2 text-texto-fraco sm:flex"
+              style={{ width: 280 }}
+            >
+              <IconeBusca className="size-3.5 shrink-0" />
+              <input
+                placeholder="Buscar pedido, cliente, CPF…"
+                className="w-full bg-transparent text-[13px] text-texto placeholder:text-texto-mudo outline-none"
+              />
+              <span className="font-mono text-[10px] rounded px-1.5 py-0.5 bg-[rgba(255,255,255,0.06)] text-texto-mudo">
+                ⌘K
+              </span>
+            </label>
+          )}
+
+          {/* Novo pedido: aciona o FormularioPedidoInterno no PainelOperacao —
+              por isso só faz sentido na tela dele, "/". Migrado pro <Botao>
+              padrão: a silhueta do "Novo pedido" virou o modelo do resto do
+              sistema, então este mesmo botão passa a usar o componente. */}
+          {ehDono && localizacao.pathname === '/' && (
+            <Botao onClick={abrirNovoPedido} className="hidden sm:inline-flex">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Novo pedido
+            </Botao>
+          )}
         </header>
 
-        <main className="flex-1 p-4">
+        {/* ── Conteúdo ────────────────────────────────── */}
+        <main className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-4">
           {usuario.papel === 'Entregador' ? (
-            // Mesmo sistema do dono — o Kanban decide sozinho, pelo papel da
-            // sessão, quais colunas e ações mostrar.
             <Routes>
-              <Route path="/" element={<PainelOperacao />} />
+              <Route path="/"            element={<PainelOperacao />} />
               <Route path="/meus-ganhos" element={<PaginaGanhos />} />
             </Routes>
           ) : (
             <Routes>
-              <Route path="/" element={<PainelOperacao />} />
+              <Route path="/"         element={<PainelOperacao />} />
               <Route path="/motoboys" element={<PaginaMotoboys />} />
               <Route path="/whatsapp" element={<PaginaWhatsapp />} />
             </Routes>

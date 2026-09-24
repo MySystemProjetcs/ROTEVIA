@@ -37,6 +37,11 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(x => x.EntregaPeloParceiro).HasColumnName("entrega_pelo_parceiro").IsRequired();
         builder.Property(x => x.CodigoConfirmadoEm).HasColumnName("codigo_confirmado_em");
 
+        // Cancelamento: por que e quando. Motivo pode ser nulo (cancelamento
+        // vindo do próprio iFood nem sempre traz texto).
+        builder.Property(x => x.MotivoCancelamento).HasColumnName("motivo_cancelamento").HasMaxLength(500);
+        builder.Property(x => x.CanceladoEm).HasColumnName("cancelado_em");
+
         // Pagamento por table splitting, igual a Cliente e Endereço: é dado do
         // pedido, não entidade com vida própria.
         builder.OwnsOne(x => x.Pagamento, pagamento =>

@@ -1,12 +1,11 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* Fonte única de verdade do visual. Nenhum componente declara cor, tamanho,
-   espaçamento ou raio: tudo sai daqui como token do Tailwind. Trocar a
-   identidade visual do produto é trocar este arquivo. */
+   espaçamento ou raio: tudo sai daqui como token do Tailwind. */
 @theme {
-  /* Marca — índigo e lima, conforme CLAUDE.md §11.
-     Vermelho não existe na paleta de propósito: conflita com o iFood. */
-  --color-marca-50: #eef2ff;
+  /* Marca */
+  --color-marca-50:  #eef2ff;
   --color-marca-100: #e0e7ff;
   --color-marca-200: #c7d2fe;
   --color-marca-300: #a5b4fc;
@@ -22,146 +21,160 @@
   --color-acento-500: #84cc16;
   --color-acento-600: #65a30d;
 
-  /* Superfícies e texto */
-  --color-superficie: #ffffff;
-  --color-superficie-alt: #f8fafc;
-  --color-superficie-afundada: #f1f5f9;
-  --color-borda: #e2e8f0;
-  --color-borda-forte: #cbd5e1;
+  /* ── Dark mode ──────────────────────────────────────────────────── */
+  /* Fundos em camadas: base → superfície → cartão → elevado           */
+  --color-fundo:           #0b0d12;
+  --color-superficie:      #0f1117;
+  --color-superficie-alt:  #12151c;
+  --color-superficie-afundada: #191c26;
+  --color-elevado:         #1e2230;
 
-  --color-texto: #0f172a;
-  --color-texto-suave: #475569;
-  --color-texto-fraco: #94a3b8;
-  --color-texto-invertido: #ffffff;
+  /* Bordas */
+  --color-borda:       rgba(255,255,255,0.06);
+  --color-borda-forte: rgba(255,255,255,0.10);
 
-  /* Estados do pedido. São tokens semânticos, não cores cruas: a tela fala
-     "pedido confirmado", não "verde". Mudar a cor de um estado é mudar aqui. */
-  --color-estado-recebido: #f59e0b;
-  --color-estado-recebido-fundo: #fffbeb;
-  --color-estado-confirmado: #4f46e5;
-  --color-estado-confirmado-fundo: #eef2ff;
-  --color-estado-preparo: #8b5cf6;
-  --color-estado-preparo-fundo: #f5f3ff;
-  --color-estado-pronto: #0ea5e9;
-  --color-estado-pronto-fundo: #f0f9ff;
-  --color-estado-despachado: #14b8a6;
-  --color-estado-despachado-fundo: #f0fdfa;
-  --color-estado-aceito: #0891b2;
-  --color-estado-aceito-fundo: #ecfeff;
-  --color-estado-emrota: #059669;
-  --color-estado-emrota-fundo: #ecfdf5;
-  --color-estado-chegou: #65a30d;
-  --color-estado-chegou-fundo: #f7fee7;
-  /* Cobrança na entrega: âmbar, o mesmo tom de "exige atenção" usado no
-     alerta — é dinheiro que o motoboy ainda precisa receber. */
-  --color-estado-cobrar: #b45309;
-  --color-estado-cobrar-fundo: #fffbeb;
-  --color-estado-concluido: #16a34a;
-  --color-estado-concluido-fundo: #f0fdf4;
-  --color-estado-cancelado: #64748b;
-  --color-estado-cancelado-fundo: #f8fafc;
+  /* Texto */
+  --color-texto:          #e7eaf0;
+  --color-texto-suave:    #b3bac9;
+  --color-texto-fraco:    #8a93a3;
+  --color-texto-mudo:     #6b7385;
+  --color-texto-invertido: #0b0d12;
 
-  /* Marcadores do mapa. O vermelho aqui é exceção consciente ao §11: pino de
-     mapa é convenção cartográfica, não identidade da marca — não aparece em
-     botão, logo ou cabeçalho, só sobre o mapa. */
-  --color-marcador-loja: #dc2626;
+  /* Estados dos pedidos — versões dark */
+  --color-estado-recebido:        #f59e0b;
+  --color-estado-recebido-fundo:  rgba(245,158,11,0.10);
+  --color-estado-recebido-borda:  rgba(245,158,11,0.22);
+
+  --color-estado-confirmado:       #7c3aed;
+  --color-estado-confirmado-fundo: rgba(124,58,237,0.08);
+  --color-estado-confirmado-borda: rgba(124,58,237,0.20);
+
+  --color-estado-preparo:       #7c3aed;
+  --color-estado-preparo-fundo: rgba(124,58,237,0.08);
+  --color-estado-preparo-borda: rgba(124,58,237,0.20);
+
+  --color-estado-pronto:       #06b6d4;
+  --color-estado-pronto-fundo: rgba(6,182,212,0.08);
+  --color-estado-pronto-borda: rgba(6,182,212,0.20);
+
+  --color-estado-despachado:       #06b6d4;
+  --color-estado-despachado-fundo: rgba(6,182,212,0.08);
+  --color-estado-despachado-borda: rgba(6,182,212,0.20);
+
+  --color-estado-aceito:       #06b6d4;
+  --color-estado-aceito-fundo: rgba(6,182,212,0.08);
+  --color-estado-aceito-borda: rgba(6,182,212,0.20);
+
+  --color-estado-emrota:       #06b6d4;
+  --color-estado-emrota-fundo: rgba(6,182,212,0.10);
+  --color-estado-emrota-borda: rgba(6,182,212,0.22);
+
+  --color-estado-chegou:       #06b6d4;
+  --color-estado-chegou-fundo: rgba(6,182,212,0.10);
+  --color-estado-chegou-borda: rgba(6,182,212,0.22);
+
+  --color-estado-cobrar:       #f59e0b;
+  --color-estado-cobrar-fundo: rgba(245,158,11,0.08);
+
+  --color-estado-concluido:       #a3e635;
+  --color-estado-concluido-fundo: rgba(163,230,53,0.08);
+  --color-estado-concluido-borda: rgba(163,230,53,0.22);
+
+  --color-estado-cancelado:       #6b7385;
+  --color-estado-cancelado-fundo: rgba(107,115,133,0.08);
+  --color-estado-cancelado-borda: rgba(107,115,133,0.15);
+
+  /* Origem */
+  --color-origem-ifood:       #fcd180;
+  --color-origem-ifood-fundo: rgba(245,158,11,0.15);
+
+  /* Marcadores */
+  --color-marcador-loja:    #dc2626;
   --color-marcador-motoboy: #4f46e5;
 
-  /* Feedback. Erro usa laranja queimado em vez de vermelho puro, pela mesma
-     razão da marca. */
-  --color-perigo: #c2410c;
-  --color-perigo-fundo: #fff7ed;
-  --color-sucesso: #16a34a;
-  --color-sucesso-fundo: #f0fdf4;
-  --color-alerta: #b45309;
-  --color-alerta-fundo: #fffbeb;
+  /* Feedback */
+  --color-perigo:       #f87171;
+  --color-perigo-fundo: rgba(248,113,113,0.10);
+  --color-sucesso:      #a3e635;
+  --color-sucesso-fundo: rgba(163,230,53,0.10);
+  --color-alerta:       #fbbf24;
+  --color-alerta-fundo: rgba(251,191,36,0.10);
 
-  /* Tipografia */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  /* Tipografia — Space Grotesk (texto) + JetBrains Mono (números/código) */
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  --text-rotulo: 0.6875rem;
+  --text-rotulo: 0.625rem;           /* 10px */
   --text-rotulo--line-height: 1rem;
-  --text-rotulo--letter-spacing: 0.06em;
+  --text-rotulo--letter-spacing: 0.12em;
   --text-rotulo--font-weight: 600;
 
-  --text-apoio: 0.8125rem;
+  --text-apoio: 0.8125rem;           /* 13px */
   --text-apoio--line-height: 1.125rem;
 
-  --text-corpo: 0.9375rem;
+  --text-corpo: 0.9375rem;           /* 15px */
   --text-corpo--line-height: 1.375rem;
 
-  --text-titulo: 1.125rem;
+  --text-titulo: 1.125rem;           /* 18px */
   --text-titulo--line-height: 1.5rem;
   --text-titulo--font-weight: 600;
 
-  --text-destaque: 1.5rem;
-  --text-destaque--line-height: 1.875rem;
+  --text-destaque: 1.875rem;         /* 30px — KPIs */
+  --text-destaque--line-height: 2rem;
   --text-destaque--font-weight: 700;
+  --text-destaque--letter-spacing: -0.02em;
 
-  /* Raios e sombras */
+  /* Raios */
   --radius-controle: 0.5rem;
-  --radius-cartao: 0.75rem;
+  --radius-cartao:   0.75rem;
+  --radius-painel:   0.875rem;
 
-  --shadow-cartao: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
-  --shadow-elevado: 0 4px 12px -2px rgb(15 23 42 / 0.1);
+  /* Sombras */
+  --shadow-cartao:  0 8px 24px -18px rgba(0,0,0,0.8);
+  --shadow-elevado: 0 10px 32px -12px rgba(0,0,0,0.6);
 
-  /* Alvo mínimo de toque. A base é web mas roda como app via Capacitor, e
-     44px é o mínimo confortável para o dedo. */
+  /* Toque */
   --spacing-toque: 2.75rem;
 }
 
-/* Moldura dos balões do mapa.
-   O MapLibre traz um popup branco de cantos quadrados e sombra dura, alheio ao
-   resto da interface. O conteúdo é montado em DOM no MapaEntrega; aqui fica só
-   a moldura, pelos mesmos tokens de cartão que o sistema usa — CSS de biblioteca
-   de terceiro não tem como sair de classe utilitária. */
-.maplibregl-popup-content {
-  padding: 0;
-  border-radius: var(--radius-cartao);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borda);
-  box-shadow: var(--shadow-elevado);
+/* Base global */
+html, body, #root {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* A setinha do balão precisa acompanhar a cor da superfície, senão fica um
-   triângulo branco pendurado num cartão que mudou de cor. */
-.maplibregl-popup-tip {
-  border-top-color: var(--color-superficie);
-  border-bottom-color: var(--color-superficie);
-  border-left-color: var(--color-superficie);
-  border-right-color: var(--color-superficie);
+/* Gradiente de fundo da aplicação — igual ao do Figma */
+.fundo-app {
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(79,70,229,0.18), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(163,230,53,0.08), transparent 55%),
+    var(--color-fundo);
 }
 
-/* Some com o X padrão: os balões do mapa abrem ao passar o mouse e fecham ao
-   sair, então o botão de fechar não tem função e só rouba espaço. */
-.maplibregl-popup-close-button {
-  display: none;
-}
-
-/* Barra de rolagem fina, nos tokens do tema.
-   Usada pela AreaDeRolagem. Fica aqui e não no componente porque pseudo-
-   elemento de scrollbar não existe como classe utilitária. As duas sintaxes
-   são necessárias: a padrão (Firefox) e a do WebKit (Chrome, Safari, Edge). */
+/* Barra de rolagem fina */
 .barra-fina {
   scrollbar-width: thin;
   scrollbar-color: var(--color-borda-forte) transparent;
 }
+.barra-fina::-webkit-scrollbar        { width: 0.5rem; height: 0.5rem; }
+.barra-fina::-webkit-scrollbar-track  { background: transparent; }
+.barra-fina::-webkit-scrollbar-thumb  { background: var(--color-borda-forte); border-radius: var(--radius-controle); }
+.barra-fina:hover::-webkit-scrollbar-thumb { background: var(--color-texto-mudo); }
 
-.barra-fina::-webkit-scrollbar {
-  width: 0.5rem;
-  height: 0.5rem;
+/* Popup do mapa */
+.maplibregl-popup-content {
+  padding: 0;
+  border-radius: var(--radius-cartao);
+  background: var(--color-superficie-alt);
+  border: 1px solid var(--color-borda-forte);
+  box-shadow: var(--shadow-elevado);
 }
-
-.barra-fina::-webkit-scrollbar-track {
-  background: transparent;
+.maplibregl-popup-tip {
+  border-top-color:    var(--color-superficie-alt);
+  border-bottom-color: var(--color-superficie-alt);
+  border-left-color:   var(--color-superficie-alt);
+  border-right-color:  var(--color-superficie-alt);
 }
-
-.barra-fina::-webkit-scrollbar-thumb {
-  background: var(--color-borda-forte);
-  border-radius: var(--radius-controle);
-}
-
-.barra-fina:hover::-webkit-scrollbar-thumb {
-  background: var(--color-texto-fraco);
-}
+.maplibregl-popup-close-button { display: none; }

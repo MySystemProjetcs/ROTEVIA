@@ -88,6 +88,7 @@ builder.Services.AddBuscaDeEndereco();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<IAvancarPedido, AvancarPedido>();
+builder.Services.AddScoped<ICancelarPedido, CancelarPedido>();
 builder.Services.AddScoped<ILancarPedidoInterno, LancarPedidoInterno>();
 builder.Services.AddScoped<IAlocarEntregador, AlocarEntregador>();
 builder.Services.AddScoped<IAvancarEntrega, AvancarEntrega>();

@@ -68,10 +68,9 @@ public static class CourierEndpoints
 
         var entregadores = await listar.ExecutarAsync(merchantId, ct);
 
-        IReadOnlyList<EntregadorListadoResponse> resposta = entregadores
+        IReadOnlyList<EntregadorListadoResponse> resposta = [.. entregadores
             .Select(x => new EntregadorListadoResponse(
-                x.LinkId, x.CourierId, x.Nome, x.Telefone, x.ModeloDaMoto, x.Placa, x.Status.ToString(), x.Disponivel))
-            .ToList();
+                x.LinkId, x.CourierId, x.Nome, x.Telefone, x.ModeloDaMoto, x.Placa, x.Status.ToString(), x.Disponivel))];
 
         return TypedResults.Ok(resposta);
     }
@@ -104,8 +103,6 @@ public static class CourierEndpoints
         "restaurante.nao_encontrado", "Restaurante não encontrado.", ErrorType.NotFound);
 
     private static ProblemHttpResult ProblemaDe(Error erro) => TypedResults.Problem(
-        title: erro.Message,
-        detail: erro.Code,
         statusCode: erro.Type switch
         {
             ErrorType.NotFound => StatusCodes.Status404NotFound,
@@ -113,5 +110,7 @@ public static class CourierEndpoints
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
             _ => StatusCodes.Status500InternalServerError
-        });
+        },
+        title: erro.Message,
+        detail: erro.Code);
 }

@@ -12,6 +12,11 @@ public interface IOrderSource
     Task<Result> MarcarProntoAsync(string idExternoPedido, CancellationToken ct);
     Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct);
 
+    // Cancela o pedido na origem. O motivo vem em texto livre do lojista; cada
+    // adapter traduz para o código de cancelamento que o seu marketplace exige
+    // (o iFood pede um cancellationCode). Application nunca vê esse código.
+    Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct);
+
     // Valida na origem o código que o cliente informa ao entregador na porta.
     // Devolve bool, não tipo da origem: Application não pode enxergar contrato
     // de marketplace (teste de arquitetura quebra o build se vazar).
