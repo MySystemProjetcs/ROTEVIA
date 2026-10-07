@@ -1,5 +1,9 @@
-@import "tailwindcss";
+/* Fontes antes do Tailwind: `@import "tailwindcss"` expande para milhares de
+   linhas de CSS, e a regra do CSS é que todo @import venha antes de qualquer
+   outra declaração. Na ordem inversa o PostCSS descarta este import e as
+   fontes não carregam. */
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
 
 /* Fonte única de verdade do visual. Nenhum componente declara cor, tamanho,
    espaçamento ou raio: tudo sai daqui como token do Tailwind. */

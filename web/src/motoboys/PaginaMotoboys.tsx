@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 import { Botao } from '@/components/Botao'
 import { Campo } from '@/components/Campo'
 import { Cartao, CartaoCorpo, CartaoCabecalho } from '@/components/Cartao'
+import { Dialogo } from '@/components/Dialogo'
+import { MenuDeAcoes } from '@/components/MenuDeAcoes'
 import { AvatarIniciais } from '@/components/AvatarIniciais'
 import { IconeBusca } from '@/components/icones/IconeBusca'
 import { MenuHorizontal } from '@/components/MenuHorizontal'
@@ -61,7 +63,7 @@ function normalizar(texto: string): string {
 }
 
 export function PaginaMotoboys() {
-  const { entregadores, carregando, erro, convidar } = useMotoboys()
+  const { entregadores, carregando, erro, convidar, atualizar, remover } = useMotoboys()
   const { pedidos } = usePedidos()
   const [painel, setPainel] = useState<PainelAtivo>('nenhum')
   const [busca, setBusca] = useState('')
@@ -69,6 +71,21 @@ export function PaginaMotoboys() {
   const [enviando, setEnviando] = useState(false)
   const [erroForm, setErroForm] = useState<string | null>(null)
   const [ultimoConvite, setUltimoConvite] = useState<EntregadorConvidado | null>(null)
+
+  // Ações da linha: edição abre diálogo; remoção pede confirmação na própria
+  // linha (dois cliques) — apagar vínculo não pode acontecer por clique torto.
+  const [editando, setEditando] = useState<Entregador | null>(null)
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState<string | null>(null)
+  const [removendo, setRemovendo] = useState(false)
+  const [erroAcao, setErroAcao] = useState<string | null>(null)
+
+  async function removerVinculo(entregador: Entregador) {
+    setRemovendo(true)
+    const falha = await remover(entregador.linkId)
+    setRemovendo(false)
+    setConfirmandoRemocao(null)
+    setErroAcao(falha)
+  }
 
   const emEntrega = useMemo(
     () =>
@@ -217,22 +234,23 @@ export function PaginaMotoboys() {
               <th scope="col" className="px-4 py-3 text-rotulo uppercase text-texto-fraco">Telefone</th>
               <th scope="col" className="px-4 py-3 text-rotulo uppercase text-texto-fraco">Veículo / Placa</th>
               <th scope="col" className="px-4 py-3 text-rotulo uppercase text-texto-fraco">Status</th>
+              <th scope="col" className="px-4 py-3 text-right text-rotulo uppercase text-texto-fraco">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-borda">
             {carregando ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-apoio text-texto-suave">Carregando...</td>
+                <td colSpan={5} className="px-4 py-6 text-apoio text-texto-suave">Carregando...</td>
               </tr>
             ) : entregadores.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-apoio text-texto-suave">
+                <td colSpan={5} className="px-4 py-6 text-apoio text-texto-suave">
                   Nenhum motoboy cadastrado ainda.
                 </td>
               </tr>
             ) : entregadoresVisiveis.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-apoio text-texto-suave">
+                <td colSpan={5} className="px-4 py-6 text-apoio text-texto-suave">
                   Nenhum motoboy corresponde a “{busca}”.
                 </td>
               </tr>
@@ -267,6 +285,57 @@ export function PaginaMotoboys() {
                         {pill.texto}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        {confirmandoRemocao === entregador.linkId ? (
+                          <>
+                            <span className="text-apoio text-texto-suave">
+                              {entregador.status === 'Convidado' ? 'Revogar convite?' : 'Remover da loja?'}
+                            </span>
+                            <Botao
+                              variante="perigo"
+                              tamanho="pequeno"
+                              carregando={removendo}
+                              onClick={() => void removerVinculo(entregador)}
+                            >
+                              Confirmar
+                            </Botao>
+                            <Botao
+                              variante="secundario"
+                              tamanho="pequeno"
+                              disabled={removendo}
+                              onClick={() => setConfirmandoRemocao(null)}
+                            >
+                              Cancelar
+                            </Botao>
+                          </>
+                        ) : (
+                          <MenuDeAcoes
+                            rotulo={`Ações de ${entregador.nome}`}
+                            acoes={[
+                              {
+                                chave: 'editar',
+                                rotulo: 'Editar cadastro',
+                                aoEscolher: () => {
+                                  setErroAcao(null)
+                                  setEditando(entregador)
+                                },
+                              },
+                              {
+                                chave: 'remover',
+                                rotulo:
+                                  entregador.status === 'Convidado' ? 'Revogar convite' : 'Remover da loja',
+                                perigosa: true,
+                                aoEscolher: () => {
+                                  setErroAcao(null)
+                                  setConfirmandoRemocao(entregador.linkId)
+                                },
+                              },
+                            ]}
+                          />
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 )
               })
@@ -274,6 +343,98 @@ export function PaginaMotoboys() {
           </tbody>
         </table>
       </div>
+
+      {erroAcao && (
+        <Cartao className="border-perigo">
+          <CartaoCorpo>{erroAcao}</CartaoCorpo>
+        </Cartao>
+      )}
+
+      {editando && (
+        <DialogoEditarEntregador
+          entregador={editando}
+          onFechar={() => setEditando(null)}
+          onSalvar={(dados) => atualizar(editando.linkId, dados)}
+        />
+      )}
     </div>
+  )
+}
+
+// Edição do cadastro. CPF fica de fora: é a chave natural que identifica o
+// mesmo motoboy entre lojas (CLAUDE.md §6) e não pode mudar.
+function DialogoEditarEntregador({
+  entregador,
+  onFechar,
+  onSalvar,
+}: {
+  entregador: Entregador
+  onFechar: () => void
+  onSalvar: (dados: {
+    nome: string
+    telefone: string
+    modeloDaMoto: string
+    placa: string
+  }) => Promise<string | null>
+}) {
+  const [nome, setNome] = useState(entregador.nome)
+  const [telefone, setTelefone] = useState(entregador.telefone)
+  const [modeloDaMoto, setModeloDaMoto] = useState(entregador.modeloDaMoto)
+  const [placa, setPlaca] = useState(entregador.placa)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault()
+    setSalvando(true)
+    const falha = await onSalvar({ nome, telefone, modeloDaMoto, placa })
+    setSalvando(false)
+
+    if (falha) {
+      setErro(falha)
+      return
+    }
+
+    onFechar()
+  }
+
+  return (
+    <Dialogo aberto onFechar={onFechar} titulo="Editar motoboy">
+      <form onSubmit={enviar} className="flex flex-col gap-4 p-5">
+        <p className="text-apoio text-texto-suave">
+          O cadastro do motoboy é único no sistema: a correção vale para todas as lojas em que ele
+          trabalha. O CPF não muda.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Campo rotulo="Nome completo" required value={nome} onChange={(e) => setNome(e.target.value)} />
+          <Campo
+            rotulo="WhatsApp"
+            required
+            apoio="DDD + número, ex.: 11999998888"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+          />
+          <Campo
+            rotulo="Modelo da moto"
+            required
+            value={modeloDaMoto}
+            onChange={(e) => setModeloDaMoto(e.target.value)}
+          />
+          <Campo rotulo="Placa" required value={placa} onChange={(e) => setPlaca(e.target.value)} />
+        </div>
+
+        {erro && <p className="text-apoio text-perigo">{erro}</p>}
+
+        <div className="flex gap-3">
+          <Botao type="submit" carregando={salvando}>
+            Salvar
+          </Botao>
+          <Botao type="button" variante="secundario" onClick={onFechar} disabled={salvando}>
+            Cancelar
+          </Botao>
+        </div>
+      </form>
+    </Dialogo>
   )
 }

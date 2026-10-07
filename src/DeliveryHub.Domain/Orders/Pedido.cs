@@ -132,6 +132,21 @@ public sealed class Pedido : ITenantOwned
         return AvancarPara(StatusPedido.Despachado);
     }
 
+    // Pedidos casados: quando vários saem juntos com o mesmo motoboy, cada um
+    // guarda o id da corrida (LoteEntregaId) e sua posição na sequência de
+    // paradas (OrdemNaRota, 1-based). Null nos dois = entrega solo. Quem calcula
+    // a ordem é o caso de uso (DespacharEmLote), a partir das coordenadas — o
+    // domínio só registra o resultado.
+    public Guid? LoteEntregaId { get; private set; }
+    public int? OrdemNaRota { get; private set; }
+
+    public Result DefinirRotaDeLote(Guid loteId, int ordemNaRota)
+    {
+        LoteEntregaId = loteId;
+        OrdemNaRota = ordemNaRota;
+        return Result.Success();
+    }
+
     // Passos do motoboy depois que o dono despacha. Nenhum deles avisa o
     // iFood — só o clique do dono em Despachar faz isso, como já fazia antes.
     public Result AceitarEntrega() => AvancarPara(StatusPedido.Aceito);

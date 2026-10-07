@@ -48,6 +48,19 @@ public sealed class Merchant
 
     public void DefinirEndereco(Endereco endereco) => Endereco = endereco;
 
+    // O nome aparece no painel, no card do pedido do motoboy e no convite. Só
+    // barra o vazio: qualquer outra regra seria inventar restrição de negócio.
+    public Result AlterarNome(string nome)
+    {
+        var limpo = nome?.Trim() ?? string.Empty;
+
+        if (limpo.Length == 0 || limpo.Length > 200)
+            return Result.Failure(MerchantErrors.NomeInvalido);
+
+        Nome = limpo;
+        return Result.Success();
+    }
+
     // Sem handshake OAuth como o iFood: o app_shop_id da 99Food é escolhido
     // por nós na criação manual da loja no painel deles, então vincular aqui é
     // só registrar o valor combinado — não há token nem autorização a trocar.

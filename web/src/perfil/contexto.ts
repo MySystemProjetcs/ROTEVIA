@@ -24,11 +24,29 @@ export interface Perfil {
   entregador: PerfilDoEntregador | null
 }
 
+/** Endereço se informa por CEP + número: o resto (logradouro, bairro, cidade) e
+ *  a coordenada o servidor resolve sozinho. */
+export interface NovoEnderecoDaLoja {
+  cep: string
+  numero: string
+  complemento?: string
+  /** Escape manual: só preenchidos quando o servidor não conseguiu localizar o
+   *  endereço no mapa. Informados, vencem a busca automática. */
+  latitude?: number | null
+  longitude?: number | null
+}
+
 export interface ValorDoPerfil {
   perfil: Perfil | null
   carregando: boolean
   erro: string | null
   enviarFoto: (fotoBase64: string) => Promise<void>
+  // As três edições do perfil. Devolvem a mensagem de erro (ou null em caso de
+  // sucesso) em vez de lançar: cada linha do diálogo mostra o próprio erro ao
+  // lado do campo, que é onde a pessoa está olhando.
+  alterarEmail: (email: string) => Promise<string | null>
+  alterarNomeDaLoja: (nome: string) => Promise<string | null>
+  alterarEndereco: (novo: NovoEnderecoDaLoja) => Promise<string | null>
 }
 
 export const ContextoDoPerfil = createContext<ValorDoPerfil | null>(null)

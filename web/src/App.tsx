@@ -55,7 +55,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
     : 'Central de Pedidos'
 
   return (
-    <div className="fundo-app flex min-h-dvh">
+    <div className="fundo-app flex h-dvh">
       <BarraLateral />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -117,7 +117,10 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
         </header>
 
         {/* ── Conteúdo ────────────────────────────────── */}
-        <main className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-4">
+        {/* overflow-y-auto: o conteúdo rola aqui dentro, não no documento —
+            é isso que dá a âncora para o "Mapa da operação" grudar no rodapé
+            (sticky bottom-0) em vez de rolar junto com a página. */}
+        <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
           {usuario.papel === 'Entregador' ? (
             <Routes>
               <Route path="/"            element={<PainelOperacao />} />

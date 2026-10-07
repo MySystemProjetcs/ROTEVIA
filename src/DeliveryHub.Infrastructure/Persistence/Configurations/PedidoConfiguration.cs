@@ -42,6 +42,11 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(x => x.MotivoCancelamento).HasColumnName("motivo_cancelamento").HasMaxLength(500);
         builder.Property(x => x.CanceladoEm).HasColumnName("cancelado_em");
 
+        // Pedidos casados: id da corrida e a posição da parada na rota. Nulos
+        // em entrega solo.
+        builder.Property(x => x.LoteEntregaId).HasColumnName("lote_entrega_id");
+        builder.Property(x => x.OrdemNaRota).HasColumnName("ordem_na_rota");
+
         // Pagamento por table splitting, igual a Cliente e Endereço: é dado do
         // pedido, não entidade com vida própria.
         builder.OwnsOne(x => x.Pagamento, pagamento =>

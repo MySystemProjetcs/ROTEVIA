@@ -32,10 +32,6 @@ public sealed record PedidoDto(
     decimal PagamentoValorACobrar,
     DateTimeOffset CriadoNaOrigemEm,
     DateTimeOffset RecebidoEm,
-    // Instante em que o prazo de confirmação do iFood expira. Vem calculado do
-    // servidor de propósito: se o relógio partisse do navegador, um F5 zeraria
-    // a contagem e o lojista perderia o pedido achando que ainda tinha tempo.
-    DateTimeOffset PrazoConfirmacaoAte,
     IReadOnlyList<ItemDoPedidoDto> Itens,
     Guid? EntregadorId,
     string? EntregadorNome,
@@ -53,7 +49,12 @@ public sealed record PedidoDto(
     // o código ao cliente antes de "Finalizar entrega" — e o botão falharia
     // contra Pedido.ConcluirPeloEntregador sem explicação nenhuma na tela.
     bool ExigeCodigoDeEntrega,
-    DateTimeOffset? CodigoConfirmadoEm);
+    DateTimeOffset? CodigoConfirmadoEm,
+    // Pedidos casados: id da corrida e a posição da parada na rota (1-based).
+    // Nulos = entrega solo. A tela do motoboy agrupa por lote e ordena pela
+    // rota; a do dono mostra o selo do lote.
+    Guid? LoteEntregaId,
+    int? OrdemNaRota);
 
 public static class OrigemDoPedido
 {

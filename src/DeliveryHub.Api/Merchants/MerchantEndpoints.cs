@@ -8,6 +8,7 @@ namespace DeliveryHub.Api.Merchants;
 public sealed record IniciarConexaoResponse(string UserCode, string VerificationUrlComplete, DateTimeOffset ExpiraEm);
 public sealed record ConfirmarConexaoRequest(string AuthorizationCode);
 public sealed record DefinirTaxaRequest(decimal Valor);
+public sealed record DefinirNomeRequest(string Nome);
 public sealed record TaxaEntregaResponse(decimal Valor);
 
 // Latitude/longitude opcionais: só são necessárias quando o geocoder não
@@ -30,9 +31,25 @@ public static class MerchantEndpoints
 
         group.MapPost("/{merchantId:guid}/ifood/iniciar-conexao", IniciarConexao);
         group.MapPost("/{merchantId:guid}/ifood/confirmar", ConfirmarConexao);
+        group.MapPut("/{merchantId:guid}/nome", DefinirNome);
         group.MapPut("/{merchantId:guid}/taxa-entrega", DefinirTaxa);
         group.MapGet("/{merchantId:guid}/endereco", ObterEndereco);
         group.MapPut("/{merchantId:guid}/endereco", DefinirEndereco);
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> DefinirNome(
+        Guid merchantId,
+        DefinirNomeRequest request,
+        ITenantContext tenant,
+        IDefinirNomeDaLoja definir,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var resultado = await definir.ExecutarAsync(merchantId, request.Nome, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
     }
 
     private static async Task<Results<Ok<EnderecoDaLojaDto>, NotFound, ProblemHttpResult>> ObterEndereco(

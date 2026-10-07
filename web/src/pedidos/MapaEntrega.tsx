@@ -6,29 +6,19 @@ import {
   Marker,
   NavigationControl,
   Popup,
-  setWorkerUrl,
 } from 'maplibre-gl'
+import type { GeoJSONSource } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-// O MapLibre monta o worker com `new URL('./maplibre-gl-worker.mjs',
-// import.meta.url)`. Em dev isso cai no arquivo real dentro de node_modules; no
-// build, `import.meta.url` é o chunk em /assets/, e o worker vira um 404. O
-// mapa sobe, os marcadores aparecem e nenhum tile renderiza — porque quem
-// decodifica tile é o worker.
-//
-// `?worker&url` faz o Vite EMPACOTAR o worker — com o maplibre-gl-shared que
-// ele importa — e devolver a URL do arquivo gerado. Com `?url` puro o arquivo
-// seria copiado cru e o import interno dele viraria outro 404.
-import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import '@/lib/maplibreWorker'
+import { PulsingDotStyleImage } from 'maplibre-image-plugins'
 import { useEffect, useRef } from 'react'
 import pinoLojaUrl from '@/assets/pino-loja.svg'
-import pinoMotoboyUrl from '@/assets/pino-motoboy.svg'
+import capaceteMotoboyUrl from '@/assets/capacete-vermelho.png'
 import type { Pedido, StatusPedido } from '@/dominio/pedido'
 import { TITULO_COLUNA } from '@/dominio/pedido'
 import { formatarDinheiro } from '@/lib/tempo'
 import { CROMO_DA_COLUNA } from './cromoDoStatus'
 import type { PosicaoEntregador } from './useRastreio'
-
-setWorkerUrl(workerUrl)
 
 // OpenFreeMap: vetorial, sem chave de API e sem limite de requisição, uso
 // comercial liberado. É a escolha que respeita o §3 do CLAUDE.md — Google e
@@ -54,13 +44,14 @@ function criarMarcador(classes: string): HTMLElement {
 // entra por elemento criado na mão em vez de JSX. O pino inteiro — corpo em
 // gota, brilho, disco e sombra de contato — vive no arquivo SVG: as cores e o
 // desenho ficam no asset, o componente só decide tamanho.
-function criarPino(src: string, descricao: string): HTMLElement {
+function criarPino(src: string, descricao: string, classe = 'w-10 max-w-none'): HTMLElement {
   const imagem = document.createElement('img')
   imagem.src = src
   imagem.alt = descricao
-  // Só largura: a altura sai da proporção 64x84 do desenho. `size-*` forçaria
-  // um quadrado e achataria o pino.
-  imagem.className = 'w-10 max-w-none'
+  // Só largura: a altura sai da proporção do próprio desenho (o pino da loja é
+  // 64x84, o capacete do motoboy é quadrado). `size-*` forçaria um quadrado e
+  // achataria o pino da loja.
+  imagem.className = classe
   return imagem
 }
 
@@ -324,6 +315,31 @@ export function MapaEntrega({
 
     mapa.on('load', () => {
       prontoRef.current = true
+
+      // Halo pulsante sob o capacete: renderizado 100% na GPU (shader, sem
+      // imagem/canvas por frame — StyleImageWebGLData), então não pesa no
+      // mapa mesmo com vários motoboys. Camada de símbolo nativa do WebGL
+      // fica sempre atrás dos marcadores DOM (o capacete), que o navegador
+      // empilha por cima do canvas — não precisa de z-index manual.
+      mapa.addImage(
+        'motoboy-pulso-img',
+        new PulsingDotStyleImage({ dotColor: '#4f46e5', haloColor: '#818cf8', haloRadius: 34 }),
+        { pixelRatio: 2 },
+      )
+      mapa.addSource('motoboy-pulso-fonte', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      mapa.addLayer({
+        id: 'motoboy-pulso-camada',
+        type: 'symbol',
+        source: 'motoboy-pulso-fonte',
+        layout: {
+          'icon-image': 'motoboy-pulso-img',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      })
     })
 
     mapaRef.current = mapa
@@ -444,6 +460,20 @@ export function MapaEntrega({
     const mapa = mapaRef.current
     if (!mapa || posicoes.length === 0) return
 
+    // Fonte do halo pulsante: só existe depois do 'load' (camadas nativas do
+    // WebGL exigem o estilo carregado, ao contrário do Marker, que é DOM
+    // puro). Pode faltar no primeiríssimo ping se ele chegar antes do mapa
+    // terminar de carregar — o próximo ping (poucos segundos depois) cobre.
+    const fontePulso = mapa.getSource('motoboy-pulso-fonte') as GeoJSONSource | undefined
+    fontePulso?.setData({
+      type: 'FeatureCollection',
+      features: posicoes.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.longitude, p.latitude] },
+        properties: { entregadorId: p.entregadorId },
+      })),
+    })
+
     const vistos = new Set<string>()
 
     for (const posicao of posicoes) {
@@ -466,7 +496,9 @@ export function MapaEntrega({
         continue
       }
 
-      const elemento = criarPino(pinoMotoboyUrl, posicao.entregadorNome)
+      // Um pouco mais largo que o pino da loja: o capacete é quadrado, então na
+      // mesma largura ele ocuparia bem menos altura e sumiria no mapa.
+      const elemento = criarPino(capaceteMotoboyUrl, posicao.entregadorNome, 'w-12 max-w-none')
       const balao = new Popup({ offset: 22, closeButton: false, maxWidth: 'none' }).setDOMContent(
         balaoDoMotoboy(posicao),
       )

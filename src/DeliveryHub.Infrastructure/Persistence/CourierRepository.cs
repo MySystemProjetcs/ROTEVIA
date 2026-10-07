@@ -44,6 +44,8 @@ internal sealed class CourierRepository : ICourierRepository
 
     public void AdicionarLink(CourierMerchantLink link) => _db.CourierMerchantLinks.Add(link);
 
+    public void RemoverLink(CourierMerchantLink link) => _db.CourierMerchantLinks.Remove(link);
+
     public async Task<IReadOnlyList<EntregadorResumo>> ListarPorMerchantAsync(Guid merchantId, CancellationToken ct) =>
         await _db.CourierMerchantLinks
             .Where(link => link.MerchantId == merchantId)

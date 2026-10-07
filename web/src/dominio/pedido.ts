@@ -38,8 +38,6 @@ export interface Pedido {
   enderecoLongitude?: number | null
   criadoNaOrigemEm: string
   recebidoEm: string
-  /** Instante em que o prazo de confirmação do iFood expira, calculado no servidor. */
-  prazoConfirmacaoAte: string
   itens: ItemDoPedido[]
   entregadorId?: string | null
   entregadorNome?: string | null
@@ -57,6 +55,11 @@ export interface Pedido {
    *  entrega, e o cliente pode contestar como "não entregue". */
   exigeCodigoDeEntrega: boolean
   codigoConfirmadoEm?: string | null
+  /** Pedidos casados: id da corrida (lote) e a posição da parada na rota
+   *  (1-based). Nulos = entrega solo. A tela do motoboy agrupa por lote e
+   *  ordena por ordemNaRota. */
+  loteEntregaId?: string | null
+  ordemNaRota?: number | null
 }
 
 // As colunas do painel do dono. Concluído e Cancelado ficam fora: são destino

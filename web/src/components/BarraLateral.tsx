@@ -65,14 +65,12 @@ function ItemNav({
   rotulo,
   badge,
   badgeText,
-  suffixText,
 }: {
   para: string
   icone: React.ReactNode
   rotulo: string
   badge?: number
   badgeText?: string
-  suffixText?: string
 }) {
   const { expandida, ehCelular } = useBarraLateral()
   const soIcone = !ehCelular && !expandida
@@ -120,9 +118,6 @@ function ItemNav({
           )}
           {badgeText && (
             <span className="text-[11px] font-semibold text-acento-400">{badgeText}</span>
-          )}
-          {suffixText && (
-            <span className="text-[11px] font-semibold text-acento-400">{suffixText}</span>
           )}
         </>
       )}
@@ -225,7 +220,6 @@ export function BarraLateral() {
             para="/motoboys"
             icone={<IconeMoto className="size-4" />}
             rotulo="Motoboys"
-            suffixText="3 online"
           />
         )}
 

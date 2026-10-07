@@ -10,7 +10,11 @@ public sealed record EnderecoResolvido(
     string Estado,
     string Cep,
     double? Latitude,
-    double? Longitude);
+    double? Longitude,
+    // Verdadeiro quando a coordenada veio da rede de segurança por CEP, que
+    // erra na casa do quilômetro. Quem mostra o endereço precisa avisar, senão
+    // o pin fica longe da porta sem ninguém desconfiar.
+    bool CoordenadaAproximada = false);
 
 // Uma porta só, embora a implementação use dois serviços (CEP e geocodificação):
 // para quem chama, a pergunta é uma — "que endereço é este CEP, e onde fica".

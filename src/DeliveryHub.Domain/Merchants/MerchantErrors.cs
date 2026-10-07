@@ -19,6 +19,11 @@ public static class MerchantErrors
         "Esta loja já está conectada ao iFood.",
         ErrorType.Conflict);
 
+    public static readonly Error NomeInvalido = new(
+        "merchant.nome_invalido",
+        "Informe o nome da loja.",
+        ErrorType.Validation);
+
     public static readonly Error TaxaInvalida = new(
         "merchant.taxa_invalida",
         "A taxa por entrega não pode ser negativa.",

@@ -5,17 +5,9 @@ import { Cartao, CartaoCorpo, CartaoRodape } from '@/components/Cartao'
 import { Menu } from '@/components/Menu'
 import type { OpcaoDeMenu } from '@/components/Menu'
 import { Switch } from '@/components/Switch'
+import type { EnderecoResolvido } from '@/dominio/endereco'
 import { api, ErroDaApi } from '@/lib/api'
 import { formatarDinheiro } from '@/lib/tempo'
-
-interface EnderecoResolvido {
-  logradouro: string
-  bairro: string
-  cidade: string
-  estado: string
-  latitude: number | null
-  longitude: number | null
-}
 
 interface ItemDigitado {
   nome: string

@@ -22,6 +22,9 @@ public sealed class AvancarPedidoTests
         public Task<Pedido?> ObterEntregaEmCursoAsync(Guid entregadorId, CancellationToken ct) =>
             Task.FromResult<Pedido?>(null);
 
+        public Task<bool> TemEntregaAtivaAsync(Guid entregadorId, Guid merchantId, CancellationToken ct) =>
+            Task.FromResult(false);
+
         public void Adicionar(Pedido pedido) => throw new NotSupportedException("AvancarPedido não cria pedido.");
 
         public Task SalvarAsync(CancellationToken ct)

@@ -19,6 +19,9 @@ public sealed class CancelarPedidoTests
         public Task<Pedido?> ObterParaEntregadorAsync(Guid id, CancellationToken ct) => Task.FromResult(_pedido);
         public Task<Pedido?> ObterEntregaEmCursoAsync(Guid entregadorId, CancellationToken ct) =>
             Task.FromResult<Pedido?>(null);
+
+        public Task<bool> TemEntregaAtivaAsync(Guid entregadorId, Guid merchantId, CancellationToken ct) =>
+            Task.FromResult(false);
         public void Adicionar(Pedido pedido) => throw new NotSupportedException("CancelarPedido não cria pedido.");
 
         public Task SalvarAsync(CancellationToken ct)

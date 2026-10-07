@@ -6,10 +6,6 @@ namespace DeliveryHub.Infrastructure.Persistence;
 
 internal sealed class ListarPedidosQuery : IListarPedidos
 {
-    // O prazo que o iFood dá para confirmar o recebimento. Passado dele, o
-    // pedido é cancelado automaticamente do lado deles.
-    private static readonly TimeSpan PrazoDeConfirmacao = TimeSpan.FromMinutes(8);
-
     private static readonly StatusPedido[] Ativos =
     [
         StatusPedido.Recebido,
@@ -82,7 +78,6 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 x.Pagamento.ValorACobrar,
                 x.CriadoNaOrigemEm,
                 x.RecebidoEm,
-                x.CriadoNaOrigemEm + PrazoDeConfirmacao,
                 x.Itens
                     .OrderBy(i => i.Indice)
                     .Select(i => new ItemDoPedidoDto(
@@ -100,7 +95,9 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 // pode ser o iFood, a única origem externa em produção.
                 x.IdExterno.StartsWith("local-") ? OrigemDoPedido.Interno : OrigemDoPedido.IFood,
                 x.ExigeCodigoDeEntrega,
-                x.CodigoConfirmadoEm))
+                x.CodigoConfirmadoEm,
+                x.LoteEntregaId,
+                x.OrdemNaRota))
             .ToListAsync(ct);
     }
 }

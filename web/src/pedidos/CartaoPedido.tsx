@@ -13,7 +13,7 @@ import type { Entregador } from '@/dominio/entregador'
 import { cn } from '@/lib/cn'
 import { formatarDinheiro } from '@/lib/tempo'
 import { BotoesDeNavegacao } from './BotoesDeNavegacao'
-import { ChipTempoDecorrido, ContadorSla } from './ContadorSla'
+import { ChipTempoDecorrido } from './ContadorSla'
 import { MapaEntrega } from './MapaEntrega'
 import type { PosicaoEntregador } from './useRastreio'
 
@@ -68,6 +68,11 @@ interface CartaoPedidoProps {
   // qualquer status não terminal. Devolve mensagem de erro (ou null) para
   // exibir junto ao campo de motivo.
   onCancelar?: (pedido: Pedido, motivo: string) => Promise<string | null>
+  // Pedidos casados (só no quadro do dono, em cards Prontos): quando presente,
+  // o card mostra uma caixa de seleção para incluir o pedido num despacho em
+  // lote. `selecionadoNoLote` reflete o estado da seleção.
+  onAlternarLote?: (pedido: Pedido) => void
+  selecionadoNoLote?: boolean
 }
 
 export function CartaoPedido({
@@ -83,6 +88,8 @@ export function CartaoPedido({
   onAlocar,
   posicoes = [],
   onCancelar,
+  onAlternarLote,
+  selecionadoNoLote = false,
 }: CartaoPedidoProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: pedido.id,
@@ -125,6 +132,8 @@ export function CartaoPedido({
     setErroCancelamento(null)
   }
   const mostrarAlocacao = entregadoresAtivos !== undefined && pedido.status === 'Pronto'
+  // Seleção de lote só faz sentido em pedido Pronto (é de lá que se despacha).
+  const podeSelecionarLote = onAlternarLote !== undefined && pedido.status === 'Pronto'
   // Mapa visível quando há posição deste pedido e ele está na janela de rastreio.
   const posicaoDoPedido = posicoes.find((p) => p.pedidoId === pedido.id) ?? null
   const mostrarMapa =
@@ -144,6 +153,24 @@ export function CartaoPedido({
         {...listeners}
         className={cn('flex flex-col gap-2.5', arrastavel && 'cursor-grab touch-none active:cursor-grabbing')}
       >
+        {podeSelecionarLote && (
+          // Fora da faixa "resumo" de propósito: clicar aqui seleciona, não
+          // expande. onPointerDown corta o sensor de arraste do dnd-kit.
+          <label
+            className="flex items-center gap-2 text-apoio font-medium text-texto-suave"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={selecionadoNoLote}
+              onChange={() => onAlternarLote?.(pedido)}
+              className="size-4 accent-marca-600"
+            />
+            Incluir no lote
+          </label>
+        )}
+
         {/* Resumo: o único bloco visível com o card recolhido, e o gatilho do
             expandir/recolher. role="button" próprio (não o Cartao inteiro)
             porque o clique não pode competir com o arraste do dnd-kit nem
@@ -171,6 +198,11 @@ export function CartaoPedido({
                 (quando o card não está numa coluna que já diz isso), e o
                 indicador de que dá pra abrir. */}
             <span className="flex items-center gap-1.5">
+              {pedido.ordemNaRota != null && (
+                <span className="rounded-full border border-marca-300 bg-marca-50 px-2 py-0.5 text-apoio font-semibold text-marca-700">
+                  Parada {pedido.ordemNaRota}
+                </span>
+              )}
               <SeloOrigem origem={pedido.origem} />
               {mostrarEstado && <EtiquetaEstado estado={pedido.status} />}
               <IconeChevron
@@ -186,8 +218,6 @@ export function CartaoPedido({
               {formatarDinheiro(pedido.valorTotal)}
             </span>
           </p>
-
-          {pedido.status === 'Recebido' && <ContadorSla prazoAte={pedido.prazoConfirmacaoAte} agora={agora} />}
         </div>
 
         {expandido && (

@@ -43,5 +43,45 @@ export function useMotoboys() {
     [merchantId, recarregar],
   )
 
-  return { entregadores, carregando, erro, convidar }
+  // Endereçado pelo linkId (o vínculo com esta loja), não pelo courierId: é o
+  // vínculo que prova que o motoboy é desta loja.
+  const atualizar = useCallback(
+    async (
+      linkId: string,
+      dados: { nome: string; telefone: string; modeloDaMoto: string; placa: string },
+    ): Promise<string | null> => {
+      if (!merchantId) return 'Sem loja vinculada.'
+
+      try {
+        await api.put(`/restaurantes/${merchantId}/entregadores/${linkId}`, {
+          ...dados,
+          telefone: normalizarTelefoneBr(dados.telefone),
+        })
+        await recarregar()
+        return null
+      } catch (e) {
+        return e instanceof ErroDaApi ? e.message : 'Não foi possível salvar o cadastro.'
+      }
+    },
+    [merchantId, recarregar],
+  )
+
+  // Vale para os dois casos: revoga o convite pendente ou desvincula o motoboy
+  // ativo. O cadastro global dele não é apagado — some só desta loja.
+  const remover = useCallback(
+    async (linkId: string): Promise<string | null> => {
+      if (!merchantId) return 'Sem loja vinculada.'
+
+      try {
+        await api.del(`/restaurantes/${merchantId}/entregadores/${linkId}`)
+        await recarregar()
+        return null
+      } catch (e) {
+        return e instanceof ErroDaApi ? e.message : 'Não foi possível remover o motoboy.'
+      }
+    },
+    [merchantId, recarregar],
+  )
+
+  return { entregadores, carregando, erro, convidar, atualizar, remover }
 }

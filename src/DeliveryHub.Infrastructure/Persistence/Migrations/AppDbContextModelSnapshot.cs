@@ -360,6 +360,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(128)")
                         .HasColumnName("id_externo");
 
+                    b.Property<Guid?>("LoteEntregaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lote_entrega_id");
+
                     b.Property<Guid>("MerchantId")
                         .HasColumnType("uuid")
                         .HasColumnName("merchant_id");
@@ -374,6 +378,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("numero_exibicao");
+
+                    b.Property<int?>("OrdemNaRota")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem_na_rota");
 
                     b.Property<DateTimeOffset>("RecebidoEm")
                         .HasColumnType("timestamp with time zone")

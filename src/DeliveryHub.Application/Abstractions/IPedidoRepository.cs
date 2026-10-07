@@ -15,6 +15,9 @@ public interface IPedidoRepository
     // A entrega que o motoboy está fazendo agora, se houver. O ping de GPS não
     // sabe o id do pedido — quem sabe é o servidor.
     Task<Pedido?> ObterEntregaEmCursoAsync(Guid entregadorId, CancellationToken ct);
+    // Guarda da remoção de vínculo: tirar o motoboy da loja no meio de uma
+    // entrega deixaria o pedido sem responsável.
+    Task<bool> TemEntregaAtivaAsync(Guid entregadorId, Guid merchantId, CancellationToken ct);
 
     void Adicionar(Pedido pedido);
 

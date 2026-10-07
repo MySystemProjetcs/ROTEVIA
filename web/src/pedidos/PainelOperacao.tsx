@@ -44,12 +44,47 @@ export function PainelOperacao() {
 }
 
 function PainelDono() {
-  const { pedidos, carregando, erro, mover, alocar, cancelar, recarregar } = usePedidos()
+  const { pedidos, carregando, erro, mover, alocar, cancelar, despacharLote, recarregar } = usePedidos()
   const [lancando, setLancando] = useState(false)
   const { usuario } = useSessao()
   const { entregadores } = useMotoboys()
   const entregadoresAtivos = entregadores.filter((e) => e.status === 'Ativo')
   const { registrar } = useNovoPedido()
+
+  // Pedidos casados: seleção de vários "Prontos" para sair juntos com um
+  // motoboy. O sistema calcula a ordem das paradas no backend.
+  const [loteSelecao, setLoteSelecao] = useState<Set<string>>(new Set())
+  const [motoboyLote, setMotoboyLote] = useState('')
+  const [despachandoLote, setDespachandoLote] = useState(false)
+  const [erroLote, setErroLote] = useState<string | null>(null)
+
+  function alternarLote(pedido: Pedido) {
+    setErroLote(null)
+    setLoteSelecao((atual) => {
+      const proximo = new Set(atual)
+      if (proximo.has(pedido.id)) proximo.delete(pedido.id)
+      else proximo.add(pedido.id)
+      return proximo
+    })
+  }
+
+  function limparLote() {
+    setLoteSelecao(new Set())
+    setErroLote(null)
+  }
+
+  async function despacharLoteAgora() {
+    if (!motoboyLote || loteSelecao.size < 2) return
+    setDespachandoLote(true)
+    const erro = await despacharLote(motoboyLote, [...loteSelecao])
+    setDespachandoLote(false)
+    if (erro) {
+      setErroLote(erro)
+      return
+    }
+    setLoteSelecao(new Set())
+    setMotoboyLote('')
+  }
 
   // Registra o callback para o botão do header poder abrir o formulário.
   // useEffect garante re-registro se o componente remontar.
@@ -65,8 +100,12 @@ function PainelDono() {
   const emRota = pedidos.find((p) => p.status === 'EmRota' || p.status === 'Chegou')
 
   return (
-    <div className="flex flex-col gap-4">
-      <FaixaResumo />
+    <div className="flex h-full flex-col gap-4">
+      {/* Área que rola: resumo, novo pedido e o quadro de pedidos. O mapa fica
+          fora dela, encaixado no rodapé (shrink-0) — sempre visível, com os
+          pedidos rolando por cima. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <FaixaResumo />
 
       {/* Venda de balcão, telefone ou WhatsApp: entra pelo mesmo quadro dos
           pedidos do iFood, só não tem marketplace para avisar. */}
@@ -87,6 +126,43 @@ function PainelDono() {
         </div>
       ) : null}
 
+      {/* Barra de despacho em lote: aparece quando há pedidos marcados. Escolhe
+          o motoboy e despacha todos numa corrida — o sistema calcula a ordem
+          das paradas (pedido mais próximo primeiro). */}
+      {loteSelecao.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-marca-300 bg-marca-50 px-4 py-3">
+          <span className="text-corpo font-semibold text-marca-700">
+            {loteSelecao.size} {loteSelecao.size === 1 ? 'pedido selecionado' : 'pedidos selecionados'}
+          </span>
+          <select
+            value={motoboyLote}
+            onChange={(e) => setMotoboyLote(e.target.value)}
+            className="rounded-controle border border-borda-forte bg-superficie px-3 py-2 text-apoio text-texto"
+          >
+            <option value="">Escolha o motoboy…</option>
+            {entregadoresAtivos.map((e) => (
+              <option key={e.courierId} value={e.courierId}>
+                {e.nome}
+              </option>
+            ))}
+          </select>
+          <Botao
+            onClick={despacharLoteAgora}
+            disabled={loteSelecao.size < 2 || !motoboyLote}
+            carregando={despachandoLote}
+          >
+            Despachar juntos
+          </Botao>
+          <Botao variante="secundario" onClick={limparLote} disabled={despachandoLote}>
+            Limpar
+          </Botao>
+          {loteSelecao.size < 2 && (
+            <span className="text-apoio text-texto-suave">Selecione ao menos 2 para casar.</span>
+          )}
+          {erroLote && <span className="text-apoio font-medium text-perigo">{erroLote}</span>}
+        </div>
+      )}
+
       <Kanban
         pedidos={pedidos}
         carregando={carregando}
@@ -98,21 +174,21 @@ function PainelDono() {
         entregadoresAtivos={entregadoresAtivos}
         onAlocar={alocar}
         onCancelar={cancelar}
+        onAlternarLote={alternarLote}
+        selecaoLote={loteSelecao}
         posicoes={posicoes}
       />
+      </div>
 
-      {/* Mapa da operação: a loja fica fixa e o motoboy se move em tempo real
-          enquanto houver entrega em curso.
-
-          Cartão externo com o mesmo gradiente/borda do "Taxa por entrega" da
-          FaixaResumo — a moldura vive aqui, envolvendo cabeçalho e mapa. Sem
-          Cartao/CartaoCorpo pra não brigar com o próprio border/background
-          padrão do componente. */}
+      {/* Mapa da operação: encaixado no rodapé do conteúdo (shrink-0), sempre
+          visível, com os pedidos rolando acima. A loja fica fixa e o motoboy
+          se move em tempo real enquanto houver entrega em curso. Cartão externo
+          com o mesmo gradiente/borda do "Taxa por entrega" da FaixaResumo. */}
       <div
-        className="rounded-[14px] p-3.5"
+        className="shrink-0 rounded-[14px] p-3.5"
         style={{
           background:
-            'linear-gradient(135deg, rgba(79,70,229,0.22), rgba(79,70,229,0.06))',
+            'linear-gradient(135deg, rgba(79,70,229,0.22), rgba(79,70,229,0.06)), var(--color-fundo)',
           border: '1px solid rgba(79,70,229,0.35)',
         }}
       >
@@ -214,6 +290,32 @@ function PainelEntregador() {
 // Sem mapa aqui de propósito: a navegação acontece no Waze ou no Google Maps,
 // pelos botões do próprio cartão. O GPS continua sendo emitido (useEnviarPosicao
 // segue ativo acima), porque é ele que alimenta o mapa do restaurante.
+// Monta a URL de rota multi-parada (Google Maps) da corrida atual — o primeiro
+// lote encontrado nos pedidos do motoboy, com as paradas na ordem calculada.
+// Precisa de 2+ paradas com coordenada; senão não há rota casada a abrir.
+function montarRotaDoLote(pedidos: Pedido[]): string | null {
+  const primeiroLote = pedidos.find((p) => p.loteEntregaId)?.loteEntregaId
+  if (!primeiroLote) return null
+
+  const paradas = pedidos
+    .filter(
+      (p) =>
+        p.loteEntregaId === primeiroLote &&
+        p.ordemNaRota != null &&
+        p.enderecoLatitude != null &&
+        p.enderecoLongitude != null,
+    )
+    .sort((a, b) => (a.ordemNaRota as number) - (b.ordemNaRota as number))
+
+  if (paradas.length < 2) return null
+
+  const pontos = paradas.map((p) => `${p.enderecoLatitude},${p.enderecoLongitude}`)
+  const destino = pontos[pontos.length - 1]
+  const waypoints = pontos.slice(0, -1).join('|')
+
+  return `https://www.google.com/maps/dir/?api=1&destination=${destino}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving`
+}
+
 function ListaDeEntregas({
   pedidos,
   carregando,
@@ -227,7 +329,7 @@ function ListaDeEntregas({
 }) {
   const agora = useAgora()
 
-  useAlertaSonoro(pedidos, agora)
+  useAlertaSonoro(pedidos)
 
   if (carregando) {
     return <p className="p-4 text-corpo text-texto-suave">Carregando entregas…</p>
@@ -235,9 +337,17 @@ function ListaDeEntregas({
 
   // Na ordem em que a entrega anda, não por chegada: o que está mais perto de
   // terminar aparece primeiro.
-  const emOrdem = [...pedidos].sort(
-    (a, b) => COLUNAS_ENTREGADOR.indexOf(b.status) - COLUNAS_ENTREGADOR.indexOf(a.status),
-  )
+  // Dentro do mesmo estágio, a corrida manda: paradas do lote saem na ordem
+  // calculada (ordemNaRota). Quem não é de lote vai depois (ordem "infinita").
+  const emOrdem = [...pedidos].sort((a, b) => {
+    const porStatus = COLUNAS_ENTREGADOR.indexOf(b.status) - COLUNAS_ENTREGADOR.indexOf(a.status)
+    if (porStatus !== 0) return porStatus
+    return (a.ordemNaRota ?? Number.MAX_SAFE_INTEGER) - (b.ordemNaRota ?? Number.MAX_SAFE_INTEGER)
+  })
+
+  // Rota multi-parada da corrida atual (primeiro lote encontrado). Abre o Google
+  // Maps com as paradas na sequência: waypoints intermediários + destino final.
+  const rotaUrl = montarRotaDoLote(pedidos)
 
   return (
     // w-72 é a mesma largura da coluna do Kanban: o cartão mantém a proporção
@@ -254,6 +364,15 @@ function ListaDeEntregas({
             <span className="text-corpo text-texto">{erro}</span>
           </CartaoCorpo>
         </Cartao>
+      )}
+
+      {rotaUrl && (
+        <Botao
+          className="w-72"
+          onClick={() => window.open(rotaUrl, '_blank', 'noopener,noreferrer')}
+        >
+          Abrir rota da corrida
+        </Botao>
       )}
 
       {emOrdem.length === 0 ? (
@@ -293,6 +412,8 @@ interface KanbanProps {
   entregadoresAtivos?: Entregador[]
   onAlocar?: (pedido: Pedido, entregadorId: string) => void
   onCancelar?: (pedido: Pedido, motivo: string) => Promise<string | null>
+  onAlternarLote?: (pedido: Pedido) => void
+  selecaoLote?: Set<string>
   posicoes?: PosicaoEntregador[]
 }
 
@@ -307,12 +428,14 @@ function Kanban({
   entregadoresAtivos,
   onAlocar,
   onCancelar,
+  onAlternarLote,
+  selecaoLote,
   posicoes,
 }: KanbanProps) {
   const agora = useAgora()
   const [arrastando, setArrastando] = useState<Pedido | null>(null)
 
-  useAlertaSonoro(pedidos, agora)
+  useAlertaSonoro(pedidos)
 
   // Distância mínima antes de considerar arraste: sem isso, o toque no botão
   // "Confirmar" vira início de arraste e o clique nunca acontece.
@@ -376,6 +499,8 @@ function Kanban({
               entregadoresAtivos={entregadoresAtivos}
               onAlocar={onAlocar}
               onCancelar={onCancelar}
+              onAlternarLote={onAlternarLote}
+              selecaoLote={selecaoLote}
               posicoes={posicoes}
             />
           ))}

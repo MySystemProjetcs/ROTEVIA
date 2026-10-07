@@ -6,8 +6,7 @@ import { Botao } from '@/components/Botao'
 import { Campo } from '@/components/Campo'
 import { CampoSenha } from '@/components/CampoSenha'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
-import { Logo } from '@/components/Logo'
-import { Switch } from '@/components/Switch'
+import { Checkbox } from '@/components/Checkbox'
 import { ErroDaApi } from '@/lib/api'
 
 export function Login() {
@@ -51,14 +50,9 @@ export function Login() {
     <main className="flex min-h-dvh items-center justify-center bg-superficie-alt p-4">
       <Cartao elevacao="elevada" className="w-full max-w-sm">
         <CartaoCorpo>
-          <div className="flex flex-col items-center text-center">
-            <Logo tamanho="grande" />
-            <p className="mt-2 text-apoio text-texto-suave">
-              Entre para acompanhar os pedidos da sua loja.
-            </p>
-          </div>
+          <h1 className="mb-6 text-center text-destaque font-normal text-texto-suave">Entrar</h1>
 
-          <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4">
+          <form onSubmit={aoEnviar} className="flex flex-col gap-4">
             <Campo
               rotulo="E-mail"
               type="email"
@@ -77,7 +71,7 @@ export function Login() {
               erro={erro ?? undefined}
             />
 
-            <Switch
+            <Checkbox
               marcado={salvarAcesso}
               onMudar={setSalvarAcesso}
               rotulo="Salvar meu acesso neste dispositivo"

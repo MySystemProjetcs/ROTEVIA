@@ -110,6 +110,7 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
             var detalhe = await _orders.GetDetailsAsync(evento.OrderId, ct, autorizacao);
             pedido = IFoodOrderMapper.ParaPedido(detalhe, entrada.MerchantId!.Value, entrada.ReceivedAt);
             _db.Pedidos.Add(pedido);
+            await ConfirmarAutomaticamenteAsync(pedido, evento.OrderId, ct);
             return;
         }
 
@@ -132,6 +133,40 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
 
             if (taxa.HasValue)
                 pedido.RegistrarRepasseAoEntregador(taxa.Value);
+        }
+    }
+
+    // Confirmação automática: o pedido já entra confirmado, sem depender de o
+    // lojista clicar dentro da janela do iFood. Origem primeiro, domínio depois
+    // — mesma ordem do AvancarPedido, para não mostrar um estado que não existe
+    // lá fora.
+    //
+    // Melhor esforço de propósito: se o iFood recusar ou a rede cair, o pedido
+    // segue em "Recebido" e o botão Confirmar do painel continua valendo como
+    // saída manual. Deixar a exceção subir faria o evento ser retentado e o
+    // pedido nem chegaria ao quadro.
+    private async Task ConfirmarAutomaticamenteAsync(Pedido pedido, Guid orderId, CancellationToken ct)
+    {
+        try
+        {
+            await _orders.ConfirmAsync(orderId, ct);
+        }
+        catch (Exception ex) when (ex is IFoodApiException or HttpRequestException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Confirmação automática do pedido {PedidoId} falhou; segue em Recebido para confirmação manual.",
+                pedido.IdExterno);
+            return;
+        }
+
+        var resultado = pedido.Confirmar();
+
+        if (resultado.IsFailure)
+        {
+            _logger.LogWarning(
+                "Confirmação automática recusada pelo domínio no pedido {PedidoId}: {Erro}",
+                pedido.IdExterno, resultado.Error.Code);
         }
     }
 

@@ -6,8 +6,6 @@ namespace DeliveryHub.Infrastructure.Persistence;
 
 internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
 {
-    private static readonly TimeSpan PrazoDeConfirmacao = TimeSpan.FromMinutes(8);
-
     private static readonly StatusPedido[] StatusDeEntregaAtiva =
     [
         StatusPedido.Despachado,
@@ -60,7 +58,6 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
                 x.Pagamento.ValorACobrar,
                 x.CriadoNaOrigemEm,
                 x.RecebidoEm,
-                x.CriadoNaOrigemEm + PrazoDeConfirmacao,
                 x.Itens
                     .OrderBy(i => i.Indice)
                     .Select(i => new ItemDoPedidoDto(
@@ -71,7 +68,9 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
                 _db.Merchants.Where(m => m.Id == x.MerchantId).Select(m => m.Nome).FirstOrDefault(),
                 x.IdExterno.StartsWith("local-") ? OrigemDoPedido.Interno : OrigemDoPedido.IFood,
                 x.ExigeCodigoDeEntrega,
-                x.CodigoConfirmadoEm))
+                x.CodigoConfirmadoEm,
+                x.LoteEntregaId,
+                x.OrdemNaRota))
             .ToListAsync(ct);
     }
 }

@@ -80,5 +80,20 @@ export function usePedidos() {
     [recarregar],
   )
 
-  return { pedidos, carregando, erro, mover, alocar, cancelar, recarregar }
+  // Pedidos casados: despacha vários numa corrida só com o mesmo motoboy. O
+  // sistema calcula a ordem das paradas. Devolve mensagem de erro ou null.
+  const despacharLote = useCallback(
+    async (entregadorId: string, pedidoIds: string[]): Promise<string | null> => {
+      try {
+        await api.post('/pedidos/despachar-lote', { entregadorId, pedidoIds })
+        await recarregar()
+        return null
+      } catch (e) {
+        return e instanceof ErroDaApi ? e.message : 'Não foi possível despachar o lote.'
+      }
+    },
+    [recarregar],
+  )
+
+  return { pedidos, carregando, erro, mover, alocar, cancelar, despacharLote, recarregar }
 }

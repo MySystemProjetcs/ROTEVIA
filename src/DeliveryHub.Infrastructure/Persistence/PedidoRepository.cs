@@ -30,6 +30,24 @@ internal sealed class PedidoRepository : IPedidoRepository
             .OrderByDescending(x => x.RecebidoEm)
             .FirstOrDefaultAsync(ct);
 
+    // Ativa = já saiu para a rua ou está a caminho. Recebido/Confirmado ainda
+    // não têm entregador responsável, então não travam a remoção.
+    private static readonly StatusPedido[] EntregaAtiva =
+    [
+        StatusPedido.Despachado,
+        StatusPedido.Aceito,
+        StatusPedido.EmRota,
+        StatusPedido.Chegou,
+        StatusPedido.Cobrar
+    ];
+
+    public Task<bool> TemEntregaAtivaAsync(Guid entregadorId, Guid merchantId, CancellationToken ct) =>
+        _db.Pedidos
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.EntregadorId == entregadorId
+                && x.MerchantId == merchantId
+                && EntregaAtiva.Contains(x.Status), ct);
+
     public void Adicionar(Pedido pedido) => _db.Pedidos.Add(pedido);
 
     public Task SalvarAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);

@@ -27,6 +27,9 @@ public interface ICourierRepository
     Task<bool> ExisteVinculoAtivoAsync(Guid courierId, Guid merchantId, CancellationToken ct);
 
     void AdicionarLink(CourierMerchantLink link);
+    // Remove o vínculo com a loja — nunca o Courier, que é identidade global
+    // compartilhada com outros restaurantes (CLAUDE.md §6).
+    void RemoverLink(CourierMerchantLink link);
 
     Task<IReadOnlyList<EntregadorResumo>> ListarPorMerchantAsync(Guid merchantId, CancellationToken ct);
 

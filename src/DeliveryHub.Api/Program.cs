@@ -84,11 +84,12 @@ builder.Services.AddIFoodIntegration(builder.Configuration);
 builder.Services.AddDiDiFoodIntegration(builder.Configuration);
 builder.Services.AddWhatsAppIntegration(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
-builder.Services.AddBuscaDeEndereco();
+builder.Services.AddBuscaDeEndereco(builder.Configuration);
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<IAvancarPedido, AvancarPedido>();
 builder.Services.AddScoped<ICancelarPedido, CancelarPedido>();
+builder.Services.AddScoped<IDespacharEmLote, DespacharEmLote>();
 builder.Services.AddScoped<ILancarPedidoInterno, LancarPedidoInterno>();
 builder.Services.AddScoped<IAlocarEntregador, AlocarEntregador>();
 builder.Services.AddScoped<IAvancarEntrega, AvancarEntrega>();
@@ -105,6 +106,10 @@ builder.Services.AddScoped<IObterPreviaDoConvite, ObterPreviaDoConvite>();
 builder.Services.AddScoped<IDisponibilidadeEntrega, DisponibilidadeEntrega>();
 builder.Services.AddScoped<IDefinirTaxaPorEntrega, DefinirTaxaPorEntrega>();
 builder.Services.AddScoped<IDefinirEnderecoDaLoja, DefinirEnderecoDaLoja>();
+builder.Services.AddScoped<IDefinirNomeDaLoja, DefinirNomeDaLoja>();
+builder.Services.AddScoped<IAtualizarCadastroDoEntregador, AtualizarCadastroDoEntregador>();
+builder.Services.AddScoped<IRemoverVinculoDoEntregador, RemoverVinculoDoEntregador>();
+builder.Services.AddScoped<IAlterarEmailDoUsuario, AlterarEmailDoUsuario>();
 builder.Services.AddScoped<IDefinirFotoDePerfil, DefinirFotoDePerfil>();
 
 // SignalR com backplane no Redis: é o que permite o worker de polling, que

@@ -25,6 +25,8 @@ public sealed record PerfilResponse(
 
 public sealed record DefinirFotoRequest(string FotoBase64);
 
+public sealed record AlterarEmailRequest(string Email);
+
 public static class PerfilEndpoints
 {
     public static void MapPerfilEndpoints(this IEndpointRouteBuilder app)
@@ -37,6 +39,8 @@ public static class PerfilEndpoints
 
         group.MapGet("/", Obter);
         group.MapPut("/foto", DefinirFoto);
+        // Sempre sobre a conta da sessão: o id sai do token, nunca da URL.
+        group.MapPut("/email", AlterarEmail);
     }
 
     private static async Task<Results<Ok<PerfilResponse>, ProblemHttpResult>> Obter(
@@ -80,6 +84,20 @@ public static class PerfilEndpoints
             return ProblemaDe(AutenticacaoErrors.CredenciaisInvalidas);
 
         var resultado = await definir.ExecutarAsync(usuarioId, request.FotoBase64, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> AlterarEmail(
+        AlterarEmailRequest request,
+        ITenantContext tenant,
+        IAlterarEmailDoUsuario alterar,
+        CancellationToken ct)
+    {
+        if (tenant.UsuarioId is not { } usuarioId)
+            return ProblemaDe(AutenticacaoErrors.CredenciaisInvalidas);
+
+        var resultado = await alterar.ExecutarAsync(usuarioId, request.Email, ct);
 
         return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
     }

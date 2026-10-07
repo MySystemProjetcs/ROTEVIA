@@ -1,3 +1,5 @@
+using DeliveryHub.Domain.SharedKernel;
+
 namespace DeliveryHub.Domain.Couriers;
 
 // Identidade global do entregador, chave natural CPF (CLAUDE.md §6): o mesmo
@@ -45,6 +47,32 @@ public sealed class Courier
     public void VincularUsuario(Guid usuarioId)
     {
         UsuarioId ??= usuarioId;
+    }
+
+    // Correção de cadastro pelo restaurante. O CPF fica de fora de propósito: é
+    // a chave natural que dedupe o mesmo motoboy entre lojas (CLAUDE.md §6), e
+    // trocá-lo criaria uma segunda identidade para a mesma pessoa.
+    //
+    // Como o Courier é global, editar aqui reflete em toda loja que tenha
+    // vínculo com ele — é o preço de não duplicar cadastro.
+    public Result AtualizarCadastro(string nome, string telefone, string modeloDaMoto, string placa)
+    {
+        var nomeLimpo = nome?.Trim() ?? string.Empty;
+        var telefoneLimpo = telefone?.Trim() ?? string.Empty;
+        var motoLimpa = modeloDaMoto?.Trim() ?? string.Empty;
+        var placaLimpa = placa?.Trim().ToUpperInvariant() ?? string.Empty;
+
+        if (nomeLimpo.Length == 0 || telefoneLimpo.Length == 0
+            || motoLimpa.Length == 0 || placaLimpa.Length == 0)
+        {
+            return Result.Failure(CourierErrors.DadosInvalidos);
+        }
+
+        Nome = nomeLimpo;
+        Telefone = telefoneLimpo;
+        ModeloDaMoto = motoLimpa;
+        Placa = placaLimpa;
+        return Result.Success();
     }
 
     public void DefinirDisponibilidade(bool disponivel)

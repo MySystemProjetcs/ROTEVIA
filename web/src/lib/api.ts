@@ -44,4 +44,6 @@ export const api = {
     requisitar<T>(caminho, { method: 'POST', body: corpo ? JSON.stringify(corpo) : undefined }),
   put: <T>(caminho: string, corpo?: unknown) =>
     requisitar<T>(caminho, { method: 'PUT', body: corpo ? JSON.stringify(corpo) : undefined }),
+  // `del` e não `delete`: delete é palavra reservada em JS.
+  del: <T>(caminho: string) => requisitar<T>(caminho, { method: 'DELETE' }),
 }

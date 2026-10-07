@@ -17,6 +17,8 @@ interface ColunaPedidosProps {
   entregadoresAtivos?: Entregador[]
   onAlocar?: (pedido: Pedido, entregadorId: string) => void
   onCancelar?: (pedido: Pedido, motivo: string) => Promise<string | null>
+  onAlternarLote?: (pedido: Pedido) => void
+  selecaoLote?: Set<string>
   posicoes?: PosicaoEntregador[]
 }
 
@@ -30,6 +32,8 @@ export function ColunaPedidos({
   entregadoresAtivos,
   onAlocar,
   onCancelar,
+  onAlternarLote,
+  selecaoLote,
   posicoes = [],
 }: ColunaPedidosProps) {
   // Coluna sem destino não recebe cartão: o dnd-kit só a registra como alvo se
@@ -86,6 +90,8 @@ export function ColunaPedidos({
               entregadoresAtivos={entregadoresAtivos}
               onAlocar={onAlocar}
               onCancelar={onCancelar}
+              onAlternarLote={onAlternarLote}
+              selecionadoNoLote={selecaoLote?.has(pedido.id) ?? false}
               posicoes={posicoes}
             />
           ))}

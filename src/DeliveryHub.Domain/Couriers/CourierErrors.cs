@@ -19,6 +19,16 @@ public static class CourierErrors
         "Este entregador já está convidado ou ativo nesta loja.",
         ErrorType.Conflict);
 
+    public static readonly Error DadosInvalidos = new(
+        "courier.dados_invalidos",
+        "Preencha nome, telefone, modelo da moto e placa.",
+        ErrorType.Validation);
+
+    public static readonly Error EntregadorComEntregaAtiva = new(
+        "courier.entrega_ativa",
+        "Este motoboy tem entrega em andamento. Conclua ou reatribua antes de removê-lo.",
+        ErrorType.Conflict);
+
     public static readonly Error VinculoNaoEncontrado = new(
         "courier.vinculo_nao_encontrado",
         "Convite não encontrado.",

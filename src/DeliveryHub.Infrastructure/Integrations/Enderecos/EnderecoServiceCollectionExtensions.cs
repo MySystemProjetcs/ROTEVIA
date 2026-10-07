@@ -1,13 +1,16 @@
 using System.Net.Http.Headers;
 using DeliveryHub.Application.Abstractions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DeliveryHub.Infrastructure.Integrations.Enderecos;
 
 public static class EnderecoServiceCollectionExtensions
 {
-    public static IServiceCollection AddBuscaDeEndereco(this IServiceCollection services)
+    public static IServiceCollection AddBuscaDeEndereco(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<GoogleMapsOptions>(configuration.GetSection(GoogleMapsOptions.SectionName));
+
         services.AddHttpClient<IResolverEndereco, ResolverEnderecoHttp>(http =>
         {
             // O Nominatim exige User-Agent identificando a aplicação e recusa

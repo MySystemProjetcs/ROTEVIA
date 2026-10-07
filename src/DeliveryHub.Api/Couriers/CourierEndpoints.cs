@@ -14,6 +14,9 @@ public sealed record EntregadorListadoResponse(
     Guid LinkId, Guid CourierId, string Nome, string Telefone,
     string ModeloDaMoto, string Placa, string Status, bool Disponivel);
 
+public sealed record AtualizarEntregadorRequest(
+    string Nome, string Telefone, string ModeloDaMoto, string Placa);
+
 public sealed record ConfirmarConviteRequest(string Token, string Senha);
 
 public sealed record PreviaDoConviteResponse(string NomeEntregador, string NomeLoja, bool Valido);
@@ -28,6 +31,10 @@ public static class CourierEndpoints
 
         restaurantes.MapPost("/{merchantId:guid}/entregadores", Convidar);
         restaurantes.MapGet("/{merchantId:guid}/entregadores", Listar);
+        restaurantes.MapPut("/{merchantId:guid}/entregadores/{linkId:guid}", Atualizar);
+        // Um DELETE só: revoga o convite pendente ou desvincula o motoboy ativo
+        // — no modelo, os dois são apagar o vínculo (nunca o Courier global).
+        restaurantes.MapDelete("/{merchantId:guid}/entregadores/{linkId:guid}", Remover);
 
         // Convite: sem sessão, o motoboy ainda não existe como usuário.
         var convites = app.MapGroup("/api/convites/entregador").WithTags("Entregadores").AllowAnonymous();
@@ -55,6 +62,39 @@ public static class CourierEndpoints
 
         return TypedResults.Ok(new EntregadorConvidadoResponse(
             resultado.Value.CourierId, resultado.Value.LinkId, resultado.Value.ConviteUrl, resultado.Value.EnviadoPeloWhatsApp));
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> Atualizar(
+        Guid merchantId,
+        Guid linkId,
+        AtualizarEntregadorRequest request,
+        ITenantContext tenant,
+        IAtualizarCadastroDoEntregador atualizar,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(CourierErrorsNotFound);
+
+        var resultado = await atualizar.ExecutarAsync(
+            merchantId, linkId, request.Nome, request.Telefone,
+            request.ModeloDaMoto, request.Placa, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> Remover(
+        Guid merchantId,
+        Guid linkId,
+        ITenantContext tenant,
+        IRemoverVinculoDoEntregador remover,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(CourierErrorsNotFound);
+
+        var resultado = await remover.ExecutarAsync(merchantId, linkId, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
     }
 
     private static async Task<Results<Ok<IReadOnlyList<EntregadorListadoResponse>>, ProblemHttpResult>> Listar(

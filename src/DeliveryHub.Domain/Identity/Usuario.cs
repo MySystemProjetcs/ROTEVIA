@@ -23,6 +23,16 @@ public static class UsuarioErrors
         "Envie uma imagem PNG, JPEG ou WebP.",
         ErrorType.Validation);
 
+    public static readonly Error EmailInvalido = new(
+        "usuario.email_invalido",
+        "Informe um e-mail válido.",
+        ErrorType.Validation);
+
+    public static readonly Error EmailEmUso = new(
+        "usuario.email_em_uso",
+        "Este e-mail já está em uso por outra conta.",
+        ErrorType.Conflict);
+
     public static readonly Error FotoGrande = new(
         "usuario.foto_grande",
         "Imagem muito grande. Envie uma foto menor.",
@@ -90,6 +100,30 @@ public sealed class Usuario
     }
 
     public void Desativar() => Ativo = false;
+
+    // O e-mail é a credencial de login, então a normalização precisa ser a
+    // mesma do Criar (trim + minúsculas) — é assim que o repositório procura, e
+    // divergir aqui deixaria a pessoa sem conseguir entrar com o próprio e-mail.
+    // A unicidade é checada no caso de uso (e garantida pelo índice único).
+    public Result AlterarEmail(string email)
+    {
+        var normalizado = email?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        // Validação deliberadamente rasa: e-mail só é provado de verdade por
+        // envio. O que importa aqui é barrar o vazio e o obviamente quebrado.
+        if (normalizado.Length == 0
+            || normalizado.Length > 256
+            || normalizado.Count(c => c == '@') != 1
+            || normalizado.StartsWith('@')
+            || normalizado.EndsWith('@')
+            || normalizado.Contains(' '))
+        {
+            return Result.Failure(UsuarioErrors.EmailInvalido);
+        }
+
+        Email = normalizado;
+        return Result.Success();
+    }
 
     // Valida no domínio, não no endpoint: o que entra aqui volta como <img src>
     // para o navegador de quem abre o perfil, então o formato é regra de
