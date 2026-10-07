@@ -496,9 +496,10 @@ export function MapaEntrega({
         continue
       }
 
-      // Um pouco mais largo que o pino da loja: o capacete é quadrado, então na
-      // mesma largura ele ocuparia bem menos altura e sumiria no mapa.
-      const elemento = criarPino(capaceteMotoboyUrl, posicao.entregadorNome, 'w-12 max-w-none')
+      // Capacete 2D em foto de perfil: ocupa quase a largura inteira da imagem
+      // (margem transparente foi recortada antes), então uma largura pequena já
+      // dá um ícone legível no mapa, sem engolir a cena ao redor.
+      const elemento = criarPino(capaceteMotoboyUrl, posicao.entregadorNome, 'w-7 max-w-none')
       const balao = new Popup({ offset: 22, closeButton: false, maxWidth: 'none' }).setDOMContent(
         balaoDoMotoboy(posicao),
       )
