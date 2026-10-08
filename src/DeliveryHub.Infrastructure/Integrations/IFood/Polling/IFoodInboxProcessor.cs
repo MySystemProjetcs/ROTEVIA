@@ -92,18 +92,15 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
 
     public async Task<(int Pendentes, DateTimeOffset? MaisAntigo)> LerLagAsync(CancellationToken ct)
     {
-        var pendentes = _db.IntegrationInbox
-            .Where(x => x.ProcessedAt == null && x.MerchantId != null && x.Source == "ifood");
+        // Count + Min numa única varredura: antes eram 2 roundtrips por tick
+        // (a cada 2s) sobre a mesma partição pendente.
+        var resumo = await _db.IntegrationInbox
+            .Where(x => x.ProcessedAt == null && x.MerchantId != null && x.Source == "ifood")
+            .GroupBy(_ => 1)
+            .Select(g => new { Count = g.Count(), Min = g.Min(x => (DateTimeOffset?)x.ReceivedAt) })
+            .FirstOrDefaultAsync(ct);
 
-        var contagem = await pendentes.CountAsync(ct);
-        if (contagem == 0)
-            return (0, null);
-
-        // Min sobre a partição pendente: usa o índice ix_inbox_pendentes
-        // (received_at com filtro processed_at IS NULL) — custo constante
-        // independente do histórico da tabela.
-        var maisAntigo = await pendentes.MinAsync(x => (DateTimeOffset?)x.ReceivedAt, ct);
-        return (contagem, maisAntigo);
+        return resumo is null ? (0, null) : (resumo.Count, resumo.Min);
     }
 
     private async Task ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)

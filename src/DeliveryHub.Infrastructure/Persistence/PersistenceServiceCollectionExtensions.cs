@@ -29,6 +29,13 @@ public static class PersistenceServiceCollectionExtensions
 
         services.AddSingleton<ICredentialCipher, AesGcmCredentialCipher>();
 
+        // NÃO usar AddDbContextPool aqui: AppDbContext captura ITenantContext
+        // via closure dentro dos HasQueryFilter do OnModelCreating. O pool
+        // roda OnModelCreating uma única vez e cacheia o model — o tenant
+        // da primeira request grudaria em todas as outras, vazando dados
+        // entre lojas. Pra migrar pra pool depois, HasQueryFilter precisa
+        // ler o tenant via scope capturado em runtime (ex.: _tenant resolvido
+        // por IServiceProvider interno a cada query), não como campo do ctor.
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IIntegrationInboxWriter, IntegrationInboxWriter>();
         services.AddScoped<IMerchantResolver, MerchantResolver>();

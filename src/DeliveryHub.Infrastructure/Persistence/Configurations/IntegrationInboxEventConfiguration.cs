@@ -28,9 +28,13 @@ internal sealed class IntegrationInboxEventConfiguration : IEntityTypeConfigurat
             .HasDatabaseName("ux_inbox_event");
 
         // Fila do processamento em background: cresce só com o que está
-        // pendente, não com o histórico.
-        builder.HasIndex(x => x.ReceivedAt)
-            .HasFilter("processed_at IS NULL")
+        // pendente, não com o histórico. O índice composto (source, received_at)
+        // com o filtro completo cobre exatamente a consulta do processor
+        // (`WHERE processed_at IS NULL AND merchant_id IS NOT NULL AND source = 'ifood'
+        // ORDER BY received_at`) — sem o filtro completo o Postgres ainda fazia
+        // bitmap/filter extra a cada tick de 2s.
+        builder.HasIndex(x => new { x.Source, x.ReceivedAt })
+            .HasFilter("processed_at IS NULL AND merchant_id IS NOT NULL")
             .HasDatabaseName("ix_inbox_pendentes");
     }
 }

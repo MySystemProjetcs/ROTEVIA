@@ -1,9 +1,14 @@
+import * as signalR from '@microsoft/signalr'
 import { useCallback, useEffect, useState } from 'react'
 import type { Pedido, StatusPedido } from '@/dominio/pedido'
 import { acaoPara } from '@/dominio/pedido'
 import { api, ErroDaApi } from '@/lib/api'
+import { lerToken } from '@/lib/sessao'
 
-const INTERVALO_ATUALIZACAO_MS = 4_000
+// Fallback de 30s: o push pelo Hub cobre a maioria das atualizações; o poll
+// serve só para quando o WebSocket cai (celular em background) ou para a tela
+// recém-aberta não esperar o próximo evento.
+const INTERVALO_ATUALIZACAO_MS = 30_000
 
 export function usePedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
@@ -26,6 +31,41 @@ export function usePedidos() {
     const id = setInterval(() => void recarregar(), INTERVALO_ATUALIZACAO_MS)
 
     return () => clearInterval(id)
+  }, [recarregar])
+
+  // Push pelo Hub: ingestão de novo pedido (worker iFood) e mutações da API
+  // emitem "ResumoAtualizado" no grupo da loja. A tela recarrega sob demanda,
+  // sem esperar o fallback de 30s. Falha silenciosa; o poll segue como rede.
+  useEffect(() => {
+    const conexao = new signalR.HubConnectionBuilder()
+      .withUrl('/hubs/rastreio', {
+        accessTokenFactory: () => lerToken() ?? '',
+      })
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .build()
+
+    conexao.on('ResumoAtualizado', () => {
+      void recarregar()
+    })
+
+    const iniciar = async () => {
+      try {
+        await conexao.start()
+        await conexao.invoke('EntrarNoGrupo')
+      } catch {
+        // Fallback do intervalo cobre.
+      }
+    }
+
+    void iniciar()
+
+    return () => {
+      void conexao
+        .invoke('SairDoGrupo')
+        .catch(() => {})
+        .finally(() => conexao.stop())
+    }
   }, [recarregar])
 
   const mover = useCallback(

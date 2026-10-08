@@ -35,11 +35,17 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         _db = db;
     }
 
+    // Teto defensivo: a cada 4s o painel pede essa lista; mais de 300 cartões
+    // simultâneos é fora da operação real (nem a UI aguenta renderizar), então
+    // acima disso é bug ou cliente desalinhado. Protege contra OOM se o filtro
+    // de "apenas ativos" não for respeitado.
+    private const int LimiteDePedidos = 300;
+
     public async Task<IReadOnlyList<PedidoDto>> ExecutarAsync(bool apenasAtivos, CancellationToken ct)
     {
         // Leitura projetada direto para DTO, sem tracking: carregar a entidade
         // inteira para depois mapear é desperdício (ENGINEERING-GUIDE §6).
-        var consulta = _db.Pedidos.AsNoTracking();
+        var pedidos = _db.Pedidos.AsNoTracking();
 
         if (apenasAtivos)
         {
@@ -52,14 +58,20 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                     FusoLoja.GetUtcOffset(agoraNaLoja.Date))
                 .ToUniversalTime();
 
-            consulta = consulta.Where(x =>
+            pedidos = pedidos.Where(x =>
                 Ativos.Contains(x.Status)
                 || (x.Status == StatusPedido.Concluido && x.RecebidoEm >= inicioDoDia));
         }
 
-        return await consulta
-            .OrderByDescending(x => x.RecebidoEm)
-            .Select(x => new PedidoDto(
+        // LEFT JOIN com Couriers substitui a subquery correlata (`.Where(c => c.Id == x.EntregadorId).FirstOrDefault()`)
+        // que o EF Core materializava como uma consulta por linha — N+1 oculto
+        // a cada 4s.
+        var consulta =
+            from x in pedidos
+            join c in _db.Couriers.AsNoTracking() on x.EntregadorId equals c.Id into entregadores
+            from entregador in entregadores.DefaultIfEmpty()
+            orderby x.RecebidoEm descending
+            select new PedidoDto(
                 x.Id,
                 x.NumeroExibicao,
                 x.Status,
@@ -88,9 +100,7 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                         i.Indice, i.Nome, i.Quantidade, i.Unidade, i.PrecoUnitario, i.PrecoTotal, i.Observacoes))
                     .ToList(),
                 x.EntregadorId,
-                x.EntregadorId == null
-                    ? null
-                    : _db.Couriers.Where(c => c.Id == x.EntregadorId).Select(c => c.Nome).FirstOrDefault(),
+                entregador == null ? null : entregador.Nome,
                 // O dono já sabe de que loja é o pedido: só a listagem do
                 // motoboy preenche isso.
                 null,
@@ -102,7 +112,8 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 x.CodigoConfirmadoEm,
                 x.LoteEntregaId,
                 x.OrdemNaRota,
-                x.CodigoDeEntrega))
-            .ToListAsync(ct);
+                x.CodigoDeEntrega);
+
+        return await consulta.Take(LimiteDePedidos).ToListAsync(ct);
     }
 }

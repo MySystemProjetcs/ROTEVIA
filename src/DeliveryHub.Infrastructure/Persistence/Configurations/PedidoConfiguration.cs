@@ -109,5 +109,13 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         // Dashboard/resumo do dia e extrato de ganhos: mesma chave, sem filtro
         // de status (o parcial acima não serve pra Concluído/Cancelado).
         builder.HasIndex(x => new { x.MerchantId, x.RecebidoEm }, "ix_pedidos_merchant_recebido");
+
+        // ObterEntregaEmCursoAsync e lista "minhas entregas" do motoboy: filtram
+        // por EntregadorId + status ativo. Sem este índice, o Postgres faz scan
+        // na partição ativa do merchant inteiro e descarta por EntregadorId —
+        // custa a cada ping GPS (<50ms de alvo).
+        builder
+            .HasIndex(x => new { x.EntregadorId, x.Status }, "ix_pedidos_entregador_status")
+            .HasFilter("entregador_id IS NOT NULL");
     }
 }
