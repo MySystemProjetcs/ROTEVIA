@@ -1,5 +1,48 @@
 {
     "csharp-dev-tools.solutionViewer.selectedWorkspaceSolutions": [
         "DeliveryHub.sln"
-    ]
+    ],
+    "editor.semanticTokenColorCustomizations": {
+        "rules": {
+            "interface": {
+                "foreground": "#b8ce82"
+            },
+            "namespace": "#cccccc",
+            "enum": "#b8ce82",
+            "struct": {
+                "foreground": "#86C691"
+            },
+            "inactive": {
+                "foreground": "#6A6A6A"
+            }
+        }
+    },
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "entity.name.type.interface.cs",
+                "settings": {
+                    "foreground": "#b8ce82"
+                }
+            },
+            {
+                "scope": "entity.name.type.enum.cs",
+                "settings": {
+                    "foreground": "#b8ce82"
+                }
+            },
+            {
+                "scope": "entity.name.type.struct.cs",
+                "settings": {
+                    "foreground": "#86C691"
+                }
+            },
+            {
+                "scope": "variable.other.enummember.cs",
+                "settings": {
+                    "foreground": "#4FC1FF"
+                }
+            }
+        ]
+    }
 }

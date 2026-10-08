@@ -52,6 +52,8 @@ public sealed class CancelarPedidoTests
 
         public Task<Result<bool>> VerificarCodigoDeEntregaAsync(string id, string codigo, CancellationToken ct) =>
             Task.FromResult(Result.Success(true));
+        public Task<Result<bool>> ValidarCodigoDeColetaAsync(string id, string codigo, CancellationToken ct) =>
+            Task.FromResult(Result.Success(true));
     }
 
     private sealed class FakeNotificador : INotificadorPainel

@@ -9,23 +9,27 @@ import type { Entregador } from '@/dominio/entregador'
 import type { ColunaDoQuadro, ObterProximoPasso, Pedido, StatusPedido } from '@/dominio/pedido'
 import {
   COLUNAS,
-  COLUNAS_ENTREGADOR,
   podeMoverPara,
   proximoPasso,
   proximoPassoEntregador,
 } from '@/dominio/pedido'
 import { useAgora } from '@/lib/tempo'
 import { useMotoboys } from '@/motoboys/useMotoboys'
-import { FaixaResumo } from '@/dashboard/FaixaResumo'
 import { AlternadorDisponibilidade } from '@/entregador/AlternadorDisponibilidade'
 import { useDisponibilidade } from '@/entregador/useDisponibilidade'
 import { useTelaAcesa } from '@/entregador/useTelaAcesa'
 import { STATUS_EM_ENTREGA } from '@/dominio/pedido'
+import { BarraFiltros, type CanalFiltro, type PeriodoFiltro, type VisaoKanban } from './BarraFiltros'
 import { CartaoPedido } from './CartaoPedido'
 import { ColunaPedidos } from './ColunaPedidos'
+import { FaixaKpis } from './FaixaKpis'
 import { FormularioPedidoInterno } from './FormularioPedidoInterno'
+import { PaneConcluidos } from './PaneConcluidos'
 import { EtiquetaGps } from './EtiquetaGps'
+import { IndicadorDeParada } from './IndicadorDeParada'
 import { MapaEntrega } from './MapaEntrega'
+import { montarCorrida } from './rotaDoMotoboy'
+import type { PontoDeReferencia } from './rotaDoMotoboy'
 import { useAlertaSonoro } from './useAlertaSonoro'
 import { useEnderecoDaLoja } from './useEnderecoDaLoja'
 import { useEnviarPosicao } from './useEnviarPosicao'
@@ -98,14 +102,69 @@ function PainelDono() {
   const loja = useEnderecoDaLoja(usuario?.merchantId)
 
   const emRota = pedidos.find((p) => p.status === 'EmRota' || p.status === 'Chegou')
+  const agoraMs = useAgora()
+
+  // Filtros do topo: puramente de visualização, não disparam novo fetch (a
+  // janela "hoje" já vem do backend). Lista local do busca/canal pra não
+  // esperar roundtrip em cada tecla.
+  const [busca, setBusca] = useState('')
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>('hoje')
+  const [canal, setCanal] = useState<CanalFiltro>('todos')
+  const [visao, setVisao] = useState<VisaoKanban>('kanban')
+
+  const buscaMinuscula = busca.trim().toLowerCase()
+  const pedidosFiltrados = pedidos.filter((p) => {
+    if (canal !== 'todos' && p.origem !== canal) return false
+    if (!buscaMinuscula) return true
+    return (
+      p.numeroExibicao.toLowerCase().includes(buscaMinuscula) ||
+      p.clienteNome.toLowerCase().includes(buscaMinuscula) ||
+      (p.codigoDeEntrega?.toLowerCase().includes(buscaMinuscula) ?? false)
+    )
+  })
+
+  // Finalizados saíram do Kanban pra pane à direita — hoje é 6 etapas visíveis
+  // + 1 pane. Mantemos o rótulo "7 etapas" na seção do fluxo porque o pedido
+  // continua passando pelas 7 (Concluído é o destino).
+  const colunasKanban = COLUNAS.filter((c) => c.id !== 'finalizados')
 
   return (
     <div className="flex h-full flex-col gap-4">
-      {/* Área que rola: resumo, novo pedido e o quadro de pedidos. O mapa fica
-          fora dela, encaixado no rodapé (shrink-0) — sempre visível, com os
-          pedidos rolando por cima. */}
+      {/* Área que rola: hero, KPIs, filtros, quadro + pane. O mapa fica
+          fora dela, encaixado no rodapé (shrink-0) — sempre visível. */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <FaixaResumo />
+        {/* Hero: título da página, subtítulo e ação primária. O "Novo pedido"
+            da topbar foi removido pra concentrar aqui — a tela faz sentido
+            fora da moldura global. */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <h1 className="text-[26px] font-bold leading-tight tracking-tight text-texto">
+              Gestão de pedidos
+            </h1>
+            <p className="text-apoio text-texto-suave">
+              Acompanhe a operação, do recebimento à finalização.
+            </p>
+          </div>
+          <Botao onClick={() => setLancando(true)}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Novo pedido
+          </Botao>
+        </div>
+
+        <FaixaKpis pedidos={pedidos} />
+
+        <BarraFiltros
+          busca={busca}
+          onBusca={setBusca}
+          periodo={periodo}
+          onPeriodo={setPeriodo}
+          canal={canal}
+          onCanal={setCanal}
+          visao={visao}
+          onVisao={setVisao}
+        />
 
       {/* Venda de balcão, telefone ou WhatsApp: entra pelo mesmo quadro dos
           pedidos do iFood, só não tem marketplace para avisar. */}
@@ -163,43 +222,75 @@ function PainelDono() {
         </div>
       )}
 
-      <Kanban
-        pedidos={pedidos}
-        carregando={carregando}
-        erro={erro}
-        colunas={COLUNAS}
-        podeMoverParaFn={podeMoverPara}
-        obterProximoPasso={proximoPasso}
-        onMover={mover}
-        entregadoresAtivos={entregadoresAtivos}
-        onAlocar={alocar}
-        onCancelar={cancelar}
-        onAlternarLote={alternarLote}
-        selecaoLote={loteSelecao}
-        posicoes={posicoes}
-      />
+      {/* Título da seção do fluxo + atalho semântico (apenas visual por ora).
+          A contagem "7 etapas" bate com o domínio: 6 colunas visíveis + Concluído
+          no pane à direita. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-titulo font-semibold text-texto">Fluxo de pedidos</h2>
+          <span className="text-apoio text-texto-fraco">7 etapas</span>
+        </div>
+        <span className="text-apoio text-texto-suave">Do recebimento à finalização →</span>
+      </div>
+
+      {/* Grid principal: Kanban à esquerda (cresce), Concluídos à direita (fixo
+          em lg+, embaixo em telas estreitas). min-h-0 pra o Kanban conseguir
+          rolar lateralmente no mobile em vez de empurrar o layout. */}
+      <div className="flex min-h-0 flex-col gap-4 lg:flex-row">
+        <div className="min-w-0 flex-1">
+          {visao === 'kanban' ? (
+            <Kanban
+              pedidos={pedidosFiltrados.filter((p) => p.status !== 'Concluido')}
+              carregando={carregando}
+              erro={erro}
+              colunas={colunasKanban}
+              podeMoverParaFn={podeMoverPara}
+              obterProximoPasso={proximoPasso}
+              onMover={mover}
+              entregadoresAtivos={entregadoresAtivos}
+              onAlocar={alocar}
+              onCancelar={cancelar}
+              onAlternarLote={alternarLote}
+              selecaoLote={loteSelecao}
+              posicoes={posicoes}
+            />
+          ) : (
+            <ListaDePedidos
+              pedidos={pedidosFiltrados.filter((p) => p.status !== 'Concluido')}
+              agora={agoraMs}
+              onAvancar={(p) => {
+                const passo = proximoPasso(p)
+                if (passo) mover(p, passo.destino)
+              }}
+              onCancelar={cancelar}
+              posicoes={posicoes}
+            />
+          )}
+        </div>
+        <PaneConcluidos pedidos={pedidosFiltrados} agora={agoraMs} />
+      </div>
       </div>
 
       {/* Mapa da operação: encaixado no rodapé do conteúdo (shrink-0), sempre
           visível, com os pedidos rolando acima. A loja fica fixa e o motoboy
           se move em tempo real enquanto houver entrega em curso. Cartão externo
           com o mesmo gradiente/borda do "Taxa por entrega" da FaixaResumo. */}
-      <div
-        className="shrink-0 rounded-[14px] p-3.5"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(79,70,229,0.22), rgba(79,70,229,0.06)), var(--color-fundo)',
-          border: '1px solid rgba(79,70,229,0.35)',
-        }}
-      >
+      <div className="shrink-0 rounded-[14px] border border-borda bg-transparent p-3.5">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-titulo text-texto">Mapa da operação</h2>
-            <span className="text-apoio text-texto-suave">
-              {emRota
-                ? `Acompanhando #${emRota.numeroExibicao}${emRota.entregadorNome ? ` · ${emRota.entregadorNome}` : ''}`
-                : 'Nenhuma entrega em rota agora'}
-            </span>
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-titulo text-texto">Mapa da operação</h2>
+              <span className="text-apoio text-texto-suave">
+                {emRota
+                  ? `Acompanhando #${emRota.numeroExibicao}${emRota.entregadorNome ? ` · ${emRota.entregadorNome}` : ''}`
+                  : 'Nenhuma entrega em rota agora'}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-apoio text-texto-fraco">
+              <LegendaChip cor="bg-estado-preparo" rotulo="Em preparo" />
+              <LegendaChip cor="bg-estado-emrota" rotulo="Em rota" />
+              <LegendaChip cor="bg-estado-concluido" rotulo="Finalizado" />
+            </div>
           </div>
 
           {loja ? (
@@ -240,6 +331,56 @@ function PainelDono() {
   )
 }
 
+function LegendaChip({ cor, rotulo }: { cor: string; rotulo: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span aria-hidden className={`size-2 rounded-full ${cor}`} />
+      {rotulo}
+    </span>
+  )
+}
+
+// Visão alternativa ao Kanban: lista única com os cards empilhados. Mesmo
+// CartaoPedido e mesmas ações — só muda a geometria. Útil pra ver a fila
+// inteira sem decidir por etapa.
+function ListaDePedidos({
+  pedidos,
+  agora,
+  onAvancar,
+  onCancelar,
+  posicoes,
+}: {
+  pedidos: Pedido[]
+  agora: number
+  onAvancar: (pedido: Pedido) => void
+  onCancelar: (pedido: Pedido, motivo: string) => Promise<string | null>
+  posicoes: PosicaoEntregador[]
+}) {
+  if (pedidos.length === 0) {
+    return (
+      <div className="rounded-cartao border border-borda bg-superficie p-6 text-center text-apoio text-texto-fraco">
+        Nenhum pedido ativo no filtro atual.
+      </div>
+    )
+  }
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {pedidos.map((p) => (
+        <CartaoPedido
+          key={p.id}
+          pedido={p}
+          agora={agora}
+          arrastavel={false}
+          mostrarEstado
+          onAvancar={onAvancar}
+          onCancelar={onCancelar}
+          posicoes={posicoes}
+        />
+      ))}
+    </div>
+  )
+}
+
 function PainelEntregador() {
   const { pedidos, carregando, erro, mover } = useMinhasEntregas()
   const emEntrega = pedidos.some((p) => p.entregadorId && STATUS_EM_ENTREGA.includes(p.status))
@@ -248,7 +389,7 @@ function PainelEntregador() {
   // dele emite GPS. Ele não vê mapa aqui, mas continua emitindo: é isso que
   // alimenta o mapa do restaurante.
   const { disponivel, erro: erroDisponibilidade, definir } = useDisponibilidade()
-  const { estado: estadoGps } = useEnviarPosicao(pedidos, disponivel)
+  const { estado: estadoGps, posicaoAtual } = useEnviarPosicao(pedidos, disponivel)
 
   // O Wake Lock reduz o risco de o navegador congelar o GPS, mas não é
   // requisito para continuar emitindo posição.
@@ -278,6 +419,7 @@ function PainelEntregador() {
         carregando={carregando}
         erro={erro}
         onMover={mover}
+        posicaoAtual={posicaoAtual}
       />
     </div>
   )
@@ -321,11 +463,13 @@ function ListaDeEntregas({
   carregando,
   erro,
   onMover,
+  posicaoAtual,
 }: {
   pedidos: Pedido[]
   carregando: boolean
   erro: string | null
   onMover: (pedido: Pedido, destino: StatusPedido) => void
+  posicaoAtual: PontoDeReferencia | null
 }) {
   const agora = useAgora()
 
@@ -335,30 +479,26 @@ function ListaDeEntregas({
     return <p className="p-4 text-corpo text-texto-suave">Carregando entregas…</p>
   }
 
-  // Na ordem em que a entrega anda, não por chegada: o que está mais perto de
-  // terminar aparece primeiro.
-  // Dentro do mesmo estágio, a corrida manda: paradas do lote saem na ordem
-  // calculada (ordemNaRota). Quem não é de lote vai depois (ordem "infinita").
-  const emOrdem = [...pedidos].sort((a, b) => {
-    const porStatus = COLUNAS_ENTREGADOR.indexOf(b.status) - COLUNAS_ENTREGADOR.indexOf(a.status)
-    if (porStatus !== 0) return porStatus
-    return (a.ordemNaRota ?? Number.MAX_SAFE_INTEGER) - (b.ordemNaRota ?? Number.MAX_SAFE_INTEGER)
-  })
+  // Corrida completa, com paradas numeradas: concluídas primeiro (topo, com
+  // tique verde), depois as pendentes na ordem do caminho — mais próxima da
+  // posição atual do motoboy vira a "atual", as mais distantes ficam
+  // "pendentes". Quando o motoboy conclui a atual, a próxima pendente assume
+  // automaticamente, porque a função roda a cada render com a lista nova.
+  const corrida = montarCorrida(pedidos, posicaoAtual)
 
   // Rota multi-parada da corrida atual (primeiro lote encontrado). Abre o Google
   // Maps com as paradas na sequência: waypoints intermediários + destino final.
   const rotaUrl = montarRotaDoLote(pedidos)
 
   return (
-    // w-72 é a mesma largura da coluna do Kanban: o cartão mantém a proporção
-    // que já tinha, em vez de esticar até a borda da tela.
-    //
-    // Alinhado à esquerda, sob o alternador Online/Offline. Centralizado, numa
-    // tela larga o cartão flutuava sozinho no meio do vazio, desencostado do
-    // controle que manda nele.
-    <div className="flex flex-col items-start gap-3">
+    // Largura fluida com teto: o card estica até ocupar a largura disponível
+    // (celular estreito) e trava em max-w-sm (384px) no desktop, pra não
+    // flutuar isolado numa faixa vazia. Alinhado à esquerda, sob o alternador
+    // Online/Offline — centralizar deixaria o cartão desencostado do controle
+    // que manda nele quando a tela é larga.
+    <div className="flex w-full max-w-sm flex-col items-stretch gap-3">
       {erro && (
-        <Cartao className="w-72 border-perigo">
+        <Cartao className="border-perigo">
           <CartaoCorpo className="flex items-center gap-3">
             <Etiqueta tom="alerta">Erro</Etiqueta>
             <span className="text-corpo text-texto">{erro}</span>
@@ -368,33 +508,47 @@ function ListaDeEntregas({
 
       {rotaUrl && (
         <Botao
-          className="w-72"
+          larguraTotal
           onClick={() => window.open(rotaUrl, '_blank', 'noopener,noreferrer')}
         >
           Abrir rota da corrida
         </Botao>
       )}
 
-      {emOrdem.length === 0 ? (
+      {corrida.length === 0 ? (
         <p className="px-2 py-8 text-center text-apoio text-texto-fraco">
           Nenhuma entrega no momento.
         </p>
       ) : (
-        emOrdem.map((pedido) => (
-          <CartaoPedido
-            key={pedido.id}
-            pedido={pedido}
-            agora={agora}
-            arrastavel={false}
-            mostrarEstado
-            mostrarNavegacao
-            className="w-72"
-            obterProximoPasso={proximoPassoEntregador}
-            onAvancar={(p) => {
-              const passo = proximoPassoEntregador(p)
-              if (passo) onMover(p, passo.destino)
-            }}
-          />
+        corrida.map(({ pedido, ordem, estado }, i) => (
+          // Linha com stepper à esquerda + card à direita. items-stretch no
+          // container e flex-1 vertical no indicador fazem o segmento ligar
+          // visualmente o número desta parada ao número da próxima — o
+          // indicador cresce com a altura do card, mesmo quando ele expande
+          // pra mostrar itens. min-w-0 no card permite ele encolher dentro
+          // do flex quando o conteúdo (ex.: endereço longo) é maior que a
+          // tela do celular.
+          <div key={pedido.id} className="flex w-full items-stretch gap-3">
+            <IndicadorDeParada
+              ordem={ordem}
+              estado={corrida.length > 1 ? estado : 'atual'}
+              ultima={i === corrida.length - 1}
+            />
+            <CartaoPedido
+              pedido={pedido}
+              agora={agora}
+              arrastavel={false}
+              mostrarEstado
+              mostrarNavegacao
+              mostrarEntregador={false}
+              className="min-w-0 flex-1"
+              obterProximoPasso={proximoPassoEntregador}
+              onAvancar={(p) => {
+                const passo = proximoPassoEntregador(p)
+                if (passo) onMover(p, passo.destino)
+              }}
+            />
+          </div>
         ))
       )}
     </div>

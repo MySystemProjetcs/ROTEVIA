@@ -97,13 +97,15 @@ public sealed class Pedido : ITenantOwned
         DateTimeOffset recebidoEm,
         Pagamento? pagamento = null,
         bool exigeCodigoDeEntrega = false,
-        bool entregaPeloParceiro = false) =>
+        bool entregaPeloParceiro = false,
+        string? codigoDeEntrega = null) =>
         new(Guid.CreateVersion7(), merchantId, idExterno, numeroExibicao, ehTeste, cliente,
             enderecoEntrega, valorTotal, taxaEntrega, criadoNaOrigemEm, recebidoEm)
         {
             Pagamento = pagamento ?? Pagamento.Indefinido,
             EntregaPeloParceiro = entregaPeloParceiro,
-            ExigeCodigoDeEntrega = exigeCodigoDeEntrega
+            ExigeCodigoDeEntrega = exigeCodigoDeEntrega,
+            CodigoDeEntrega = codigoDeEntrega
         };
 
     // O item herda o tenant do pedido: é o pedido que sabe de quem ele é, e
@@ -182,6 +184,14 @@ public sealed class Pedido : ITenantOwned
     // direito de pedir cancelamento por "pedido não entregue" — é esse
     // prejuízo que o código evita.
     public bool ExigeCodigoDeEntrega { get; private set; }
+
+    // Código de 4 dígitos que o iFood envia junto do pedido (campo pickupCode
+    // do payload). O motoboy vê este número no card dele para confirmar na
+    // porta do cliente — a confirmação em si bate contra o endpoint
+    // verifyDeliveryCode do iFood (nunca contra este campo), que é a fonte da
+    // verdade. Nulo quando o pedido não exige código (pedido interno, pedido
+    // iFood entregue pela própria plataforma).
+    public string? CodigoDeEntrega { get; private set; }
 
     // A frota do próprio marketplace faz a entrega (courier deles, não o
     // motoboy da loja). Conceito de negócio, não vocabulário de marketplace —

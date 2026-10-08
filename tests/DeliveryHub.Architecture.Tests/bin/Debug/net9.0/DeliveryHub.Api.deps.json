@@ -760,6 +760,14 @@
           }
         }
       },
+      "Polly.Core/8.8.0": {
+        "runtime": {
+          "lib/net8.0/Polly.Core.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.8.0.6127"
+          }
+        }
+      },
       "StackExchange.Redis/2.7.27": {
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "9.0.9",
@@ -901,7 +909,8 @@
       "DeliveryHub.Worker/1.0.0": {
         "dependencies": {
           "DeliveryHub.Application": "1.0.0",
-          "DeliveryHub.Infrastructure": "1.0.0"
+          "DeliveryHub.Infrastructure": "1.0.0",
+          "Polly.Core": "8.8.0"
         },
         "runtime": {
           "DeliveryHub.Worker.dll": {
@@ -1260,6 +1269,13 @@
       "sha512": "sha512-zG2FApP5zxSx6OcdJQLbZDk2AVlN2BNQD6MorwIfV6gVj0RRxWPEp2LXAxqDGZqeNV1Zp0BNPcNaey/GXmTdvQ==",
       "path": "pipelines.sockets.unofficial/2.2.8",
       "hashPath": "pipelines.sockets.unofficial.2.2.8.nupkg.sha512"
+    },
+    "Polly.Core/8.8.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-TewV9uNFsoRFggoFbTAGFwsMYPuckA+wTIpQPyhLL9BANRPQRENz2S4bwATrB3HBOakN5oKLFIllPiDnVecmJg==",
+      "path": "polly.core/8.8.0",
+      "hashPath": "polly.core.8.8.0.nupkg.sha512"
     },
     "StackExchange.Redis/2.7.27": {
       "type": "package",

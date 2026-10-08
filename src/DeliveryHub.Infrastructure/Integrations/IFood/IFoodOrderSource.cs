@@ -16,6 +16,15 @@ public static class OrderSourceErrors
         "origem.indisponivel",
         "Não foi possível falar com a origem do pedido.",
         ErrorType.Failure);
+
+    // Específico do cancelamento: o iFood devolveu lista vazia de motivos
+    // válidos — não é falha de rede nem recusa genérica, é "não dá mais pra
+    // cancelar daqui" (pedido já saiu, concluiu, etc). A mensagem no lojista
+    // precisa dizer isso, não um "recusou a operação" ambíguo.
+    public static readonly Error CancelamentoNaoPermitido = new(
+        "origem.cancelamento_nao_permitido",
+        "O iFood não aceita mais o cancelamento deste pedido no status atual.",
+        ErrorType.Conflict);
 }
 
 // Adapter da porta IOrderSource para o iFood. É aqui que a exceção da
@@ -44,18 +53,54 @@ internal sealed class IFoodOrderSource : IOrderSource
     public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) =>
         ExecutarAsync(idExternoPedido, "despachar", _client.DispatchAsync, ct);
 
-    // Código de cancelamento pelo estabelecimento. O iFood exige um código de
-    // uma lista que varia por pedido (GET orders/{id}/cancellationReasons);
-    // enquanto essa etapa não é capturada, mandamos um padrão de "problema no
-    // estabelecimento". Homologação: buscar a lista e validar o código.
-    private const string CodigoCancelamentoPadrao = "501";
+    // Cancelamento pelo estabelecimento: o iFood devolve a lista de códigos
+    // aceitos para o status corrente do pedido (GET cancellationReasons) e
+    // depois exige um deles em requestCancellation. Enviar um código fixo
+    // (ex.: "501") só funciona quando ele por acaso está na lista desse
+    // status — fora disso o iFood recusa.
+    public async Task<Result> CancelarPedidoAsync(
+        string idExternoPedido, string motivo, CancellationToken ct)
+    {
+        if (!Guid.TryParse(idExternoPedido, out var orderId))
+            return Result.Failure(OrderSourceErrors.OrigemRecusou);
 
-    public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct) =>
-        ExecutarAsync(
+        IReadOnlyList<Contracts.IFoodCancellationReason> motivos;
+        try
+        {
+            motivos = await _client.GetCancellationReasonsAsync(orderId, ct);
+        }
+        catch (IFoodApiException ex)
+        {
+            _logger.LogWarning(
+                "iFood recusou a listagem de motivos de cancelamento do pedido {PedidoId} — HTTP {StatusCode} · code={IFoodErrorCode} · {Mensagem}",
+                idExternoPedido, (int)ex.StatusCode, ex.IFoodErrorCode ?? "?", ex.Message);
+            return Result.Failure(OrderSourceErrors.OrigemRecusou);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Falha de rede ao buscar motivos de cancelamento do pedido {PedidoId}.", idExternoPedido);
+            return Result.Failure(OrderSourceErrors.OrigemIndisponivel);
+        }
+
+        if (motivos.Count == 0)
+        {
+            _logger.LogWarning(
+                "iFood não retornou motivos de cancelamento para o pedido {PedidoId}: cancelamento não permitido no status atual.",
+                idExternoPedido);
+            return Result.Failure(OrderSourceErrors.CancelamentoNaoPermitido);
+        }
+
+        // Primeiro código da lista: é o default do iFood e sempre válido para
+        // o status corrente. Melhoria de homologação: deixar o lojista
+        // escolher qual motivo entre os disponíveis.
+        var codigo = motivos[0].CancelCodeId;
+
+        return await ExecutarAsync(
             idExternoPedido,
             "cancelar",
-            (orderId, token) => _client.RequestCancellationAsync(orderId, motivo, CodigoCancelamentoPadrao, token),
+            (id, token) => _client.RequestCancellationAsync(id, motivo, codigo, token),
             ct);
+    }
 
     // Fora do ExecutarAsync porque devolve valor, não só sucesso. O código em
     // si nunca entra em log: é dado do cliente (CLAUDE.md §10).
@@ -82,6 +127,32 @@ internal sealed class IFoodOrderSource : IOrderSource
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Falha de rede ao validar código do pedido {PedidoId}.", idExternoPedido);
+            return Result.Failure<bool>(OrderSourceErrors.OrigemIndisponivel);
+        }
+    }
+
+    // Fluxo gêmeo: valida o código de coleta (motoboy pegando o pedido na
+    // loja). Mesmo tratamento de erro do verifyDelivery.
+    public async Task<Result<bool>> ValidarCodigoDeColetaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct)
+    {
+        if (!Guid.TryParse(idExternoPedido, out var orderId))
+            return Result.Failure<bool>(OrderSourceErrors.OrigemRecusou);
+
+        try
+        {
+            return Result.Success(await _client.ValidatePickupCodeAsync(orderId, codigo, ct));
+        }
+        catch (IFoodApiException ex)
+        {
+            _logger.LogWarning(
+                "iFood recusou a validação da coleta do pedido {PedidoId} — HTTP {StatusCode} · code={IFoodErrorCode} · {Mensagem}",
+                idExternoPedido, (int)ex.StatusCode, ex.IFoodErrorCode ?? "?", ex.Message);
+            return Result.Failure<bool>(OrderSourceErrors.OrigemRecusou);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Falha de rede ao validar coleta do pedido {PedidoId}.", idExternoPedido);
             return Result.Failure<bool>(OrderSourceErrors.OrigemIndisponivel);
         }
     }

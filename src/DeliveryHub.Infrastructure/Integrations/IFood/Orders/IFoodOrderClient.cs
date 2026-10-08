@@ -20,9 +20,14 @@ internal interface IIFoodOrderClient
     // cancelamento) — diferente das ações acima, que são POST sem corpo.
     Task RequestCancellationAsync(Guid orderId, string reason, string cancellationCode, CancellationToken ct);
 
+    // Lista os códigos de cancelamento válidos para o status corrente do
+    // pedido. Pode vir vazio quando o pedido não aceita mais cancelamento.
+    Task<IReadOnlyList<IFoodCancellationReason>> GetCancellationReasonsAsync(Guid orderId, CancellationToken ct);
+
     // Diferente das demais: manda corpo e lê a resposta. Devolve se o código
     // confere — código errado é 200 com valid:false, não erro HTTP.
     Task<bool> VerifyDeliveryCodeAsync(Guid orderId, string code, CancellationToken ct);
+    Task<bool> ValidatePickupCodeAsync(Guid orderId, string code, CancellationToken ct);
 }
 
 internal sealed class IFoodOrderClient : IIFoodOrderClient
@@ -70,10 +75,44 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
     public Task DispatchAsync(Guid orderId, CancellationToken ct) =>
         AcionarAsync(orderId, "dispatch", ct);
 
+    // Busca os códigos de cancelamento aceitos agora para este pedido. O
+    // adapter chama antes do requestCancellation para escolher um código
+    // válido para o status corrente — sem isso, um valor fixo pode ser
+    // recusado e o lojista vê "A origem recusou a operação".
+    public async Task<IReadOnlyList<IFoodCancellationReason>> GetCancellationReasonsAsync(
+        Guid orderId, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"orders/{orderId}/cancellationReasons", ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var corpoCru = await response.Content.ReadAsStringAsync(ct);
+            var codigoErro = default(string);
+            var mensagem = $"O iFood recusou a listagem de motivos (HTTP {(int)response.StatusCode}). Corpo: {corpoCru}";
+            try
+            {
+                var error = System.Text.Json.JsonSerializer.Deserialize<IFoodErrorResponse>(corpoCru);
+                if (error is not null)
+                {
+                    codigoErro = error.Error.Code;
+                    mensagem = error.Error.Message;
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Corpo fora do formato esperado — segue com o corpo cru.
+            }
+
+            throw new IFoodApiException(response.StatusCode, mensagem, codigoErro);
+        }
+
+        return await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodCancellationReason>>(ct)
+            ?? Array.Empty<IFoodCancellationReason>();
+    }
+
     // O corpo carrega o motivo em texto e o cancellationCode do iFood (o código
-    // válido varia por pedido — a lista vem de GET orders/{id}/cancellationReasons;
-    // enquanto não capturamos essa etapa, o adapter manda um código padrão de
-    // cancelamento pelo estabelecimento). Homologação: validar contra a lista real.
+    // válido varia por pedido — por isso o adapter busca a lista real via
+    // GetCancellationReasonsAsync antes de chamar aqui).
     public async Task RequestCancellationAsync(
         Guid orderId, string reason, string cancellationCode, CancellationToken ct)
     {
@@ -117,6 +156,19 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
 
         if (!response.IsSuccessStatusCode)
         {
+            // 412 tem significado próprio na doc do iFood: "o status do
+            // handshake não é válido; o pedido deve ter sido aceito pelo
+            // motorista antes da validação". Mensagem específica para o
+            // motoboy saber o que fazer (aceitar a entrega antes), em vez de
+            // ver um "código recusado" genérico.
+            if ((int)response.StatusCode == 412)
+            {
+                throw new IFoodApiException(
+                    response.StatusCode,
+                    "Aceite a entrega antes de validar o código.",
+                    "ifood.handshake_invalido");
+            }
+
             // Corpo cru: quando o iFood devolve 400 com formato diferente do
             // IFoodErrorResponse (ou vazio), ler direto como string é a única
             // forma de descobrir o que ele está reclamando. O `code` do
@@ -146,7 +198,54 @@ internal sealed class IFoodOrderClient : IIFoodOrderClient
 
         var corpo = await response.Content.ReadFromJsonAsync<IFoodVerifyDeliveryCodeResponse>(ct);
 
-        return corpo?.Valid ?? false;
+        return corpo?.Success ?? false;
+    }
+
+    // Fluxo gêmeo do verifyDeliveryCode, mas no endpoint de coleta. O 404 do
+    // iFood aqui tem significado específico documentado: "pedido não encontrado
+    // (verifique se é um pedido de autoentrega)" — ou seja, só pedidos entregues
+    // pela própria loja (deliveredBy=MERCHANT) têm pickupCode. Em pedido
+    // entregue pelo iFood a chamada 404 a indica "endpoint não se aplica aqui".
+    public async Task<bool> ValidatePickupCodeAsync(Guid orderId, string code, CancellationToken ct)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"orders/{orderId}/validatePickupCode",
+            new IFoodValidatePickupCodeRequest(code),
+            ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if ((int)response.StatusCode == 412)
+            {
+                throw new IFoodApiException(
+                    response.StatusCode,
+                    "Aceite o pedido antes de validar o código de coleta.",
+                    "ifood.handshake_invalido");
+            }
+
+            var corpoCru = await response.Content.ReadAsStringAsync(ct);
+
+            var codigoErro = default(string);
+            var mensagem = $"O iFood recusou a validação da coleta (HTTP {(int)response.StatusCode}). Corpo: {corpoCru}";
+            try
+            {
+                var error = System.Text.Json.JsonSerializer.Deserialize<IFoodErrorResponse>(corpoCru);
+                if (error is not null)
+                {
+                    codigoErro = error.Error.Code;
+                    mensagem = error.Error.Message;
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Corpo inesperado: segue com o cru para log/diagnóstico.
+            }
+
+            throw new IFoodApiException(response.StatusCode, mensagem, codigoErro);
+        }
+
+        var corpo = await response.Content.ReadFromJsonAsync<IFoodValidatePickupCodeResponse>(ct);
+        return corpo?.Success ?? false;
     }
 
     private async Task AcionarAsync(Guid orderId, string acao, CancellationToken ct)

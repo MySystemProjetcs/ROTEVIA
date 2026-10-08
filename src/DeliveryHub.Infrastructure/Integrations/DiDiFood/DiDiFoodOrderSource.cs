@@ -89,6 +89,14 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
         return Task.FromResult(Result.Success(true));
     }
 
+    public Task<Result<bool>> ValidarCodigoDeColetaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct)
+    {
+        // Mesma razão do VerificarCodigoDeEntrega: a 99Food não tem fluxo
+        // análogo ao validatePickupCode do iFood. Sucesso silencioso.
+        return Task.FromResult(Result.Success(true));
+    }
+
     private Task<Result> ExecutarAsync(
         string idExternoPedido,
         string descricao,

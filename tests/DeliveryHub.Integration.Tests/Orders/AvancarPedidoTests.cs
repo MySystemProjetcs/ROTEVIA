@@ -65,6 +65,12 @@ public sealed class AvancarPedidoTests
             Chamadas.Add("verificar-codigo");
             return Task.FromResult(Result.Success(true));
         }
+        public Task<Result<bool>> ValidarCodigoDeColetaAsync(
+            string id, string codigo, CancellationToken ct)
+        {
+            Chamadas.Add("validar-coleta");
+            return Task.FromResult(Result.Success(true));
+        }
     }
 
     private sealed class FakeNotificador : INotificadorPainel

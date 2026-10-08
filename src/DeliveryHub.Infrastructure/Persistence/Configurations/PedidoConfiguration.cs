@@ -34,6 +34,10 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         // confirmado. O código em si nunca é guardado — quem valida é o iFood,
         // e reter dado do cliente sem uso seria só risco (CLAUDE.md §10).
         builder.Property(x => x.ExigeCodigoDeEntrega).HasColumnName("exige_codigo_entrega").IsRequired();
+        // Max 16 pra sobrar folga: a doc do iFood mostra códigos de 4 dígitos,
+        // mas o campo é string livre, melhor não travar em 4 e descobrir
+        // depois que mudaram pra 6.
+        builder.Property(x => x.CodigoDeEntrega).HasColumnName("codigo_entrega").HasMaxLength(16);
         builder.Property(x => x.EntregaPeloParceiro).HasColumnName("entrega_pelo_parceiro").IsRequired();
         builder.Property(x => x.CodigoConfirmadoEm).HasColumnName("codigo_confirmado_em");
 

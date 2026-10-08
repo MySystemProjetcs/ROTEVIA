@@ -68,3 +68,4 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.DeliveryHub.Worker.props
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.DeliveryHub.Worker.props
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net9.0/staticwebassets.pack.json
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net9.0/Polly.Core.dll

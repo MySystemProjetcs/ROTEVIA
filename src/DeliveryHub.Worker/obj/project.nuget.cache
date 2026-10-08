@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "YERhh68HpMs=",
+  "dgSpecHash": "E4LEzw9kO8E=",
   "success": true,
   "projectFilePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/DeliveryHub.Worker.csproj",
   "expectedPackageFiles": [
@@ -37,6 +37,7 @@
     "/Users/jonathan/.nuget/packages/npgsql/9.0.3/npgsql.9.0.3.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/npgsql.entityframeworkcore.postgresql/9.0.4/npgsql.entityframeworkcore.postgresql.9.0.4.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/pipelines.sockets.unofficial/2.2.8/pipelines.sockets.unofficial.2.2.8.nupkg.sha512",
+    "/Users/jonathan/.nuget/packages/polly.core/8.8.0/polly.core.8.8.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/stackexchange.redis/2.7.27/stackexchange.redis.2.7.27.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.io.pipelines/5.0.1/system.io.pipelines.5.0.1.nupkg.sha512"
   ],

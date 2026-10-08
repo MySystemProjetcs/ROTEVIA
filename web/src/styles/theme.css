@@ -37,11 +37,11 @@
   --color-borda:       rgba(255,255,255,0.06);
   --color-borda-forte: rgba(255,255,255,0.10);
 
-  /* Texto */
-  --color-texto:          #e7eaf0;
-  --color-texto-suave:    #b3bac9;
-  --color-texto-fraco:    #8a93a3;
-  --color-texto-mudo:     #6b7385;
+  /* Texto — todos os níveis de tipografia neutra em branco. */
+  --color-texto:          #ffffff;
+  --color-texto-suave:    #ffffff;
+  --color-texto-fraco:    #ffffff;
+  --color-texto-mudo:     #ffffff;
   --color-texto-invertido: #0b0d12;
 
   /* Estados dos pedidos — versões dark */

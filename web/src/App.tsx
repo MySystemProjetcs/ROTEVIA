@@ -1,7 +1,6 @@
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { useSessao } from '@/auth/SessaoProvider'
 import { BarraLateral } from '@/components/BarraLateral'
-import { Botao } from '@/components/Botao'
 import { BarraLateralProvider } from '@/components/barra-lateral/BarraLateralProvider'
 import { GatilhoDaBarra } from '@/components/barra-lateral/GatilhoDaBarra'
 import { IconeBusca } from '@/components/icones/IconeBusca'
@@ -11,7 +10,7 @@ import { PaginaMotoboys } from '@/motoboys/PaginaMotoboys'
 import { ConfirmarConvite } from '@/paginas/ConfirmarConvite'
 import { Login } from '@/paginas/Login'
 import { PainelOperacao } from '@/pedidos/PainelOperacao'
-import { NovoPedidoProvider, useNovoPedido } from '@/pedidos/NovoPedidoContext'
+import { NovoPedidoProvider } from '@/pedidos/NovoPedidoContext'
 import { PerfilProvider } from '@/perfil/PerfilProvider'
 import { PaginaGanhos } from '@/entregador/PaginaGanhos'
 import { PaginaWhatsapp } from '@/whatsapp/PaginaWhatsapp'
@@ -46,13 +45,15 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
   const agora = useAgora(60_000)
   const localizacao = useLocation()
   const ehDono = usuario.papel === 'DonoRestaurante'
-  const { abrir: abrirNovoPedido } = useNovoPedido()
 
+  // Título do topbar: só nas páginas que não têm hero próprio. Na Central
+  // ('/') o hero "Gestão de pedidos" vive dentro do PainelOperacao, então o
+  // topbar fica sem h1 pra não repetir o rótulo.
   const titulo =
     localizacao.pathname === '/motoboys'      ? 'Motoboys'
     : localizacao.pathname === '/whatsapp'    ? 'Conversas'
     : localizacao.pathname === '/meus-ganhos' ? 'Meus ganhos'
-    : 'Central de Pedidos'
+    : null
 
   return (
     <div className="fundo-app flex h-dvh">
@@ -60,7 +61,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* ── Topbar ─────────────────────────────────── */}
-        <header className="flex items-center gap-4 px-6 pt-5 pb-0">
+        <header className="flex items-center gap-3 px-4 pt-4 pb-0 sm:gap-4 sm:px-6 sm:pt-5">
           <div className="flex min-w-0 flex-col">
             <span className="font-mono text-rotulo uppercase text-texto-mudo">
               {formatarDataHora(agora)}
@@ -71,9 +72,11 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
                   a gaveta no celular — o botão precisa existir nos dois
                   tamanhos de tela, senão o desktop nunca alcança o trilho. */}
               <GatilhoDaBarra />
-              <h1 className="text-[22px] font-bold leading-tight tracking-tight text-texto">
-                {titulo}
-              </h1>
+              {titulo && (
+                <h1 className="text-[22px] font-bold leading-tight tracking-tight text-texto">
+                  {titulo}
+                </h1>
+              )}
             </div>
           </div>
 
@@ -102,25 +105,16 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
             </label>
           )}
 
-          {/* Novo pedido: aciona o FormularioPedidoInterno no PainelOperacao —
-              por isso só faz sentido na tela dele, "/". Migrado pro <Botao>
-              padrão: a silhueta do "Novo pedido" virou o modelo do resto do
-              sistema, então este mesmo botão passa a usar o componente. */}
-          {ehDono && localizacao.pathname === '/' && (
-            <Botao onClick={abrirNovoPedido} className="hidden sm:inline-flex">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Novo pedido
-            </Botao>
-          )}
+          {/* "Novo pedido" migrou para o hero do PainelOperacao — fica
+              encaixado com o título "Gestão de pedidos" em vez de flutuar no
+              topbar. */}
         </header>
 
         {/* ── Conteúdo ────────────────────────────────── */}
         {/* overflow-y-auto: o conteúdo rola aqui dentro, não no documento —
             é isso que dá a âncora para o "Mapa da operação" grudar no rodapé
             (sticky bottom-0) em vez de rolar junto com a página. */}
-        <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
+        <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6">
           {usuario.papel === 'Entregador' ? (
             <Routes>
               <Route path="/"            element={<PainelOperacao />} />

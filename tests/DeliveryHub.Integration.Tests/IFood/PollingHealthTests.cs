@@ -1,4 +1,5 @@
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
+using DeliveryHub.Integration.Tests.Fakes;
 
 namespace DeliveryHub.Integration.Tests.IFood;
 

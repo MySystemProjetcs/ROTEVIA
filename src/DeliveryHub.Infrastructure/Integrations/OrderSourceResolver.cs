@@ -41,6 +41,10 @@ internal sealed class OrderSourceResolver : IOrderSource
         string idExternoPedido, string codigo, CancellationToken ct) =>
         ObterSource(idExternoPedido).VerificarCodigoDeEntregaAsync(idExternoPedido, codigo, ct);
 
+    public Task<Result<bool>> ValidarCodigoDeColetaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct) =>
+        ObterSource(idExternoPedido).ValidarCodigoDeColetaAsync(idExternoPedido, codigo, ct);
+
     private IOrderSource ObterSource(string idExternoPedido)
     {
         if (string.IsNullOrWhiteSpace(idExternoPedido) || idExternoPedido.StartsWith(Pedido.PrefixoOrigemLocal, StringComparison.Ordinal))
@@ -64,5 +68,6 @@ internal sealed class OrderSourceResolver : IOrderSource
         public Task<Result> DespacharAsync(string idExternoPedido, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result> CancelarPedidoAsync(string idExternoPedido, string motivo, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result<bool>> VerificarCodigoDeEntregaAsync(string idExternoPedido, string codigo, CancellationToken ct) => Task.FromResult(Result.Success(true));
+        public Task<Result<bool>> ValidarCodigoDeColetaAsync(string idExternoPedido, string codigo, CancellationToken ct) => Task.FromResult(Result.Success(true));
     }
 }

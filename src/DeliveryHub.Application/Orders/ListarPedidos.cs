@@ -54,7 +54,11 @@ public sealed record PedidoDto(
     // Nulos = entrega solo. A tela do motoboy agrupa por lote e ordena pela
     // rota; a do dono mostra o selo do lote.
     Guid? LoteEntregaId,
-    int? OrdemNaRota);
+    int? OrdemNaRota,
+    // Código de 4 dígitos que o iFood envia junto do pedido (pickupCode). O
+    // motoboy vê no card para confirmar com o cliente. Nulo quando o pedido
+    // não exige código.
+    string? CodigoDeEntrega);
 
 public static class OrigemDoPedido
 {

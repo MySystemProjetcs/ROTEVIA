@@ -226,8 +226,24 @@ internal sealed record IFoodLiability(
 internal sealed record IFoodVerifyDeliveryCodeRequest(
     [property: JsonPropertyName("code")] string Code);
 
+// Resposta documentada pelo iFood como `{ "success": true }` — tínhamos `valid`
+// aqui antes, provavelmente de uma versão anterior da doc. Com o nome errado,
+// a desserialização silenciosamente devolvia `false` em toda chamada bem-
+// sucedida (campo ausente vira default do bool), e o motoboy via "código
+// incorreto" mesmo quando o iFood tinha aceitado. Isso explica muito do que
+// vinha sendo diagnosticado como "sandbox do iFood recusando 0000".
 internal sealed record IFoodVerifyDeliveryCodeResponse(
-    [property: JsonPropertyName("valid")] bool Valid);
+    [property: JsonPropertyName("success")] bool Success);
+
+// validatePickupCode: payload idêntico ao verifyDeliveryCode (code na
+// requisição, success na resposta) — mas endpoint, contexto e significado são
+// outros. Este é o motoboy confirmando com a LOJA que pegou o pedido; o
+// verifyDeliveryCode é o motoboy confirmando com o CLIENTE que entregou.
+internal sealed record IFoodValidatePickupCodeRequest(
+    [property: JsonPropertyName("code")] string Code);
+
+internal sealed record IFoodValidatePickupCodeResponse(
+    [property: JsonPropertyName("success")] bool Success);
 
 // Corpo do requestCancellation. cancellationCode é o código do iFood (varia por
 // pedido — a lista real vem de GET orders/{id}/cancellationReasons); reason é o
@@ -235,3 +251,10 @@ internal sealed record IFoodVerifyDeliveryCodeResponse(
 internal sealed record IFoodRequestCancellationRequest(
     [property: JsonPropertyName("reason")] string Reason,
     [property: JsonPropertyName("cancellationCode")] string CancellationCode);
+
+// Resposta de GET orders/{id}/cancellationReasons. O iFood devolve um array
+// com os códigos permitidos para o status corrente — se o pedido já saiu para
+// entrega ou foi concluído, pode vir vazio (não dá mais pra cancelar).
+internal sealed record IFoodCancellationReason(
+    [property: JsonPropertyName("cancelCodeId")] string CancelCodeId,
+    [property: JsonPropertyName("description")] string Description);

@@ -1,7 +1,7 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.Merchants;
-using DeliveryHub.Integration.Tests.IFood;
+using DeliveryHub.Integration.Tests.Fakes;
 
 namespace DeliveryHub.Integration.Tests.Merchants;
 

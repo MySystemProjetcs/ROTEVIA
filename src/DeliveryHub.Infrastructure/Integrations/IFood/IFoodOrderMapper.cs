@@ -27,7 +27,14 @@ internal static class IFoodOrderMapper
             // Entrega feita pela frota da própria loja é onde o código de
             // confirmação existe. Pedido entregue pelo iFood não tem esse
             // passo — quem valida lá é o entregador deles.
-            exigeCodigoDeEntrega: origem.Delivery?.DeliveredBy == "MERCHANT");
+            exigeCodigoDeEntrega: origem.Delivery?.DeliveredBy == "MERCHANT",
+            // pickupCode vem do próprio pedido no detalhe do iFood: é o
+            // número que o cliente informa na porta e que o motoboy digita
+            // para confirmar via verifyDeliveryCode. Antes era ignorado,
+            // então o motoboy via "aguardando código" sem saber qual era.
+            codigoDeEntrega: origem.Delivery?.DeliveredBy == "MERCHANT"
+                ? origem.Delivery?.PickupCode
+                : null);
 
         foreach (var item in origem.Items)
         {

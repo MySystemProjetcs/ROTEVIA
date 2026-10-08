@@ -1,5 +1,6 @@
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
-using DeliveryHub.Worker;
+using DeliveryHub.Integration.Tests.Fakes;
+using DeliveryHub.Worker.Health;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace DeliveryHub.Integration.Tests.IFood;

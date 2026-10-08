@@ -94,6 +94,7 @@ builder.Services.AddScoped<ILancarPedidoInterno, LancarPedidoInterno>();
 builder.Services.AddScoped<IAlocarEntregador, AlocarEntregador>();
 builder.Services.AddScoped<IAvancarEntrega, AvancarEntrega>();
 builder.Services.AddScoped<IConfirmarEntregaComCodigo, ConfirmarEntregaComCodigo>();
+builder.Services.AddScoped<IConfirmarColetaComCodigo, ConfirmarColetaComCodigo>();
 builder.Services.AddScoped<IAutenticar, Autenticar>();
 builder.Services.AddScoped<ICadastrarRestaurante, CadastrarRestaurante>();
 builder.Services.AddScoped<ICriarDonoParaRestaurante, CriarDonoParaRestaurante>();

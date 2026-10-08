@@ -334,6 +334,11 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("codigo_confirmado_em");
 
+                    b.Property<string>("CodigoDeEntrega")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("codigo_entrega");
+
                     b.Property<DateTimeOffset>("CriadoNaOrigemEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_na_origem_em");

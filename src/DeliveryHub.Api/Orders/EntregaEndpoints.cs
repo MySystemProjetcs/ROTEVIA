@@ -70,6 +70,7 @@ public static class EntregaEndpoints
         // Único do motoboy com corpo: o código vai no body, nunca na URL —
         // é dado do cliente e URL vaza em log de proxy (CLAUDE.md §10).
         group.MapPost("/pedidos/{id:guid}/confirmar-codigo", ConfirmarCodigo);
+        group.MapPost("/pedidos/{id:guid}/confirmar-coleta", ConfirmarColeta);
         group.MapPost("/pedidos/{id:guid}/finalizar", (Guid id, ITenantContext t, IAvancarEntrega a, CancellationToken ct) =>
             Avancar(t, id, AcaoDeEntrega.Finalizar, a, ct));
 
@@ -214,6 +215,23 @@ public static class EntregaEndpoints
         CodigoDeEntregaRequest request,
         ITenantContext tenant,
         IConfirmarEntregaComCodigo confirmar,
+        CancellationToken ct)
+    {
+        if (tenant.UsuarioId is not { } usuarioId)
+            return ProblemaDe(PedidoErrors.EntregadorNaoPertenceAoPedido);
+
+        var resultado = await confirmar.ExecutarAsync(usuarioId, id, request.Codigo, ct);
+
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
+    }
+
+    // Fluxo gêmeo: motoboy confirmando com a loja a coleta do pedido. Mesma
+    // forma do confirmar-codigo (payload { codigo }, resposta 204/400).
+    private static async Task<Results<NoContent, ProblemHttpResult>> ConfirmarColeta(
+        Guid id,
+        CodigoDeEntregaRequest request,
+        ITenantContext tenant,
+        IConfirmarColetaComCodigo confirmar,
         CancellationToken ct)
     {
         if (tenant.UsuarioId is not { } usuarioId)

@@ -83,6 +83,7 @@ public sealed class DespacharEmLoteTests
         public Task<Result> MarcarProntoAsync(string id, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result> CancelarPedidoAsync(string id, string motivo, CancellationToken ct) => Task.FromResult(Result.Success());
         public Task<Result<bool>> VerificarCodigoDeEntregaAsync(string id, string codigo, CancellationToken ct) => Task.FromResult(Result.Success(true));
+        public Task<Result<bool>> ValidarCodigoDeColetaAsync(string id, string codigo, CancellationToken ct) => Task.FromResult(Result.Success(true));
     }
 
     private sealed class FakeNotificador : INotificadorPainel

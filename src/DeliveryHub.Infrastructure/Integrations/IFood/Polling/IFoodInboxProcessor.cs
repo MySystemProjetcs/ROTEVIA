@@ -12,6 +12,12 @@ namespace DeliveryHub.Infrastructure.Integrations.IFood.Polling;
 public interface IIFoodInboxProcessor
 {
     Task<int> ProcessarPendentesAsync(int limite, CancellationToken ct);
+
+    // Backlog antes do próximo tick: quantidade de pendentes e recebimento do
+    // mais antigo (nulo quando a fila está vazia). Exclui quarentena
+    // (MerchantId nulo), igual ao filtro de processamento — evento que ninguém
+    // trata não deveria envelhecer o lag de quem trata.
+    Task<(int Pendentes, DateTimeOffset? MaisAntigo)> LerLagAsync(CancellationToken ct);
 }
 
 // Roda separado do polling (CLAUDE.md §7): a ingestão grava e reconhece rápido,
@@ -82,6 +88,22 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
         }
 
         return processados;
+    }
+
+    public async Task<(int Pendentes, DateTimeOffset? MaisAntigo)> LerLagAsync(CancellationToken ct)
+    {
+        var pendentes = _db.IntegrationInbox
+            .Where(x => x.ProcessedAt == null && x.MerchantId != null && x.Source == "ifood");
+
+        var contagem = await pendentes.CountAsync(ct);
+        if (contagem == 0)
+            return (0, null);
+
+        // Min sobre a partição pendente: usa o índice ix_inbox_pendentes
+        // (received_at com filtro processed_at IS NULL) — custo constante
+        // independente do histórico da tabela.
+        var maisAntigo = await pendentes.MinAsync(x => (DateTimeOffset?)x.ReceivedAt, ct);
+        return (contagem, maisAntigo);
     }
 
     private async Task ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)

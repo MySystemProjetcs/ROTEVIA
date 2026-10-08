@@ -64,18 +64,15 @@ export function ColunaPedidos({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex min-h-40 flex-col gap-3 rounded-cartao p-2 transition-colors',
-          cromo.fundo,
+          // Fundo transparente: a cor da etapa fica só na bolinha e no pill
+          // do contador, não enche o corpo da coluna.
+          'flex min-h-40 flex-col gap-3 rounded-cartao bg-transparent p-2 transition-colors',
           // Só destaca quando o movimento é válido: destacar coluna que vai
           // recusar o pedido ensina o gesto errado.
           isOver && aceitaSolto && 'ring-2 ring-marca-400 ring-inset',
-          // Rolagem vertical na própria coluna, não num embrulho em volta: o
-          // fundo é pintado na caixa do elemento que rola, então ele fica
-          // parado enquanto os cartões correm por dentro.
-          //
-          // `overflow-x-hidden` é obrigatório, não enfeite: com só
-          // `overflow-y-auto`, o CSS computa o outro eixo como `auto` também e
-          // aparece uma barra horizontal que ninguém pediu.
+          // Rolagem vertical na própria coluna, não num embrulho em volta.
+          // `overflow-x-hidden` é obrigatório: com só `overflow-y-auto` o CSS
+          // computa o outro eixo como `auto` também e cria barra horizontal.
           coluna.rolavel && 'barra-fina max-h-[28rem] overflow-y-auto overflow-x-hidden',
         )}
       >
@@ -98,9 +95,71 @@ export function ColunaPedidos({
         </SortableContext>
 
         {pedidos.length === 0 && (
-          <p className="px-2 py-6 text-center text-apoio text-texto-fraco">Nenhum pedido aqui.</p>
+          <div className="flex flex-col items-center gap-2 px-2 py-6 text-center text-apoio text-texto-fraco">
+            <IconeVazio id={coluna.id} />
+            <span>Nenhum pedido aqui.</span>
+          </div>
         )}
       </div>
     </section>
   )
+}
+
+// Ícone de estado vazio por coluna — pista rápida sobre o que entra ali
+// enquanto não há pedido. SVGs inline pra não criar 6 arquivos novos.
+function IconeVazio({ id }: { id: string }) {
+  const comum = 'size-7 opacity-60'
+  const stroke = { fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  switch (id) {
+    case 'recebido':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <path d="M4 13l2-7h12l2 7" />
+          <path d="M4 13v6h16v-6" />
+          <path d="M9 13h6" />
+        </svg>
+      )
+    case 'confirmado':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M8 12l3 3 5-6" />
+        </svg>
+      )
+    case 'preparo':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <path d="M6 10a3 3 0 013-3 3 3 0 013-2 3 3 0 013 2 3 3 0 013 3v2H6z" />
+          <path d="M6 14h12v2a2 2 0 01-2 2H8a2 2 0 01-2-2z" />
+        </svg>
+      )
+    case 'pronto':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <path d="M6 7l6-3 6 3v10l-6 3-6-3z" />
+          <path d="M6 7l6 3 6-3M12 10v10" />
+        </svg>
+      )
+    case 'despachado':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <path d="M6 10l4-5 8 3-1 6-6 5z" />
+          <path d="M10 5l3 4-4 6" />
+        </svg>
+      )
+    case 'em-rota':
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <circle cx="6" cy="17" r="2.5" />
+          <circle cx="18" cy="17" r="2.5" />
+          <path d="M8.5 17h7l-2-6h-5zM13.5 11l1-3h3" />
+        </svg>
+      )
+    default:
+      return (
+        <svg viewBox="0 0 24 24" className={comum} {...stroke}>
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      )
+  }
 }

@@ -3,6 +3,8 @@ using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Infrastructure.Integrations.IFood;
 using DeliveryHub.Infrastructure.Persistence;
 using DeliveryHub.Infrastructure.RealTime;
+using DeliveryHub.Worker.Health;
+using DeliveryHub.Worker.Resilience;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,7 +36,19 @@ public static class WorkerHostFactory
 
         builder.Services.AddIFoodIntegration(builder.Configuration);
         builder.Services.AddPersistence(builder.Configuration);
+
+        // Resiliência por loja (timeout + circuit breaker) e estado do lag do
+        // Inbox: singletons porque o estado sobrevive entre ciclos e é lido
+        // pelo health check de outro container de DI.
+        builder.Services.AddSingleton(new MerchantResilienceOptions());
+        builder.Services.AddSingleton<MerchantResilienceProvider>();
+        builder.Services.AddSingleton<InboxLagState>();
+
         builder.Services.AddHostedService<IFoodPollingWorker>();
+        builder.Services.AddHostedService<IFoodInboxProcessorWorker>();
+
+        // Gauges do Inbox registrados no boot (antes do primeiro scrape).
+        MetricasPolling.Inicializar();
 
         // O mesmo backplane da API. Este host não atende nenhuma conexão de
         // SignalR — ele só publica, e o Redis entrega a quem está conectado
@@ -42,7 +56,8 @@ public static class WorkerHostFactory
         builder.Services.AddTempoReal(builder.Configuration);
 
         builder.Services.AddHealthChecks()
-            .AddCheck<PollingHealthCheck>("polling-ifood", tags: ["ingestao"]);
+            .AddCheck<PollingHealthCheck>("polling-ifood", tags: ["ingestao"])
+            .AddCheck<InboxLagHealthCheck>("inbox-lag", tags: ["ingestao"]);
 
         var app = builder.Build();
 

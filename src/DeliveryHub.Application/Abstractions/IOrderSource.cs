@@ -22,4 +22,9 @@ public interface IOrderSource
     // de marketplace (teste de arquitetura quebra o build se vazar).
     Task<Result<bool>> VerificarCodigoDeEntregaAsync(
         string idExternoPedido, string codigo, CancellationToken ct);
+    // Valida o código de coleta na origem (motoboy pegando o pedido na loja).
+    // Fluxo gêmeo do VerificarCodigoDeEntrega, mas em outro momento: ao retirar
+    // o pedido para sair com ele, não ao entregá-lo.
+    Task<Result<bool>> ValidarCodigoDeColetaAsync(
+        string idExternoPedido, string codigo, CancellationToken ct);
 }

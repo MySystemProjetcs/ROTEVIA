@@ -60,6 +60,11 @@ export interface Pedido {
    *  ordena por ordemNaRota. */
   loteEntregaId?: string | null
   ordemNaRota?: number | null
+  /** Código de 4 dígitos que o iFood envia junto do pedido (pickupCode no
+   *  payload). O motoboy vê este número no card dele; a confirmação em si
+   *  bate contra o endpoint do iFood, não contra este campo (fonte da
+   *  verdade é a plataforma). Nulo quando o pedido não exige código. */
+  codigoDeEntrega?: string | null
 }
 
 // As colunas do painel do dono. Concluído e Cancelado ficam fora: são destino

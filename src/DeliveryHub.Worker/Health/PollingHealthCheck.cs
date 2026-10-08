@@ -1,7 +1,7 @@
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace DeliveryHub.Worker;
+namespace DeliveryHub.Worker.Health;
 
 // Sem polling regular o iFood marca a loja como offline e para de mandar
 // pedido. Um worker vivo mas travado num ciclo é pior que um worker morto,
@@ -50,3 +50,4 @@ public sealed class PollingHealthCheck : IHealthCheck
             : HealthCheckResult.Healthy("Polling em dia.", dados));
     }
 }
+

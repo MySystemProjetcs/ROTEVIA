@@ -8,6 +8,7 @@ import {
   Popup,
 } from 'maplibre-gl'
 import type { GeoJSONSource } from 'maplibre-gl'
+import { LngLatBounds } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '@/lib/maplibreWorker'
 import { PulsingDotStyleImage } from 'maplibre-image-plugins'
@@ -55,26 +56,29 @@ function criarPino(src: string, descricao: string, classe = 'w-10 max-w-none'): 
   return imagem
 }
 
-// Balão com o número do pedido, apontando para a coordenada exata da entrega.
-// Cor vinda do mesmo cromo das colunas do Kanban, então um pedido "Em rota" é
-// da mesma cor nos dois lugares.
+// Pino de localização em formato lágrima com o número do pedido dentro.
+// Trocamos a antiga pílula + quadradinho porque, em zoom baixo, o quadrado da
+// ponta sumia no mapa e sobrava só um retângulo sem forma de pin. Pino com
+// corpo cheio e círculo branco interno segura a leitura em qualquer zoom.
 //
-// O corpo usa o `pill` (fundo claro, texto na cor forte) e não a cor cheia com
-// texto branco: sobre o âmbar do Recebido o branco fica em ~2:1 de contraste, e
-// o número — que é a razão de o balão existir — vira borrão sobre o mapa.
+// A cor vem do mesmo cromo das colunas do Kanban (StatusPedido) — "Em rota"
+// no mapa é a mesma cor que "Em Rota" no Kanban. `cromo.ponto` é a classe
+// `bg-estado-X`; convertemos para `text-estado-X` pra pintar o SVG via
+// `currentColor` sem duplicar o mapa de cores.
 function criarBalaoDePedido(numero: string, cromo: { ponto: string; pill: string }): HTMLElement {
-  const elemento = criarMarcador('flex flex-col items-center drop-shadow-md')
+  const elemento = criarMarcador('block drop-shadow-md')
+  const corTexto = cromo.ponto.replace('bg-', 'text-')
+  // Número longo (#12345) não cabe no círculo interno — mostra os últimos 4
+  // dígitos, que é o que o lojista enxerga como "o pedido".
+  const curto = numero.length > 4 ? numero.slice(-4) : numero
 
-  const etiqueta = document.createElement('span')
-  etiqueta.className = `rounded-controle border px-1.5 py-0.5 text-rotulo font-bold tabular-nums ${cromo.pill}`
-  etiqueta.textContent = `#${numero}`
-
-  // Quadrado girado 45°: vira a ponta do balão sem precisar de SVG. Na cor
-  // cheia, que é o que marca o ponto no mapa a distância.
-  const ponta = document.createElement('span')
-  ponta.className = `-mt-1 size-2 rotate-45 ${cromo.ponto}`
-
-  elemento.append(etiqueta, ponta)
+  elemento.innerHTML = `
+    <svg width="32" height="42" viewBox="0 0 32 42" class="${corTexto}" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 1.5c-7.73 0-14 6.04-14 13.48 0 10.1 14 25.52 14 25.52s14-15.42 14-25.52c0-7.44-6.27-13.48-14-13.48z" stroke="rgba(0,0,0,0.25)" stroke-width="1" />
+      <circle cx="16" cy="15" r="9" fill="#ffffff" />
+      <text x="16" y="18.5" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, SF Mono, monospace" font-size="9" font-weight="700" fill="currentColor">#${curto}</text>
+    </svg>
+  `
   return elemento
 }
 
@@ -453,7 +457,39 @@ export function MapaEntrega({
       item.marcador.remove()
       pedidosRef.current.delete(id)
     }
-  }, [pedidos])
+
+    // Enquadra todas as entidades da operação (loja + pedidos do dia +
+    // motoboys ativos) no viewport. Único lugar que mexe na câmera sozinho —
+    // sem isso o mapa inicializa num ponto fixo com pitch alto e marcadores
+    // distantes ficam fora da tela, dando a impressão de "mapa vazio".
+    //
+    // Só roda uma vez (seguiuRef): depois disso, o dono pode arrastar/zoomar
+    // à vontade sem a câmera "pular" sozinho a cada polling de 4s.
+    if (!seguiuRef.current) {
+      const pontosParaEnquadrar: Array<[number, number]> = []
+      for (const p of pedidos) {
+        if (p.enderecoLatitude != null && p.enderecoLongitude != null) {
+          pontosParaEnquadrar.push([p.enderecoLongitude, p.enderecoLatitude])
+        }
+      }
+      for (const p of posicoes) {
+        pontosParaEnquadrar.push([p.longitude, p.latitude])
+      }
+      if (lojaRef.current) {
+        const l = lojaRef.current.getLngLat()
+        pontosParaEnquadrar.push([l.lng, l.lat])
+      }
+
+      if (pontosParaEnquadrar.length > 0) {
+        const limites = pontosParaEnquadrar.reduce(
+          (b, p) => b.extend(p),
+          new LngLatBounds(pontosParaEnquadrar[0], pontosParaEnquadrar[0]),
+        )
+        mapa.fitBounds(limites, { padding: 60, maxZoom: 15, duration: 800 })
+        seguiuRef.current = true
+      }
+    }
+  }, [pedidos, posicoes])
 
   // Um marcador por motoboy.
   useEffect(() => {
@@ -538,14 +574,9 @@ export function MapaEntrega({
       motoboysRef.current.delete(id)
     }
 
-    // Centraliza só no primeiro ping: depois disso mexer a câmera sozinho
-    // atrapalharia quem está arrastando o mapa para olhar outra coisa.
-    if (!seguiuRef.current) {
-      const primeira = posicoes[0]
-      mapa.easeTo({ center: [primeira.longitude, primeira.latitude], zoom: 15, duration: 800 })
-      seguiuRef.current = true
-    }
-
+    // Centralização agora vive no auto-fit do useEffect de pedidos, que
+    // enquadra loja + pedidos + motoboys juntos. Centralizar aqui também
+    // "sequestrava" a câmera para o motoboy e escondia pedidos distantes.
   }, [posicoes])
 
   return <div ref={divRef} className={className} />

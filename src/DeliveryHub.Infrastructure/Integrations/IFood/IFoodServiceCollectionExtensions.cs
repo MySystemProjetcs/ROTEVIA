@@ -84,6 +84,14 @@ public static class IFoodServiceCollectionExtensions
     {
         client.BaseAddress = new Uri(baseAddress);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        // Timeout por requisição (plano §3): 10s é o teto de uma chamada ao
+        // iFood antes de desistir. Sem isto o HttpClient ficaria nos 100s
+        // padrão — uma loja travada seguraria o slot do semáforo por minutos.
+        // O timeout da pipeline de resiliência (8s, por loja) é quem dispara
+        // primeiro no polling; este cobre os demais caminhos (confirmação,
+        // detalhe do pedido, autenticação).
+        client.Timeout = TimeSpan.FromSeconds(10);
     }
 
     // O gateway do iFood responde gzip mesmo sem Accept-Encoding na requisição;

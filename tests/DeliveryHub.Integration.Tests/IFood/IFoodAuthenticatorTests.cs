@@ -1,5 +1,6 @@
 using System.Net;
 using DeliveryHub.Infrastructure.Integrations.IFood.Auth;
+using DeliveryHub.Integration.Tests.Fakes;
 using Microsoft.Extensions.Options;
 
 namespace DeliveryHub.Integration.Tests.IFood;

@@ -97,7 +97,8 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 x.ExigeCodigoDeEntrega,
                 x.CodigoConfirmadoEm,
                 x.LoteEntregaId,
-                x.OrdemNaRota))
+                x.OrdemNaRota,
+                x.CodigoDeEntrega))
             .ToListAsync(ct);
     }
 }
