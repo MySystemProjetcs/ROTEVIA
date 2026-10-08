@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../buildMultiTargeting/DeliveryHub.Worker.props" />
-</Project>

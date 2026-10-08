@@ -1,0 +1,5 @@
+{
+  "accessToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzUxMiJ9.eyJzdWIiOiJlNjkwYjczZC01OTI4LTRkMTctODE2ZC01Y2Y5YjgyZTJhOWUiLCJhdWQiOiJvcmRlciIsInNjb3BlIjpbIm9yZGVyIl0sImlzcyI6ImlGb29kIn0.lYqdxjHoOksq8COqJ-VZxzd524MhVzH7hkMfp5zGTpqzp26z5XJwOPHAy7L6oyagUgRfxntKeu0",
+  "type": "bearer",
+  "expiresIn": 21600
+}

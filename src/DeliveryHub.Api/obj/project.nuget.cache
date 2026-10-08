@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "wGA1bem6rzw=",
+  "dgSpecHash": "DYXgqR/vGh8=",
   "success": true,
   "projectFilePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
   "expectedPackageFiles": [
@@ -8,8 +8,6 @@
     "/Users/jonathan/.nuget/packages/messagepack/2.5.187/messagepack.2.5.187.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/messagepack.annotations/2.5.187/messagepack.annotations.2.5.187.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/9.0.9/microsoft.aspnetcore.authentication.jwtbearer.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.aspnetcore.cryptography.internal/9.0.9/microsoft.aspnetcore.cryptography.internal.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.aspnetcore.cryptography.keyderivation/9.0.9/microsoft.aspnetcore.cryptography.keyderivation.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.aspnetcore.signalr.stackexchangeredis/9.0.9/microsoft.aspnetcore.signalr.stackexchangeredis.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.bcl.asyncinterfaces/7.0.0/microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.bcl.cryptography/10.0.2/microsoft.bcl.cryptography.10.0.2.nupkg.sha512",
@@ -26,22 +24,7 @@
     "/Users/jonathan/.nuget/packages/microsoft.entityframeworkcore.analyzers/9.0.9/microsoft.entityframeworkcore.analyzers.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.entityframeworkcore.design/9.0.9/microsoft.entityframeworkcore.design.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.entityframeworkcore.relational/9.0.9/microsoft.entityframeworkcore.relational.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.caching.abstractions/9.0.9/microsoft.extensions.caching.abstractions.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.caching.memory/9.0.9/microsoft.extensions.caching.memory.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.configuration/9.0.9/microsoft.extensions.configuration.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.configuration.abstractions/9.0.9/microsoft.extensions.configuration.abstractions.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.configuration.binder/9.0.9/microsoft.extensions.configuration.binder.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.dependencyinjection/9.0.9/microsoft.extensions.dependencyinjection.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/9.0.9/microsoft.extensions.dependencyinjection.abstractions.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.extensions.dependencymodel/9.0.9/microsoft.extensions.dependencymodel.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.diagnostics/9.0.9/microsoft.extensions.diagnostics.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.diagnostics.abstractions/9.0.9/microsoft.extensions.diagnostics.abstractions.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.http/9.0.9/microsoft.extensions.http.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.logging/9.0.9/microsoft.extensions.logging.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.logging.abstractions/9.0.9/microsoft.extensions.logging.abstractions.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.options/9.0.9/microsoft.extensions.options.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.options.configurationextensions/9.0.9/microsoft.extensions.options.configurationextensions.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/microsoft.extensions.primitives/9.0.9/microsoft.extensions.primitives.9.0.9.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.identitymodel.abstractions/8.22.0/microsoft.identitymodel.abstractions.8.22.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.identitymodel.jsonwebtokens/8.22.0/microsoft.identitymodel.jsonwebtokens.8.22.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/microsoft.identitymodel.logging/8.22.0/microsoft.identitymodel.logging.8.22.0.nupkg.sha512",
@@ -56,19 +39,146 @@
     "/Users/jonathan/.nuget/packages/polly.core/8.8.0/polly.core.8.8.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/stackexchange.redis/2.7.27/stackexchange.redis.2.7.27.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.codedom/6.0.0/system.codedom.6.0.0.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.collections.immutable/7.0.0/system.collections.immutable.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition/7.0.0/system.composition.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition.attributedmodel/7.0.0/system.composition.attributedmodel.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition.convention/7.0.0/system.composition.convention.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition.hosting/7.0.0/system.composition.hosting.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition.runtime/7.0.0/system.composition.runtime.7.0.0.nupkg.sha512",
     "/Users/jonathan/.nuget/packages/system.composition.typedparts/7.0.0/system.composition.typedparts.7.0.0.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.identitymodel.tokens.jwt/8.0.1/system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.io.pipelines/7.0.0/system.io.pipelines.7.0.0.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.reflection.metadata/7.0.0/system.reflection.metadata.7.0.0.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.text.json/9.0.9/system.text.json.9.0.9.nupkg.sha512",
-    "/Users/jonathan/.nuget/packages/system.threading.channels/7.0.0/system.threading.channels.7.0.0.nupkg.sha512"
+    "/Users/jonathan/.nuget/packages/system.identitymodel.tokens.jwt/8.0.1/system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2f33-pr97-265q",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2x83-8g95-xh59",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-cj9g-3mj2-g8vv",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-cxmj-83gh-fp49",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-hv8m-jj95-wg3x",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-q2h6-ghwm-5qm8",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-qhmf-xw27-6rqr",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-v72x-2h86-7f8m",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-vh6j-jc39-fggf",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-w567-gjr2-hm5j",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-wfr3-xj75-pfwh",
+      "projectPath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+      "libraryId": "MessagePack",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }
