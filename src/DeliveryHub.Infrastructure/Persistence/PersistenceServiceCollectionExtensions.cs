@@ -35,6 +35,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IPedidoRepository, PedidoRepository>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IMerchantRepository, MerchantRepository>();
+        services.AddScoped<IIFoodMerchantSnapshotStore, EfIFoodMerchantSnapshotStore>();
         services.AddScoped<ICourierRepository, CourierRepository>();
         services.AddScoped<IRastreioRepository, RastreioRepository>();
         services.AddScoped<IListarPedidos, ListarPedidosQuery>();

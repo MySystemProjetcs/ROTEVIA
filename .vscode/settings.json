@@ -3,19 +3,7 @@
         "DeliveryHub.sln"
     ],
     "editor.semanticTokenColorCustomizations": {
-        "rules": {
-            "interface": {
-                "foreground": "#b8ce82"
-            },
-            "namespace": "#cccccc",
-            "enum": "#b8ce82",
-            "struct": {
-                "foreground": "#86C691"
-            },
-            "inactive": {
-                "foreground": "#6A6A6A"
-            }
-        }
+        "rules": {}
     },
     "editor.tokenColorCustomizations": {
         "textMateRules": [
@@ -30,19 +18,15 @@
                 "settings": {
                     "foreground": "#b8ce82"
                 }
-            },
-            {
-                "scope": "entity.name.type.struct.cs",
-                "settings": {
-                    "foreground": "#86C691"
-                }
-            },
-            {
-                "scope": "variable.other.enummember.cs",
-                "settings": {
-                    "foreground": "#4FC1FF"
-                }
             }
         ]
+    },
+    "csharp-dev-tools.entityFramework.migrationPreferences": {
+        "DeliveryHub.sln": {
+            "startupProject": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Api/DeliveryHub.Api.csproj",
+            "migrationsProject": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Infrastructure/DeliveryHub.Infrastructure.csproj",
+            "dbContextClass": "AppDbContext",
+            "migrationsFolder": "Persistence/Migrations"
+        }
     }
 }

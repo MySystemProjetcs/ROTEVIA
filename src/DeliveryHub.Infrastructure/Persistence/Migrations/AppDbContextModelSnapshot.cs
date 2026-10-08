@@ -474,6 +474,36 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                     b.ToTable("posicoes_entregador", (string)null);
                 });
 
+            modelBuilder.Entity("DeliveryHub.Infrastructure.Persistence.IFoodMerchantSnapshotEntity", b =>
+                {
+                    b.Property<Guid>("MerchantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("merchant_id");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("OpeningHoursJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("opening_hours");
+
+                    b.Property<string>("StatusJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("MerchantId");
+
+                    b.ToTable("ifood_merchant_snapshots", (string)null);
+                });
+
             modelBuilder.Entity("DeliveryHub.Infrastructure.Persistence.IntegrationInboxEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -825,6 +855,15 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                     b.Navigation("EnderecoEntrega");
 
                     b.Navigation("Pagamento")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DeliveryHub.Infrastructure.Persistence.IFoodMerchantSnapshotEntity", b =>
+                {
+                    b.HasOne("DeliveryHub.Domain.Merchants.Merchant", null)
+                        .WithMany()
+                        .HasForeignKey("MerchantId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

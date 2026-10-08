@@ -5,14 +5,23 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-DOTNET="/opt/homebrew/opt/dotnet@9/bin/dotnet"
-export PATH="/opt/homebrew/opt/dotnet@9/bin:$PATH"
+DOTNET="${DOTNET:-dotnet}"
 export ASPNETCORE_ENVIRONMENT="Development"
 # Credenciais batem com o docker-compose.yml. Env vence user-secrets, então o
 # ambiente sobe igual em qualquer máquina, sem depender de secret local.
 export ConnectionStrings__Default="Host=localhost;Port=5432;Database=deliveryhub;Username=deliveryhub;Password=deliveryhub_dev"
 export ConnectionStrings__Redis="localhost:6379"
 export Worker__HealthUrl="http://localhost:5010"
+
+# Não deixe o Vite iniciar apontando para uma API antiga que já ocupa a porta.
+# Isso costuma acontecer após mudar o TargetFramework/SDK: o navegador continua
+# atendido, mas as rotas novas respondem 404 até reiniciar o processo anterior.
+if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:5300 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "ERRO: já existe um processo ouvindo em http://localhost:5300."
+  lsof -nP -iTCP:5300 -sTCP:LISTEN
+  echo "Pare o processo antigo com Ctrl+C no terminal que o iniciou e execute ./dev.sh novamente."
+  exit 1
+fi
 
 pids=()
 cleanup() {

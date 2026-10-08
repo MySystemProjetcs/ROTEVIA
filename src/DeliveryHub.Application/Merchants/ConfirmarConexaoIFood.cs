@@ -1,5 +1,6 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.SharedKernel;
+using System.Net;
 
 namespace DeliveryHub.Application.Merchants;
 
@@ -33,8 +34,18 @@ public sealed class ConfirmarConexaoIFood : IConfirmarConexaoIFood
         if (verifier is null)
             return Result.Failure(DeliveryHub.Domain.Merchants.MerchantErrors.ConexaoNaoIniciada);
 
-        var token = await _connector.TrocarPorTokenAsync(authorizationCode, verifier, ct);
-        var ifoodMerchantId = await _connector.DescobrirMerchantIdAsync(token.AccessToken, ct);
+        TokenDistribuidoIFood token;
+        Guid ifoodMerchantId;
+        try
+        {
+            token = await _connector.TrocarPorTokenAsync(authorizationCode, verifier, ct);
+            ifoodMerchantId = await _connector.DescobrirMerchantIdAsync(token.AccessToken, ct);
+        }
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return Result.Failure(ConexaoIFoodErrors.AutenticacaoIntegradaFalhou);
+        }
 
         // A troca com o iFood já aconteceu neste ponto — não dá para desfazer.
         // Ainda assim, não gravar em cima de outro restaurante já dono dessa

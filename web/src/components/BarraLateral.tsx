@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useSessao } from '@/auth/SessaoProvider'
 import { AvatarUsuario } from '@/components/AvatarUsuario'
 import {
@@ -126,6 +126,8 @@ function ItemNav({
 }
 
 export function BarraLateral() {
+  const location = useLocation()
+  const { expandida, ehCelular, definirAbertaNoCelular } = useBarraLateral()
   const { usuario, sair } = useSessao()
   const ehDono = usuario?.papel === 'DonoRestaurante'
   const ehEntregador = usuario?.papel === 'Entregador'
@@ -137,6 +139,9 @@ export function BarraLateral() {
 
   const [menuAberto, setMenuAberto] = useState(false)
   const [perfilAberto, setPerfilAberto] = useState(false)
+  const [configuracoesAbertas, setConfiguracoesAbertas] = useState(
+    () => location.pathname.startsWith('/configuracoes/'),
+  )
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -244,7 +249,66 @@ export function BarraLateral() {
             <RotuloSecao>Gestão</RotuloSecao>
             <ItemNav para="/cardapio"      icone={<IconeCardapio />}     rotulo="Cardápio" />
             <ItemNav para="/relatorios"    icone={<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>} rotulo="Relatórios" />
-            <ItemNav para="/configuracoes" icone={<IconeConfig />}       rotulo="Configurações" />
+            <div>
+              <button
+                type="button"
+                aria-expanded={configuracoesAbertas}
+                aria-controls="submenu-configuracoes"
+                onClick={() => setConfiguracoesAbertas((abertas) => !abertas)}
+                title={!expandida ? 'Configurações' : undefined}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-[10px] py-2.5 text-[13px] transition-colors',
+                  !expandida ? 'justify-center px-0' : 'px-2.5',
+                  location.pathname.startsWith('/configuracoes/')
+                    ? 'border border-[rgba(79,70,229,0.35)] font-semibold text-[#EEF0FF]'
+                    : 'border border-transparent font-normal text-texto-suave hover:text-texto hover:bg-superficie-afundada',
+                )}
+                style={location.pathname.startsWith('/configuracoes/')
+                  ? { background: 'linear-gradient(180deg, rgba(79,70,229,0.22), rgba(79,70,229,0.08))' }
+                  : undefined}
+              >
+                <IconeConfig className="size-4 shrink-0" />
+                {expandida && <span className="flex-1 truncate text-left">Configurações</span>}
+                {expandida && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                    className={`transition-transform ${configuracoesAbertas ? 'rotate-180' : ''}`}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                )}
+              </button>
+
+              {configuracoesAbertas && (
+                <div id="submenu-configuracoes" className="ml-3 mt-1 border-l border-borda pl-2">
+                  <NavLink
+                    to="/configuracoes/horarios"
+                    onClick={() => { if (ehCelular) definirAbertaNoCelular(false) }}
+                    title={!expandida ? 'Horários' : undefined}
+                    className={({ isActive }) => cn(
+                      'flex items-center gap-2.5 rounded-[10px] py-2 text-[12px] transition-colors',
+                      !expandida ? 'justify-center px-0' : 'px-2.5',
+                      isActive
+                        ? 'font-semibold text-[#EEF0FF]'
+                        : 'text-texto-suave hover:bg-superficie-afundada hover:text-texto',
+                    )}
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                    {expandida && <span>Horários</span>}
+                  </NavLink>
+                </div>
+              )}
+            </div>
           </>
         )}
       </ConteudoDaBarra>

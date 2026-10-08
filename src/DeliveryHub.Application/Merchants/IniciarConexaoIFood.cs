@@ -1,5 +1,6 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.SharedKernel;
+using System.Net;
 
 namespace DeliveryHub.Application.Merchants;
 
@@ -12,6 +13,11 @@ public static class ConexaoIFoodErrors
         "merchant.loja_ja_vinculada",
         "Essa loja do iFood já está vinculada a outro restaurante no sistema.",
         ErrorType.Conflict);
+
+    public static readonly Error AutenticacaoIntegradaFalhou = new(
+        "ifood.autenticacao_integrada_falhou",
+        "HOUVE ERRO NA SUA AUTENTICAÇÃO INTEGRADA. ENTRE EM CONTATO COM O SUPORTE.",
+        ErrorType.Failure);
 }
 
 public sealed record ConexaoIniciada(string UserCode, string VerificationUrlComplete, DateTimeOffset ExpiraEm);
@@ -40,7 +46,16 @@ public sealed class IniciarConexaoIFood : IIniciarConexaoIFood
         if (merchant is null)
             return Result.Failure<ConexaoIniciada>(ConexaoIFoodErrors.MerchantNaoEncontrado);
 
-        var codigo = await _connector.SolicitarCodigoAsync(ct);
+        CodigoDeVinculoIFood codigo;
+        try
+        {
+            codigo = await _connector.SolicitarCodigoAsync(ct);
+        }
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return Result.Failure<ConexaoIniciada>(ConexaoIFoodErrors.AutenticacaoIntegradaFalhou);
+        }
 
         var resultado = merchant.IniciarConexaoIFood(codigo.UserCode, codigo.AuthorizationCodeVerifier, codigo.ExpiraEm);
         if (resultado.IsFailure)

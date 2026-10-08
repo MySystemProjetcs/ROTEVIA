@@ -6,8 +6,12 @@ namespace DeliveryHub.Infrastructure.Persistence;
 
 internal sealed class ListarPedidosQuery : IListarPedidos
 {
-    private static readonly StatusPedido[] Ativos =
-    [
+    // HashSet (não array nem collection-expression): no .NET 10, `T[].Contains`
+    // e `[..].Contains` passam a resolver para MemoryExtensions.Contains
+    // (ReadOnlySpan<T>,T), que o EF Core não consegue funcletizar e explode a
+    // tradução da query. HashSet<T>.Contains é instância, resolve sem ambiguidade.
+    private static readonly HashSet<StatusPedido> Ativos = new()
+    {
         StatusPedido.Recebido,
         StatusPedido.Confirmado,
         StatusPedido.EmPreparo,
@@ -17,7 +21,7 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         StatusPedido.EmRota,
         StatusPedido.Chegou,
         StatusPedido.Cobrar
-    ];
+    };
 
     // Mesmo fuso do resumo do painel: "hoje" para o lojista começa à meia-noite
     // de São Paulo, não em UTC.

@@ -14,6 +14,8 @@ import { NovoPedidoProvider } from '@/pedidos/NovoPedidoContext'
 import { PerfilProvider } from '@/perfil/PerfilProvider'
 import { PaginaGanhos } from '@/entregador/PaginaGanhos'
 import { PaginaWhatsapp } from '@/whatsapp/PaginaWhatsapp'
+import { EstadoLojaIFood } from '@/pedidos/EstadoLojaIFood'
+import { PaginaHorariosFuncionamento } from '@/configuracoes/PaginaHorariosFuncionamento'
 
 export function App() {
   return (
@@ -53,6 +55,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
     localizacao.pathname === '/motoboys'      ? 'Motoboys'
     : localizacao.pathname === '/whatsapp'    ? 'Conversas'
     : localizacao.pathname === '/meus-ganhos' ? 'Meus ganhos'
+    : localizacao.pathname.startsWith('/configuracoes/') ? 'Configurações'
     : null
 
   return (
@@ -66,6 +69,14 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
             <span className="font-mono text-rotulo uppercase text-texto-mudo">
               {formatarDataHora(agora)}
             </span>
+            {ehDono && localizacao.pathname === '/' && (
+              <div className="mt-1.5">
+                <EstadoLojaIFood
+                  merchantId={usuario.merchantId}
+                  nomeFallback={usuario.nomeRestaurante}
+                />
+              </div>
+            )}
             <div className="flex items-center gap-2">
               {/* Sem lg:hidden: a barra recolhe pra trilho de ícones no
                   desktop também (Casca.tsx já sabe fazer isso), não só abre
@@ -125,6 +136,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
               <Route path="/"         element={<PainelOperacao />} />
               <Route path="/motoboys" element={<PaginaMotoboys />} />
               <Route path="/whatsapp" element={<PaginaWhatsapp />} />
+              <Route path="/configuracoes/horarios" element={<PaginaHorariosFuncionamento />} />
             </Routes>
           )}
         </main>

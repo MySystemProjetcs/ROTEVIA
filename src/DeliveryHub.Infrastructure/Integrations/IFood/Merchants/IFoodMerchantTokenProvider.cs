@@ -35,7 +35,19 @@ internal sealed class IFoodMerchantTokenProvider : IIFoodMerchantTokenProvider
         if (conexao.TokenExpiraEm - agora > MargemDeRenovacao)
             return new AuthenticationHeaderValue(conexao.TipoToken ?? "bearer", conexao.AccessToken);
 
-        var renovado = await _connector.RenovarTokenAsync(conexao.RefreshToken!, ct);
+        TokenDistribuidoIFood renovado;
+        try
+        {
+            renovado = await _connector.RenovarTokenAsync(conexao.RefreshToken!, ct);
+        }
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is System.Net.HttpStatusCode.BadRequest
+                or System.Net.HttpStatusCode.Unauthorized
+                or System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new IFoodMerchantAuthenticationException(ex);
+        }
+
         merchant.AtualizarTokens(renovado.AccessToken, renovado.RefreshToken, renovado.Type, renovado.ExpiraEm);
         await _merchants.SalvarAsync(ct);
 

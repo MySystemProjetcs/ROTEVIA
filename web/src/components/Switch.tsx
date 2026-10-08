@@ -6,6 +6,7 @@ interface SwitchProps {
   marcado: boolean
   onMudar: (marcado: boolean) => void
   rotulo: string
+  disabled?: boolean
   /** Aparece dentro da trilha quando ligado. */
   indicador?: ReactNode
   /** Aparece dentro da trilha quando desligado. */
@@ -21,6 +22,7 @@ export function Switch({
   marcado,
   onMudar,
   rotulo,
+  disabled = false,
   indicador,
   indicadorDesligado,
   classeLigado = 'bg-sucesso',
@@ -28,12 +30,13 @@ export function Switch({
   const id = useId()
 
   return (
-    <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-2.5">
+    <label htmlFor={id} className={`inline-flex items-center gap-2.5 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
       <input
         id={id}
         type="checkbox"
         role="switch"
         checked={marcado}
+        disabled={disabled}
         onChange={(e) => onMudar(e.target.checked)}
         className="peer sr-only"
       />

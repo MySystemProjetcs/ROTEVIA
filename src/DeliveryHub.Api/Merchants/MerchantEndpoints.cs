@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
@@ -10,6 +11,13 @@ public sealed record ConfirmarConexaoRequest(string AuthorizationCode);
 public sealed record DefinirTaxaRequest(decimal Valor);
 public sealed record DefinirNomeRequest(string Nome);
 public sealed record TaxaEntregaResponse(decimal Valor);
+public sealed record ConfigurarHorarioFuncionamentoRequest(IReadOnlyList<IFoodOpeningHourShift> Shifts);
+public sealed record ContextoIFoodResponse(
+    JsonElement Comerciante,
+    JsonElement Status,
+    JsonElement HorarioFuncionamento,
+    DateTimeOffset AtualizadoEm,
+    bool Desatualizado);
 
 // Latitude/longitude opcionais: só são necessárias quando o geocoder não
 // encontra o logradouro, o que acontece de verdade em rua fora do OpenStreetMap.
@@ -31,10 +39,101 @@ public static class MerchantEndpoints
 
         group.MapPost("/{merchantId:guid}/ifood/iniciar-conexao", IniciarConexao);
         group.MapPost("/{merchantId:guid}/ifood/confirmar", ConfirmarConexao);
+        group.MapGet("/ifood/contexto", ObterContextoIFood);
+        group.MapGet("/ifood/horario-funcionamento", ObterHorarioFuncionamentoIFood);
+        group.MapPut("/ifood/horario-funcionamento", ConfigurarHorarioFuncionamentoIFood);
         group.MapPut("/{merchantId:guid}/nome", DefinirNome);
         group.MapPut("/{merchantId:guid}/taxa-entrega", DefinirTaxa);
         group.MapGet("/{merchantId:guid}/endereco", ObterEndereco);
         group.MapPut("/{merchantId:guid}/endereco", DefinirEndereco);
+    }
+
+    private static async Task<Results<Ok<ContextoIFoodResponse>, ProblemHttpResult>> ObterContextoIFood(
+        ITenantContext tenant,
+        IObterContextoIFood obter,
+        CancellationToken ct)
+    {
+        if (tenant.MerchantId is not Guid merchantId)
+            return TypedResults.Problem(
+                title: "A sessão não está vinculada a um restaurante.",
+                detail: "ifood.merchant_contexto_indisponivel",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        var resultado = await obter.ExecutarAsync(merchantId, ct);
+        if (resultado.IsFailure)
+        {
+            var statusCode = resultado.Error.Type switch
+            {
+                _ when resultado.Error.Code == ConexaoIFoodErrors.AutenticacaoIntegradaFalhou.Code =>
+                    StatusCodes.Status502BadGateway,
+                ErrorType.NotFound => StatusCodes.Status404NotFound,
+                ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.Validation => StatusCodes.Status400BadRequest,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorType.Failure => StatusCodes.Status503ServiceUnavailable,
+                _ => StatusCodes.Status500InternalServerError
+            };
+
+            return TypedResults.Problem(
+                title: resultado.Error.Message,
+                detail: resultado.Error.Code,
+                statusCode: statusCode);
+        }
+
+        var contexto = resultado.Value;
+        return TypedResults.Ok(new ContextoIFoodResponse(
+            JsonDocument.Parse(contexto.DetailsJson).RootElement.Clone(),
+            JsonDocument.Parse(contexto.StatusJson).RootElement.Clone(),
+            JsonDocument.Parse(contexto.OpeningHoursJson).RootElement.Clone(),
+            contexto.UpdatedAt,
+            contexto.IsStale));
+    }
+
+    private static async Task<Results<Ok<JsonElement>, NotFound, ProblemHttpResult>> ObterHorarioFuncionamentoIFood(
+        ITenantContext tenant,
+        IObterHorarioFuncionamentoIFood obter,
+        CancellationToken ct)
+    {
+        if (tenant.MerchantId is not Guid merchantId)
+            return TypedResults.Problem(
+                title: "A sessão não está vinculada a um restaurante.",
+                detail: "ifood.merchant_contexto_indisponivel",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        var resultado = await obter.ExecutarAsync(merchantId, ct);
+        if (resultado.IsFailure)
+            return ProblemaDe(resultado.Error);
+
+        using var documento = JsonDocument.Parse(resultado.Value);
+        var horarios = documento.RootElement.Clone();
+        if (horarios.ValueKind == JsonValueKind.Array && horarios.GetArrayLength() == 0)
+            return TypedResults.NotFound();
+
+        return TypedResults.Ok(horarios);
+    }
+
+    private static async Task<Results<Created<JsonElement>, ProblemHttpResult>> ConfigurarHorarioFuncionamentoIFood(
+        ConfigurarHorarioFuncionamentoRequest request,
+        ITenantContext tenant,
+        IConfigurarHorarioFuncionamentoIFood configurar,
+        CancellationToken ct)
+    {
+        if (tenant.MerchantId is not Guid merchantId)
+            return TypedResults.Problem(
+                title: "A sessão não está vinculada a um restaurante.",
+                detail: "ifood.merchant_contexto_indisponivel",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        var resultado = await configurar.ExecutarAsync(
+            merchantId,
+            new IFoodOpeningHoursInput(request.Shifts),
+            ct);
+
+        if (resultado.IsFailure)
+            return ProblemaDe(resultado.Error);
+
+        using var documento = JsonDocument.Parse(resultado.Value);
+        return TypedResults.Created((string?)null, documento.RootElement.Clone());
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DefinirNome(
@@ -148,12 +247,15 @@ public static class MerchantEndpoints
     private static ProblemHttpResult ProblemaDe(Error erro) => TypedResults.Problem(
         title: erro.Message,
         detail: erro.Code,
-        statusCode: erro.Type switch
-        {
-            ErrorType.NotFound => StatusCodes.Status404NotFound,
-            ErrorType.Conflict => StatusCodes.Status409Conflict,
-            ErrorType.Validation => StatusCodes.Status400BadRequest,
-            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-            _ => StatusCodes.Status500InternalServerError
-        });
+        statusCode: erro.Code == ConexaoIFoodErrors.AutenticacaoIntegradaFalhou.Code
+            ? StatusCodes.Status502BadGateway
+            : erro.Type switch
+            {
+                ErrorType.NotFound => StatusCodes.Status404NotFound,
+                ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.Validation => StatusCodes.Status400BadRequest,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorType.Failure => StatusCodes.Status503ServiceUnavailable,
+                _ => StatusCodes.Status500InternalServerError
+            });
 }

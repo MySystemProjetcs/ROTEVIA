@@ -168,15 +168,6 @@ function ChipOrigem({ origem }: { origem: Pedido['origem'] }) {
   return <span className={`text-rotulo uppercase tracking-wider ${cor}`}>{rotulo}</span>
 }
 
-function IconeRelogio() {
-  return (
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  )
-}
-
 function tempoDesde(iso: string, agora: number): string {
   const minutos = Math.max(0, Math.round((agora - new Date(iso).getTime()) / 60000))
   if (minutos < 60) return `${minutos} min`

@@ -54,6 +54,12 @@ public static class IFoodServiceCollectionExtensions
         // autenticador Centralizado.
         services.AddScoped<IIFoodMerchantConnector, IFoodMerchantConnector>();
         services.AddScoped<IIFoodMerchantTokenProvider, IFoodMerchantTokenProvider>();
+        services.AddScoped<IIFoodMerchantContextGateway, IFoodMerchantContextGateway>();
+        services.AddScoped<IIFoodOpeningHoursGateway, IFoodMerchantContextGateway>();
+        services.AddScoped<IObterContextoIFood, ObterContextoIFood>();
+        services.AddScoped<IObterHorarioFuncionamentoIFood, ObterHorarioFuncionamentoIFood>();
+        services.AddScoped<IConfigurarHorarioFuncionamentoIFood, CriarHorarioFuncionamentoIFood>();
+        services.AddSingleton<IFoodMerchantContextCache>();
 
         services
             .AddHttpClient(IFoodHttpClients.Authentication, client => Configure(client, AuthenticationBaseAddress))
@@ -65,6 +71,10 @@ public static class IFoodServiceCollectionExtensions
 
         services
             .AddHttpClient(IFoodHttpClients.MerchantDistributed, client => Configure(client, MerchantBaseAddress))
+            .ConfigurePrimaryHttpMessageHandler(PrimaryHandler);
+
+        services
+            .AddHttpClient<IFoodMerchantDataClient>(client => Configure(client, MerchantBaseAddress))
             .ConfigurePrimaryHttpMessageHandler(PrimaryHandler);
 
         services
