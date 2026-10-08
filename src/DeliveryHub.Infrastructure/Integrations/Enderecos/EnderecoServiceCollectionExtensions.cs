@@ -15,7 +15,7 @@ public static class EnderecoServiceCollectionExtensions
         {
             // O Nominatim exige User-Agent identificando a aplicação e recusa
             // quem não manda (política de uso do OpenStreetMap).
-            http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ROTEVIA", "1.0"));
+            http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ToolsDelivery", "1.0"));
 
             // Serviço de terceiro no caminho de um formulário: melhor desistir
             // rápido e deixar o lojista digitar do que travar a tela.

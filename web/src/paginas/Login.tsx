@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import imagemCozinha from '@/assets/d1456210-b6e1-4a62-8dcd-49ea3bcc6abe.jpeg'
-import iconeApp from '@/assets/rotevia-icon.png'
+import iconeApp from '@/assets/toolsdelivery-icon.png'
 import { esquecerEmail, lerEmailSalvo, pedirParaNavegadorSalvar, salvarEmail } from '@/auth/acessoSalvo'
 import { useSessao } from '@/auth/SessaoProvider'
 import { Botao } from '@/components/Botao'
@@ -30,7 +30,7 @@ const SEQUENCIA = {
 
 function estiloEntrada(delayMs: number): React.CSSProperties {
   return {
-    animation: 'rotevia-entrada 480ms ease-out both',
+    animation: 'toolsdelivery-entrada 480ms ease-out both',
     animationDelay: `${delayMs}ms`,
   }
 }
@@ -72,7 +72,7 @@ export function Login() {
           prefers-reduced-motion (vira identidade imediata). Vivem na página
           pra não poluir o theme.css global com animação só desta tela. */}
       <style>{`
-        @keyframes rotevia-entrada {
+        @keyframes toolsdelivery-entrada {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
@@ -84,8 +84,8 @@ export function Login() {
       {/* ── Painel esquerdo: marca + narrativa + fluxo ────────────────────── */}
       <section className="relative flex flex-col justify-between gap-10 overflow-hidden bg-superficie px-8 py-10 lg:px-12 lg:py-14">
         <div data-entrada style={estiloEntrada(SEQUENCIA.marcaEsquerda)} className="flex items-center gap-3">
-          <LogoRotevia />
-          <span className="text-titulo text-texto">rotevia</span>
+          <LogoToolsDelivery />
+          <span className="text-titulo text-texto">ToolsDelivery</span>
         </div>
 
         <div className="flex max-w-xl flex-col gap-5">
@@ -175,7 +175,7 @@ export function Login() {
               style={estiloEntrada(SEQUENCIA.rotuloBemVindo)}
               className="text-rotulo uppercase tracking-[0.14em] text-marca-400"
             >
-              Bem-vindo à Rotevia
+              Bem-vindo à ToolsDelivery
             </span>
             <h2
               id="login-titulo"
@@ -249,7 +249,7 @@ export function Login() {
         </div>
 
         <footer className="pt-4 text-center text-apoio text-texto-fraco">
-          Rotevia · Gestão que acompanha seu restaurante.
+          ToolsDelivery · Gestão que acompanha seu restaurante.
         </footer>
       </section>
     </main>
@@ -257,7 +257,7 @@ export function Login() {
 }
 
 // ── Marcas gráficas e ícones da tela de login ──────────────────────────────
-function LogoRotevia() {
+function LogoToolsDelivery() {
   return (
     <img
       src={iconeApp}

@@ -20,7 +20,10 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/auth/login", Login).AllowAnonymous().WithTags("Auth");
+        app.MapPost("/api/auth/login", Login)
+            .AllowAnonymous()
+            .RequireRateLimiting("login")
+            .WithTags("Auth");
 
         var admin = app.MapGroup("/api/admin")
             .WithTags("Admin")

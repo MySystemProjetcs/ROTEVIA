@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using DeliveryHub.Api.Diagnostics;
 using DeliveryHub.Api.Identity;
 using DeliveryHub.Api.Integracoes;
@@ -76,6 +77,28 @@ builder.Services
 builder.Services.AddPoliticasDeAutorizacao();
 builder.Services.AddHttpContextAccessor();
 
+// ProblemDetails + ExceptionHandler globais: sem isso, uma exceção não tratada
+// vaza mensagem interna (ex.: "Jwt:ChaveAssinatura não configurada") no body
+// quando a página de desenvolvedor não está ativa.
+builder.Services.AddProblemDetails();
+
+// Rate limit: janela fixa de 10 tentativas por minuto por IP no fluxo de login
+// e cadastro. É proteção de infraestrutura contra brute-force — o PBKDF2 é
+// lento, mas sem throttling o atacante paga o custo do lado dele.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 // O tenant sai do token. Este registro é o que separa a API do worker: aqui o
 // isolamento vale, lá o processo opera entre tenants por natureza.
 builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
@@ -121,6 +144,13 @@ var app = builder.Build();
 
 await app.SemearAdministradorAsync();
 
+// Handler global de exceção: converte falha não tratada em ProblemDetails,
+// sem revelar stack trace nem mensagem interna. Em Development o ASP.NET
+// mantém a página de diagnóstico por padrão.
+if (!app.Environment.IsDevelopment())
+    app.UseExceptionHandler();
+
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

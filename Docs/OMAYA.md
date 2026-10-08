@@ -1,7 +1,7 @@
 # OMAYA.md
 
 ## Resumo
-ROTEVIA/DeliveryHub é uma plataforma multi-tenant de operação de pedidos e entregas para restaurantes, com API .NET, worker de ingestão, frontend React/Vite, rastreamento em tempo real e integrações com marketplaces/WhatsApp.
+ToolsDelivery/DeliveryHub é uma plataforma multi-tenant de operação de pedidos e entregas para restaurantes, com API .NET, worker de ingestão, frontend React/Vite, rastreamento em tempo real e integrações com marketplaces/WhatsApp.
 
 ## Stack
 - Backend: .NET 9 nos projetos atualmente observados; `global.json` exige SDK `9.0.121`.

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useEhDesktop } from '@/lib/useEhDesktop'
 import { ContextoDaBarraLateral } from './contexto'
 
-const CHAVE = 'rotevia.barra-lateral'
+const CHAVE = 'toolsdelivery.barra-lateral'
 
 // Cmd+B no Mac, Ctrl+B no resto. Mesmo atalho do modelo do shadcn, e o mesmo
 // que editores usam para a barra lateral — quem trabalha o dia todo no painel

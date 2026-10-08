@@ -87,7 +87,7 @@ export function ConfirmarConvite() {
             <>
               <p className="mt-2 text-center text-apoio text-texto-suave">
                 Olá, {previa.nomeEntregador}. Você foi convidado por {previa.nomeLoja} para ser
-                entregador no ROTEVIA. Crie sua senha para continuar.
+                entregador no ToolsDelivery. Crie sua senha para continuar.
               </p>
 
               <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4">

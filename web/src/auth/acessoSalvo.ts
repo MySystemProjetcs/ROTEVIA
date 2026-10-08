@@ -10,7 +10,7 @@
 // CLAUDE.md já proíbe localStorage até para o token, que é bem menos sensível:
 // token expira, senha o lojista reusa no banco.
 
-const CHAVE_EMAIL = 'rotevia.acesso.email'
+const CHAVE_EMAIL = 'toolsdelivery.acesso.email'
 
 export function lerEmailSalvo(): string {
   try {

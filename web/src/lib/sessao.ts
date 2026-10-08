@@ -8,8 +8,8 @@ import type { PapelUsuario } from '@/dominio/pedido'
 // SecureStorage), nenhuma tela muda.
 let tokenEmMemoria: string | null = null
 
-const CHAVE_TOKEN = 'rotevia.access_token'
-const CHAVE_SESSAO = 'rotevia.sessao'
+const CHAVE_TOKEN = 'toolsdelivery.access_token'
+const CHAVE_SESSAO = 'toolsdelivery.sessao'
 
 function lerStorage(chave: string): string | null {
   try {

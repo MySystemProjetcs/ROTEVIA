@@ -84,7 +84,7 @@ public sealed class ConvidarEntregador : IConvidarEntregador
     private async Task<bool> TentarEnviarConviteAsync(
         Guid merchantId, string telefone, string nome, string conviteUrl, Guid linkId, CancellationToken ct)
     {
-        var texto = $"Você foi convidado para ser entregador no ROTEVIA. Toque no link para criar sua senha: {conviteUrl}";
+        var texto = $"Você foi convidado para ser entregador no ToolsDelivery. Toque no link para criar sua senha: {conviteUrl}";
 
         try
         {

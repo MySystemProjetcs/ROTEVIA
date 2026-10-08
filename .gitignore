@@ -1,0 +1,37 @@
+# .NET
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+*.user
+*.suo
+.vs/
+
+# Secrets locais (user-secrets ficam fora do repo por padrão, estes evitam acidentes)
+appsettings.Local.json
+appsettings.*.Local.json
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Node / Vite (os projetos web/ e whatsapp-worker/ já têm seus próprios .gitignore,
+# este é a rede de segurança caso alguém crie node_modules fora deles)
+node_modules/
+dist/
+.vite/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Logs / dumps
+*.log
+*.heapsnapshot
+coverage/
+TestResults/

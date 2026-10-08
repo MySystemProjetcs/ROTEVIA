@@ -1,7 +1,7 @@
-import marca from '@/assets/rotevia.svg'
+import marca from '@/assets/toolsdelivery.svg'
 import { cn } from '@/lib/cn'
 
-const NOME = 'ROTEVIA'
+const NOME = 'ToolsDelivery'
 
 type TamanhoLogo = 'compacto' | 'medio' | 'grande'
 

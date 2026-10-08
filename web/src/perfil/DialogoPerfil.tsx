@@ -433,7 +433,7 @@ export function DialogoPerfil({ aberto, onFechar }: { aberto: boolean; onFechar:
         {perfil && (
           <div className="flex flex-col">
             <LinhaEditavel rotulo="E-mail" valor={perfil.email} tipo="email" onSalvar={alterarEmail} />
-            <Linha rotulo="Na ROTEVIA desde" valor={data} />
+            <Linha rotulo="Na ToolsDelivery desde" valor={data} />
 
             {perfil.loja && (
               <>
