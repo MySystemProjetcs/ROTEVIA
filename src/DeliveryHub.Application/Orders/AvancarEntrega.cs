@@ -1,6 +1,8 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DeliveryHub.Application.Orders;
 
@@ -26,29 +28,41 @@ public sealed class AvancarEntrega : IAvancarEntrega
     private readonly ICourierRepository _couriers;
     private readonly IMerchantRepository _merchants;
     private readonly INotificadorPainel _notificador;
+    private readonly ILogger<AvancarEntrega> _logger;
 
     public AvancarEntrega(
         IPedidoRepository pedidos, ICourierRepository couriers,
-        IMerchantRepository merchants, INotificadorPainel notificador)
+        IMerchantRepository merchants, INotificadorPainel notificador,
+        ILogger<AvancarEntrega>? logger = null)
     {
         _pedidos = pedidos;
         _couriers = couriers;
         _merchants = merchants;
         _notificador = notificador;
+        _logger = logger ?? NullLogger<AvancarEntrega>.Instance;
     }
 
     public async Task<Result> ExecutarAsync(Guid usuarioLogadoId, Guid pedidoId, AcaoDeEntrega acao, CancellationToken ct)
     {
         var courier = await _couriers.ObterPorUsuarioIdAsync(usuarioLogadoId, ct);
         if (courier is null)
+        {
+            _logger.LogWarning("Ação de entrega recusada: usuário sem entregador associado. PedidoId={PedidoId} Ação={Acao}", pedidoId, acao);
             return Result.Failure(PedidoErrors.EntregadorNaoPertenceAoPedido);
+        }
 
         var pedido = await _pedidos.ObterParaEntregadorAsync(pedidoId, ct);
 
         // Mesma mensagem pra "pedido não existe" e "não é seu": não revela
         // que o pedido existe pra quem não foi designado pra ele.
         if (pedido is null || pedido.EntregadorId != courier.Id)
+        {
+            _logger.LogWarning("Ação de entrega recusada: pedido não atribuído ao entregador. PedidoId={PedidoId} EntregadorId={EntregadorId} Ação={Acao}",
+                pedidoId, courier.Id, acao);
             return Result.Failure(PedidoErrors.EntregadorNaoPertenceAoPedido);
+        }
+
+        var statusAnterior = pedido.Status;
 
         var resultado = acao switch
         {
@@ -64,7 +78,11 @@ public sealed class AvancarEntrega : IAvancarEntrega
         };
 
         if (resultado.IsFailure)
+        {
+            _logger.LogWarning("Domínio recusou ação de entrega. PedidoId={PedidoId} MerchantId={MerchantId} EntregadorId={EntregadorId} Ação={Acao} Status={Status} Erro={Erro}",
+                pedido.Id, pedido.MerchantId, courier.Id, acao, statusAnterior, resultado.Error.Code);
             return resultado;
+        }
 
         // Fato gerador do ganho: finalizar grava o snapshot da taxa vigente.
         // Sem entregador não gera repasse (fica nulo).
@@ -82,12 +100,18 @@ public sealed class AvancarEntrega : IAvancarEntrega
             {
                 var repasse = pedido.RegistrarRepasseAoEntregador(merchant.TaxaPadraoPorEntrega);
                 if (repasse.IsFailure)
+                {
+                    _logger.LogWarning("Registro de repasse recusado. PedidoId={PedidoId} MerchantId={MerchantId} Erro={Erro}",
+                        pedido.Id, pedido.MerchantId, repasse.Error.Code);
                     return repasse;
+                }
             }
         }
 
         await _pedidos.SalvarAsync(ct);
         await _notificador.ResumoAtualizadoAsync(pedido.MerchantId, ct);
+        _logger.LogInformation("Ação de entrega concluída. PedidoId={PedidoId} MerchantId={MerchantId} EntregadorId={EntregadorId} Ação={Acao} StatusAnterior={StatusAnterior} StatusNovo={StatusNovo} RepasseRegistrado={RepasseRegistrado}",
+            pedido.Id, pedido.MerchantId, courier.Id, acao, statusAnterior, pedido.Status, pedido.ValorPagoAoEntregador.HasValue);
         return Result.Success();
     }
 }

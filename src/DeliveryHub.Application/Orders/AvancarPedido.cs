@@ -1,6 +1,9 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace DeliveryHub.Application.Orders;
 
@@ -32,25 +35,41 @@ public sealed class AvancarPedido : IAvancarPedido
     private readonly IPedidoRepository _pedidos;
     private readonly IOrderSource _origem;
     private readonly INotificadorPainel _notificador;
+    private readonly ILogger<AvancarPedido> _logger;
 
-    public AvancarPedido(IPedidoRepository pedidos, IOrderSource origem, INotificadorPainel notificador)
+    public AvancarPedido(
+        IPedidoRepository pedidos,
+        IOrderSource origem,
+        INotificadorPainel notificador,
+        ILogger<AvancarPedido>? logger = null)
     {
         _pedidos = pedidos;
         _origem = origem;
         _notificador = notificador;
+        _logger = logger ?? NullLogger<AvancarPedido>.Instance;
     }
 
     public async Task<Result> ExecutarAsync(Guid pedidoId, AcaoDePedido acao, CancellationToken ct)
     {
+        var duracao = Stopwatch.StartNew();
         var pedido = await _pedidos.ObterPorIdAsync(pedidoId, ct);
         if (pedido is null)
+        {
+            _logger.LogWarning("Transição de pedido recusada: pedido não encontrado. PedidoId={PedidoId} Ação={Acao}", pedidoId, acao);
             return Result.Failure(AvancarPedidoErrors.PedidoNaoEncontrado);
+        }
+
+        var statusAnterior = pedido.Status;
 
         // Checa a pré-condição do domínio antes de avisar a origem: sem isso
         // o iFood saberia que o pedido "saiu" mesmo sem motoboy alocado, e só
         // depois a gente descobriria que o domínio recusa.
         if (acao == AcaoDePedido.Despachar && pedido.EntregadorId is null)
+        {
+            _logger.LogWarning("Transição de pedido recusada. PedidoId={PedidoId} MerchantId={MerchantId} Ação={Acao} Status={Status} Erro={Erro}",
+                pedido.Id, pedido.MerchantId, acao, statusAnterior, PedidoErrors.SemEntregadorAlocado.Code);
             return Result.Failure(PedidoErrors.SemEntregadorAlocado);
+        }
 
         // A origem primeiro: mudar o status local antes de o marketplace
         // aceitar deixaria o lojista vendo um estado que não existe lá fora.
@@ -62,15 +81,25 @@ public sealed class AvancarPedido : IAvancarPedido
         {
             var naOrigem = await NotificarOrigemAsync(acao, pedido.IdExterno, ct);
             if (naOrigem.IsFailure)
+            {
+                _logger.LogWarning("Origem recusou transição de pedido. PedidoId={PedidoId} MerchantId={MerchantId} Ação={Acao} Erro={Erro} DuraçãoMs={DuracaoMs}",
+                    pedido.Id, pedido.MerchantId, acao, naOrigem.Error.Code, duracao.Elapsed.TotalMilliseconds);
                 return naOrigem;
+            }
         }
 
         var transicao = AplicarNoDominio(acao, pedido);
         if (transicao.IsFailure)
+        {
+            _logger.LogWarning("Domínio recusou transição de pedido. PedidoId={PedidoId} MerchantId={MerchantId} Ação={Acao} Status={Status} Erro={Erro} DuraçãoMs={DuracaoMs}",
+                pedido.Id, pedido.MerchantId, acao, statusAnterior, transicao.Error.Code, duracao.Elapsed.TotalMilliseconds);
             return transicao;
+        }
 
         await _pedidos.SalvarAsync(ct);
         await _notificador.ResumoAtualizadoAsync(pedido.MerchantId, ct);
+        _logger.LogInformation("Pedido atualizado. PedidoId={PedidoId} MerchantId={MerchantId} Ação={Acao} StatusAnterior={StatusAnterior} StatusNovo={StatusNovo} OrigemExterna={OrigemExterna} DuraçãoMs={DuracaoMs}",
+            pedido.Id, pedido.MerchantId, acao, statusAnterior, pedido.Status, pedido.TemOrigemExterna, duracao.Elapsed.TotalMilliseconds);
         return Result.Success();
     }
 

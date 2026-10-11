@@ -1,4 +1,5 @@
 using System.Text;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DeliveryHub.Api.Diagnostics;
@@ -23,8 +24,19 @@ using DeliveryHub.Infrastructure.Integrations.WhatsApp;
 using DeliveryHub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Service", "DeliveryHub.Api")
+    .Enrich.WithProperty("Process", Environment.ProcessId)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
 // Enum como nome, não como número: "Confirmado" sobrevive a reordenação do
 // enum, o índice 1 não. O contrato com o cliente fica estável.
@@ -147,13 +159,42 @@ builder.Services.AddTempoReal(builder.Configuration);
 
 var app = builder.Build();
 
-await app.SemearAdministradorAsync();
-
-// Handler global de exceção: converte falha não tratada em ProblemDetails,
-// sem revelar stack trace nem mensagem interna. Em Development o ASP.NET
-// mantém a página de diagnóstico por padrão.
 if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler();
+
+app.UseRouting();
+app.Use(async (context, next) =>
+{
+    var duracao = Stopwatch.StartNew();
+    try
+    {
+        await next();
+    }
+    catch (Exception exception)
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        var route = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "unmatched";
+        app.Logger.LogError("HTTP request failed. Method={Method} Route={Route} TraceId={TraceId} ExceptionType={ExceptionType}",
+            context.Request.Method,
+            route,
+            Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier,
+            exception.GetType().Name);
+        throw;
+    }
+    finally
+    {
+        var route = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "unmatched";
+        app.Logger.LogInformation(
+            "HTTP request completed. Method={Method} Route={Route} StatusCode={StatusCode} TraceId={TraceId} DurationMs={DurationMs}",
+            context.Request.Method,
+            route,
+            context.Response.StatusCode,
+            Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier,
+            duracao.Elapsed.TotalMilliseconds);
+    }
+});
+
+await app.SemearAdministradorAsync();
 
 app.UseRateLimiter();
 app.UseAuthentication();

@@ -52,3 +52,13 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net10.0/DeliveryHub.Worker.pdb
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net10.0/DeliveryHub.Worker.genruntimeconfig.cache
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/obj/Debug/net10.0/ref/DeliveryHub.Worker.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.Extensions.DependencyModel.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.AspNetCore.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Extensions.Hosting.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Extensions.Logging.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Formatting.Compact.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Settings.Configuration.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.Console.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.Debug.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.File.dll

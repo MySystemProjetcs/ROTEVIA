@@ -1,6 +1,9 @@
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace DeliveryHub.Application.Orders;
 
@@ -69,19 +72,22 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
     private readonly IResolverEndereco _enderecos;
     private readonly ITenantContext _tenant;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<LancarPedidoInterno> _logger;
 
     public LancarPedidoInterno(
         IPedidoRepository pedidos,
         ICourierRepository couriers,
         IResolverEndereco enderecos,
         ITenantContext tenant,
-        TimeProvider relogio)
+        TimeProvider relogio,
+        ILogger<LancarPedidoInterno>? logger = null)
     {
         _pedidos = pedidos;
         _couriers = couriers;
         _enderecos = enderecos;
         _tenant = tenant;
         _relogio = relogio;
+        _logger = logger ?? NullLogger<LancarPedidoInterno>.Instance;
     }
 
     // Pago = nada pendente; a cobrar = o total inteiro na mão do motoboy.
@@ -94,18 +100,36 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
 
     public async Task<Result<Guid>> ExecutarAsync(NovoPedidoInterno novo, CancellationToken ct)
     {
+        var duracao = Stopwatch.StartNew();
+        _logger.LogInformation("Iniciando lançamento de pedido interno. ItemCount={ItemCount} JaPago={JaPago} EntregadorPreAlocado={EntregadorPreAlocado}",
+            novo.Itens.Count, novo.JaPago, novo.EntregadorId.HasValue);
+
         if (_tenant.MerchantId is not { } merchantId)
+        {
+            _logger.LogWarning("Lançamento interno recusado. Erro={Erro}", PedidoInternoErrors.SemLoja.Code);
             return Result.Failure<Guid>(PedidoInternoErrors.SemLoja);
+        }
 
         if (novo.Itens.Count == 0)
+        {
+            _logger.LogWarning("Lançamento interno recusado. MerchantId={MerchantId} Erro={Erro}", merchantId, PedidoInternoErrors.SemItens.Code);
             return Result.Failure<Guid>(PedidoInternoErrors.SemItens);
+        }
 
         if (novo.Itens.Any(i => string.IsNullOrWhiteSpace(i.Nome) || i.Quantidade <= 0 || i.PrecoUnitario < 0))
+        {
+            _logger.LogWarning("Lançamento interno recusado: validação de item falhou. MerchantId={MerchantId} ItemCount={ItemCount} Erro={Erro}",
+                merchantId, novo.Itens.Count, PedidoInternoErrors.ItemInvalido.Code);
             return Result.Failure<Guid>(PedidoInternoErrors.ItemInvalido);
+        }
 
         var endereco = await _enderecos.PorCepAsync(novo.Cep, novo.Numero, ct);
         if (endereco is null)
+        {
+            _logger.LogWarning("Lançamento interno recusado: CEP não resolvido. MerchantId={MerchantId} Erro={Erro}",
+                merchantId, PedidoInternoErrors.CepNaoEncontrado.Code);
             return Result.Failure<Guid>(PedidoInternoErrors.CepNaoEncontrado);
+        }
 
         var agora = _relogio.GetUtcNow();
         var total = novo.Itens.Sum(i => i.PrecoUnitario * i.Quantidade);
@@ -159,7 +183,11 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
         if (novo.EntregadorId is { } entregadorId)
         {
             if (!await _couriers.ExisteVinculoAtivoAsync(entregadorId, merchantId, ct))
+            {
+                _logger.LogWarning("Lançamento interno recusado: entregador sem vínculo ativo. MerchantId={MerchantId} EntregadorId={EntregadorId} Erro={Erro}",
+                    merchantId, entregadorId, PedidoInternoErrors.EntregadorInvalido.Code);
                 return Result.Failure<Guid>(PedidoInternoErrors.EntregadorInvalido);
+            }
 
             pedido.AlocarEntregador(entregadorId);
         }
@@ -172,6 +200,8 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
         _pedidos.Adicionar(pedido);
         await _pedidos.SalvarAsync(ct);
 
+        _logger.LogInformation("Pedido interno lançado. PedidoId={PedidoId} MerchantId={MerchantId} ItemCount={ItemCount} JaPago={JaPago} EntregadorPreAlocado={EntregadorPreAlocado} Status={Status} DuraçãoMs={DuracaoMs}",
+            pedido.Id, merchantId, novo.Itens.Count, novo.JaPago, novo.EntregadorId.HasValue, pedido.Status, duracao.Elapsed.TotalMilliseconds);
         return Result.Success(pedido.Id);
     }
 }
