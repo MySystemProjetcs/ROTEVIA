@@ -57,7 +57,12 @@ internal sealed class EfIFoodMerchantSnapshotStore : IIFoodMerchantSnapshotStore
             return null;
 
         entidade.OpeningHoursJson = openingHoursJson;
-        entidade.UpdatedAt = updatedAt;
+        // Não renovamos `UpdatedAt` aqui: ele representa a última vez que o
+        // Status/Details foram puxados do iFood. Bumpar neste ponto enganaria
+        // o `ObterContextoIFood` a tratar o Status antigo (offline) como
+        // fresco, deixando a UI "Offline" por 15min mesmo depois do operador
+        // ter aberto a loja. O refetch acontece na próxima leitura do
+        // contexto quando o cache for invalidado.
         await _db.SaveChangesAsync(ct);
 
         return new IFoodMerchantSnapshot(

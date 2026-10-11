@@ -93,7 +93,9 @@ function agendaParaShifts(agenda: AgendaCanal): ShiftIFood[] {
       const fim = emMinutos(f.fim)
       if (ini === null || fim === null) continue
       const dur = fim > ini ? fim - ini : (1440 - ini) + fim
-      shifts.push({ dayOfWeek: DIA_PARA_IFOOD[d.dia], start: f.inicio, duration: dur })
+      // Backend valida `Start` como `HH:mm:ss` estrito; o input `type="time"`
+      // devolve `HH:mm`, então garantimos o sufixo de segundos aqui.
+      shifts.push({ dayOfWeek: DIA_PARA_IFOOD[d.dia], start: `${f.inicio}:00`, duration: dur })
     }
   }
   return shifts

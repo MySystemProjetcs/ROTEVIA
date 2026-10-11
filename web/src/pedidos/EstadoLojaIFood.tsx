@@ -132,25 +132,42 @@ function obterNome(comerciante: unknown): string | null {
 }
 
 function obterDisponibilidade(status: unknown): 'online' | 'offline' | 'indisponivel' {
+  // Debug: a API iFood devolve o array de canais; sem isto é impossível
+  // explicar por que a UI mostra "Offline" com a loja aberta no app.
+  if (typeof window !== 'undefined') {
+    try { console.debug('[iFood status]', status) } catch { /* ignore */ }
+  }
+
   if (!Array.isArray(status)) return 'indisponivel'
 
   const operacoesEntrega = status.filter((item) =>
     ehRegistro(item) && ['delivery', 'entrega'].includes(normalizar(item.operation ?? item.operacao)),
   )
+  if (operacoesEntrega.length === 0) return 'indisponivel'
 
+  // 1) Se existe entrada iFood (IFOOD, APP_IFOOD, IFOOD_APP…), ela manda.
   const statusIfood = operacoesEntrega.find((item) =>
     ehRegistro(item) && ehCanalIfood(item.salesChannel ?? item.channelDeVendas ?? item.canalDeVendas),
   )
-  const statusEntrega = statusIfood ?? (operacoesEntrega.length === 1 ? operacoesEntrega[0] : null)
+  if (ehRegistro(statusIfood) && typeof statusIfood.available === 'boolean') {
+    return statusIfood.available ? 'online' : 'offline'
+  }
 
-  if (!ehRegistro(statusEntrega) || typeof statusEntrega.available !== 'boolean')
-    return 'indisponivel'
-
-  return statusEntrega.available ? 'online' : 'offline'
+  // 2) Fallback: se qualquer canal de entrega estiver `available=true`, a
+  //    loja está aceitando pedidos. A UI é indicador de "está vendendo" —
+  //    não precisa decidir qual canal.
+  const booleans = operacoesEntrega
+    .map((o) => (ehRegistro(o) && typeof o.available === 'boolean' ? o.available : null))
+    .filter((v): v is boolean => v !== null)
+  if (booleans.length === 0) return 'indisponivel'
+  return booleans.some(Boolean) ? 'online' : 'offline'
 }
 
 function ehCanalIfood(valor: unknown): boolean {
-  return ['ifood', 'ifoodapp', 'aplicativoifood'].includes(normalizar(valor))
+  // Lista deliberadamente ampla: a API iFood já respondeu com várias grafias
+  // (IFOOD, APP_IFOOD, IFOOD_APP…). Normalizar remove _/-/espaços e acentos,
+  // então 'APP_IFOOD' → 'appifood' e 'IFOOD_APP' → 'ifoodapp'.
+  return ['ifood', 'ifoodapp', 'appifood', 'aplicativoifood'].includes(normalizar(valor))
 }
 
 function normalizar(valor: unknown): string {

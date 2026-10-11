@@ -217,6 +217,60 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                     b.ToTable("usuario_merchants", (string)null);
                 });
 
+            modelBuilder.Entity("DeliveryHub.Domain.Merchants.ImpressoraDaLoja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Ativa")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativa");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<bool>("ImprimirAutomaticamente")
+                        .HasColumnType("boolean")
+                        .HasColumnName("imprimir_automaticamente");
+
+                    b.Property<string>("Largura")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("largura");
+
+                    b.Property<Guid>("MerchantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("merchant_id");
+
+                    b.Property<string>("Modelo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("modelo");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("nome");
+
+                    b.Property<string>("Setor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("setor");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "MerchantId" }, "ix_impressoras_merchant");
+
+                    b.ToTable("impressoras_da_loja", (string)null);
+                });
+
             modelBuilder.Entity("DeliveryHub.Domain.Merchants.Merchant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -392,6 +446,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("recebido_em");
 
+                    b.Property<string>("ReceiptData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("receipt_data");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -421,6 +479,9 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex(new[] { "MerchantId", "RecebidoEm" }, "ix_pedidos_ativos_por_merchant")
                         .HasFilter("status IN ('Recebido','Confirmado','EmPreparo','Pronto','Despachado','Aceito','EmRota','Chegou','Cobrar')");
+
+                    b.HasIndex(new[] { "EntregadorId", "Status" }, "ix_pedidos_entregador_status")
+                        .HasFilter("entregador_id IS NOT NULL");
 
                     b.HasIndex(new[] { "MerchantId", "RecebidoEm" }, "ix_pedidos_merchant_recebido");
 
@@ -546,13 +607,13 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReceivedAt")
-                        .HasDatabaseName("ix_inbox_pendentes")
-                        .HasFilter("processed_at IS NULL");
-
                     b.HasIndex("Source", "ExternalEventId")
                         .IsUnique()
                         .HasDatabaseName("ux_inbox_event");
+
+                    b.HasIndex("Source", "ReceivedAt")
+                        .HasDatabaseName("ix_inbox_pendentes")
+                        .HasFilter("processed_at IS NULL AND merchant_id IS NOT NULL");
 
                     b.ToTable("integration_inbox", (string)null);
                 });
