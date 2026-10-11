@@ -1,4 +1,5 @@
 using DeliveryHub.Application.Abstractions;
+using DeliveryHub.Application.Orders;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -73,6 +74,10 @@ public static class PedidoLocalEndpoints
 
         pedido.AdicionarItem(1, "Pizza Marguerita Grande", 1, "UN", 59.90m, 59.90m, "Sem cebola");
         pedido.AdicionarItem(2, "Refrigerante 2L", 1, "UN", 15.00m, 15.00m, null);
+
+        // Snapshot da comanda vai pro mesmo SaveChanges — mantém o diagnóstico
+        // alinhado com o fluxo real do iFood (plano §2/§5).
+        pedido.GravarSnapshotDeComanda(ComandaBuilder.Montar(pedido));
 
         pedidos.Adicionar(pedido);
         await pedidos.SalvarAsync(ct);

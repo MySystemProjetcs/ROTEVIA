@@ -1,5 +1,7 @@
+using System.Text.Json;
 using DeliveryHub.Domain.Orders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DeliveryHub.Infrastructure.Persistence.Configurations;
@@ -87,6 +89,21 @@ internal sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(x => x.Itens).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Snapshot da comanda em JSONB (plano §4). Nullable: pedidos legados
+        // ficam sem snapshot até a próxima reimpressão, que cai no fallback
+        // via ComandaBuilder.Montar em memória. Serialização padrão do
+        // System.Text.Json — mesmo contrato usado no transporte SignalR.
+        builder.Property(x => x.ReceiptData)
+            .HasColumnName("receipt_data")
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => v == null ? null : JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<PedidoReceiptSnapshot>(v, (JsonSerializerOptions?)null))
+            .Metadata.SetValueComparer(new ValueComparer<PedidoReceiptSnapshot>(
+                (a, b) => (a == null && b == null) || (a != null && b != null && a.Equals(b)),
+                v => v == null ? 0 : v.GetHashCode(),
+                v => v));
 
         // Evento duplicado não pode criar pedido duplicado, mesmo que passe pelo
         // inbox: a garantia final é aqui.

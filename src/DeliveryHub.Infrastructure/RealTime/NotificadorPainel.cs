@@ -1,4 +1,5 @@
 using DeliveryHub.Application.Abstractions;
+using DeliveryHub.Domain.Orders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
@@ -29,6 +30,22 @@ internal sealed class NotificadorPainel : INotificadorPainel
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Falha ao notificar resumo do painel da loja {MerchantId}.", merchantId);
+        }
+    }
+
+    public async Task PedidoParaImprimirAsync(Guid merchantId, PedidoReceiptSnapshot comanda, CancellationToken ct)
+    {
+        try
+        {
+            await _hub.Clients
+                .Group(RastreioHub.GrupoDoMerchant(merchantId))
+                .SendAsync(RastreioHub.MetodoPedidoParaImprimir, comanda, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Falha ao notificar comanda do pedido {PedidoId} da loja {MerchantId}.",
+                comanda.PedidoId, merchantId);
         }
     }
 }

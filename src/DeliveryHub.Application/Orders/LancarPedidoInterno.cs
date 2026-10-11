@@ -164,6 +164,11 @@ public sealed class LancarPedidoInterno : ILancarPedidoInterno
             pedido.AlocarEntregador(entregadorId);
         }
 
+        // Snapshot da comanda congelado no momento do lançamento, pelo mesmo
+        // motivo da ingestão iFood: reimpressão posterior lê daqui sem
+        // reconsultar nada (plano §2/§5).
+        pedido.GravarSnapshotDeComanda(ComandaBuilder.Montar(pedido));
+
         _pedidos.Adicionar(pedido);
         await _pedidos.SalvarAsync(ct);
 

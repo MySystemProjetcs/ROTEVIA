@@ -16,6 +16,7 @@ import { PaginaGanhos } from '@/entregador/PaginaGanhos'
 import { PaginaWhatsapp } from '@/whatsapp/PaginaWhatsapp'
 import { EstadoLojaIFood } from '@/pedidos/EstadoLojaIFood'
 import { PaginaHorariosFuncionamento } from '@/configuracoes/PaginaHorariosFuncionamento'
+import { PaginaImpressoras } from '@/configuracoes/PaginaImpressoras'
 
 export function App() {
   return (
@@ -137,6 +138,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
               <Route path="/motoboys" element={<PaginaMotoboys />} />
               <Route path="/whatsapp" element={<PaginaWhatsapp />} />
               <Route path="/configuracoes/horarios" element={<PaginaHorariosFuncionamento />} />
+              <Route path="/configuracoes/impressoras" element={<PaginaImpressoras />} />
             </Routes>
           )}
         </main>

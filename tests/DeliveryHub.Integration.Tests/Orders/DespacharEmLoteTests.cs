@@ -94,6 +94,8 @@ public sealed class DespacharEmLoteTests
             Avisados.Add(merchantId);
             return Task.CompletedTask;
         }
+        public Task PedidoParaImprimirAsync(Guid merchantId, PedidoReceiptSnapshot comanda, CancellationToken ct) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeTenant : ITenantContext

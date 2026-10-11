@@ -33,4 +33,14 @@ public static class MerchantErrors
         "merchant.app_shop_id_invalido",
         "Informe o identificador da loja cadastrado na 99Food.",
         ErrorType.Validation);
+
+    public static readonly Error ImpressoraNomeInvalido = new(
+        "merchant.impressora_nome_invalido",
+        "Informe um nome entre 1 e 60 caracteres para a impressora.",
+        ErrorType.Validation);
+
+    public static readonly Error ImpressoraNaoEncontrada = new(
+        "merchant.impressora_nao_encontrada",
+        "Impressora não encontrada.",
+        ErrorType.NotFound);
 }

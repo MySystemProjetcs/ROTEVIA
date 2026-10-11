@@ -84,6 +84,20 @@ public sealed class Pedido : ITenantOwned
 
     public IReadOnlyList<ItemPedido> Itens => _itens;
 
+    // Snapshot congelado dos dados da comanda (plano §2). Preenchido logo após
+    // Receber(), fica nulo em pedidos legados até a próxima reimpressão
+    // regenerar via builder em memória.
+    public PedidoReceiptSnapshot? ReceiptData { get; private set; }
+
+    // Atribuição única por invariante: snapshot não é "corrigível" depois.
+    // Alterações do pedido que afetem a comanda (não existem hoje) exigiriam
+    // método específico, auditado e versionado — não sobrescrever direto.
+    public void GravarSnapshotDeComanda(PedidoReceiptSnapshot snapshot)
+    {
+        if (ReceiptData is not null) return;
+        ReceiptData = snapshot;
+    }
+
     public static Pedido Receber(
         Guid merchantId,
         string idExterno,

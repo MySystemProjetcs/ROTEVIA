@@ -29,6 +29,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Courier> Couriers => Set<Courier>();
     public DbSet<CourierMerchantLink> CourierMerchantLinks => Set<CourierMerchantLink>();
     public DbSet<PosicaoEntregador> PosicoesEntregador => Set<PosicaoEntregador>();
+    public DbSet<ImpressoraDaLoja> ImpressorasDaLoja => Set<ImpressoraDaLoja>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,10 @@ public sealed class AppDbContext : DbContext
         // O rastreio também filtra: uma loja não acompanha o motoboy que está
         // entregando para outra.
         modelBuilder.Entity<PosicaoEntregador>().HasQueryFilter(x =>
+            _tenant.PodeVerTodosOsTenants || x.MerchantId == _tenant.MerchantId);
+
+        // Impressoras pertencem à loja: ninguém mais enxerga nem lista.
+        modelBuilder.Entity<ImpressoraDaLoja>().HasQueryFilter(x =>
             _tenant.PodeVerTodosOsTenants || x.MerchantId == _tenant.MerchantId);
     }
 

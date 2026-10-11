@@ -1,4 +1,5 @@
 using DeliveryHub.Application.Orders;
+using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -46,6 +47,29 @@ public static class PedidoEndpoints
         // Pedidos casados: despacha vários pedidos numa corrida só, com o mesmo
         // motoboy e a ordem de paradas já calculada pelo sistema.
         group.MapPost("/despachar-lote", DespacharLote);
+
+        // Recupera a comanda do pedido (snapshot persistido ou fallback via
+        // builder para pedidos legados). O flag `reimpressao` apenas marca a
+        // resposta — a renderização "REIMPRESSÃO" + omissão do QR é
+        // responsabilidade do cliente, que já sabe o layout.
+        group.MapGet("/{id:guid}/comanda", ObterComanda);
+    }
+
+    public sealed record ComandaResponse(PedidoReceiptSnapshot Comanda, bool Reimpressao);
+
+    private static async Task<Results<Ok<ComandaResponse>, ProblemHttpResult>> ObterComanda(
+        Guid id,
+        IObterComandaDoPedido caso,
+        CancellationToken ct,
+        bool reimpressao = true)
+    {
+        var resultado = await caso.ExecutarAsync(id, ct);
+        return resultado.IsSuccess
+            ? TypedResults.Ok(new ComandaResponse(resultado.Value, reimpressao))
+            : TypedResults.Problem(
+                title: resultado.Error.Message,
+                detail: resultado.Error.Code,
+                statusCode: ParaStatusHttp(resultado.Error.Type));
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DespacharLote(

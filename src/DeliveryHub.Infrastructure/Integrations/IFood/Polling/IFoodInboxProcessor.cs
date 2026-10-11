@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DeliveryHub.Application.Abstractions;
+using DeliveryHub.Application.Orders;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.IFood.Orders;
@@ -128,8 +129,20 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
             var autorizacao = await ResolverAutorizacaoAsync(entrada.MerchantId!.Value, ct);
             var detalhe = await _orders.GetDetailsAsync(evento.OrderId, ct, autorizacao);
             pedido = IFoodOrderMapper.ParaPedido(detalhe, entrada.MerchantId!.Value, entrada.ReceivedAt);
+
+            // Snapshot da comanda congelado no momento do PLACED. Vai pro mesmo
+            // SaveChanges do próprio pedido (consistência transacional, plano §8)
+            // e é persistido como JSONB em pedidos.receipt_data. Reimpressão lê
+            // daqui sem reconsultar iFood.
+            var snapshot = ComandaBuilder.Montar(pedido);
+            pedido.GravarSnapshotDeComanda(snapshot);
             _db.Pedidos.Add(pedido);
             await ConfirmarAutomaticamenteAsync(pedido, evento.OrderId, ct);
+
+            // Push para a estação de impressão: payload é o mesmo snapshot
+            // guardado no banco, então a primeira impressão e as reimpressões
+            // partem dos mesmos bytes.
+            await _notificador.PedidoParaImprimirAsync(entrada.MerchantId!.Value, snapshot, ct);
             return;
         }
 

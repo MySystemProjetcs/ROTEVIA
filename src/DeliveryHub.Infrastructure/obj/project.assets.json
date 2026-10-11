@@ -1554,6 +1554,10 @@
         }
       },
       "warningProperties": {
+        "noWarn": [
+          "NU1902",
+          "NU1903"
+        ],
         "warnAsError": [
           "NU1605"
         ]
@@ -1888,117 +1892,5 @@
         }
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2f33-pr97-265q",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2x83-8g95-xh59",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-cj9g-3mj2-g8vv",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-cxmj-83gh-fp49",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-hv8m-jj95-wg3x",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-q2h6-ghwm-5qm8",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-qhmf-xw27-6rqr",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-v72x-2h86-7f8m",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-vh6j-jc39-fggf",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-w567-gjr2-hm5j",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "O pacote 'MessagePack' 2.5.187 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-wfr3-xj75-pfwh",
-      "libraryId": "MessagePack",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  }
 }

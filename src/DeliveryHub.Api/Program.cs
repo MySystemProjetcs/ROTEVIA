@@ -111,6 +111,7 @@ builder.Services.AddBuscaDeEndereco(builder.Configuration);
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<IAvancarPedido, AvancarPedido>();
+builder.Services.AddScoped<IObterComandaDoPedido, ObterComandaDoPedido>();
 builder.Services.AddScoped<ICancelarPedido, CancelarPedido>();
 builder.Services.AddScoped<IDespacharEmLote, DespacharEmLote>();
 builder.Services.AddScoped<ILancarPedidoInterno, LancarPedidoInterno>();
@@ -135,6 +136,10 @@ builder.Services.AddScoped<IAtualizarCadastroDoEntregador, AtualizarCadastroDoEn
 builder.Services.AddScoped<IRemoverVinculoDoEntregador, RemoverVinculoDoEntregador>();
 builder.Services.AddScoped<IAlterarEmailDoUsuario, AlterarEmailDoUsuario>();
 builder.Services.AddScoped<IDefinirFotoDePerfil, DefinirFotoDePerfil>();
+builder.Services.AddScoped<IListarImpressoras, ListarImpressoras>();
+builder.Services.AddScoped<ICadastrarImpressora, CadastrarImpressora>();
+builder.Services.AddScoped<IAtualizarImpressora, AtualizarImpressora>();
+builder.Services.AddScoped<IRemoverImpressora, RemoverImpressora>();
 
 // SignalR com backplane no Redis: é o que permite o worker de polling, que
 // vive em outro container de DI, alcançar as conexões abertas aqui.
@@ -160,6 +165,7 @@ app.MapEntregaEndpoints();
 app.MapRastreioEndpoints();
 app.MapPedidoInternoEndpoints();
 app.MapMerchantEndpoints();
+app.MapImpressoraEndpoints();
 app.MapCourierEndpoints();
 app.MapDashboardEndpoints();
 app.MapPerfilEndpoints();

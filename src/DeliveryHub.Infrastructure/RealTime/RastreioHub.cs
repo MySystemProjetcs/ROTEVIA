@@ -39,4 +39,9 @@ public sealed class RastreioHub : Hub
     // Dashboard do dono (resumo: online, pedidos e receita do dia). Mesmo Hub
     // e mesmo grupo do rastreio — é outro assunto, mesmo destinatário.
     public const string MetodoResumoAtualizado = "ResumoAtualizado";
+
+    // Comanda de um pedido novo (iFood ou interno) pronta para a estação
+    // decidir o destino: ESC/POS para impressora física em produção, PDF
+    // baixado para preview em desenvolvimento/sandbox.
+    public const string MetodoPedidoParaImprimir = "PedidoParaImprimir";
 }

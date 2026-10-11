@@ -41,6 +41,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]
@@ -536,6 +540,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]
@@ -872,6 +880,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]
@@ -1212,6 +1224,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]
@@ -1581,6 +1597,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]
@@ -2082,6 +2102,10 @@
           }
         },
         "warningProperties": {
+          "noWarn": [
+            "NU1902",
+            "NU1903"
+          ],
           "warnAsError": [
             "NU1605"
           ]

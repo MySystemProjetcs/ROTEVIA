@@ -65,6 +65,9 @@ public sealed class CancelarPedidoTests
             Avisados.Add(merchantId);
             return Task.CompletedTask;
         }
+
+        public Task PedidoParaImprimirAsync(Guid merchantId, PedidoReceiptSnapshot comanda, CancellationToken ct) =>
+            Task.CompletedTask;
     }
 
     private static Pedido NovoPedido(string idExterno) => Pedido.Receber(

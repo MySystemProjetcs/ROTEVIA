@@ -52,6 +52,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IObterEnderecoDaLoja, ObterEnderecoDaLojaQuery>();
         services.AddScoped<IObterGanhosEntregador, GanhosEntregadorQuery>();
         services.AddScoped<IRegistrarPosicao, RegistrarPosicao>();
+        services.AddScoped<IImpressoraRepository, ImpressoraRepository>();
 
         return services;
     }

@@ -9,7 +9,10 @@ import { IconeLocal } from '@/components/icones/IconeLocal'
 import type { ObterProximoPasso, Pedido, StatusPedido } from '@/dominio/pedido'
 import { proximoPasso, temValorACobrar } from '@/dominio/pedido'
 import type { Entregador } from '@/dominio/entregador'
+import { api, ErroDaApi } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import type { Comanda } from '@/lib/impressao'
+import { imprimirComanda } from '@/lib/impressao'
 import { formatarDinheiro } from '@/lib/tempo'
 import { BotoesDeNavegacao } from './BotoesDeNavegacao'
 import { ChipTempoDecorrido } from './ContadorSla'
@@ -111,6 +114,23 @@ export function CartaoPedido({
   // lembra seu próprio estado entre as atualizações de 4s do polling — o
   // React mantém a mesma instância porque a lista é chaveada por pedido.id.
   const [expandido, setExpandido] = useState(true)
+  const [reimprimindo, setReimprimindo] = useState(false)
+
+  async function reimprimirComanda() {
+    if (reimprimindo) return
+    setReimprimindo(true)
+    try {
+      const resposta = await api.get<{ comanda: Comanda; reimpressao: boolean }>(
+        `/pedidos/${pedido.id}/comanda?reimpressao=true`,
+      )
+      imprimirComanda(resposta.comanda, { reimpressao: resposta.reimpressao })
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[impressão] falha ao reimprimir', e instanceof ErroDaApi ? e.message : e)
+    } finally {
+      setReimprimindo(false)
+    }
+  }
 
   const passo = obterProximoPasso(pedido)
   const precisaCobrar = temValorACobrar(pedido)
@@ -198,6 +218,20 @@ export function CartaoPedido({
               <span className="text-texto-suave">{pedido.origem === 'NoventaENove' ? '99 FOOD' : 'INTERNO'}</span>
             )}
           </div>
+          <button
+            type="button"
+            aria-label="Reimprimir comanda"
+            title="Reimprimir comanda"
+            onClick={reimprimirComanda}
+            disabled={reimprimindo}
+            className="flex size-6 shrink-0 items-center justify-center rounded-controle text-texto-fraco hover:bg-superficie-alt hover:text-texto disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+          </button>
           <button
             type="button"
             aria-expanded={expandido}

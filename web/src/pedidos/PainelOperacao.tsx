@@ -34,6 +34,7 @@ import { useAlertaSonoro } from './useAlertaSonoro'
 import { useEnderecoDaLoja } from './useEnderecoDaLoja'
 import { useEnviarPosicao } from './useEnviarPosicao'
 import { useMinhasEntregas } from './useMinhasEntregas'
+import { useImpressaoAutomatica } from './useImpressaoAutomatica'
 import { usePedidos } from './usePedidos'
 import { useRastreio } from './useRastreio'
 import { useNovoPedido } from './NovoPedidoContext'
@@ -48,9 +49,13 @@ export function PainelOperacao() {
 }
 
 function PainelDono() {
-  const { pedidos, carregando, erro, mover, alocar, cancelar, despacharLote, recarregar } = usePedidos()
-  const [lancando, setLancando] = useState(false)
   const { usuario } = useSessao()
+  const { pedidos, carregando, erro, mover, alocar, cancelar, despacharLote, recarregar } = usePedidos()
+
+  // Impressão automática do cartão: em dev gera PDF para download, em prod
+  // envia ESC/POS (stub por ora). Só liga quando há uma loja na sessão.
+  useImpressaoAutomatica(usuario?.merchantId != null)
+  const [lancando, setLancando] = useState(false)
   const { entregadores } = useMotoboys()
   const entregadoresAtivos = entregadores.filter((e) => e.status === 'Ativo')
   const { registrar } = useNovoPedido()
