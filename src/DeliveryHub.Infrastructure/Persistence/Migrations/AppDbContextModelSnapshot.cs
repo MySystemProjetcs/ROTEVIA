@@ -392,6 +392,10 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("recebido_em");
 
+                    b.Property<string>("ReceiptData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("receipt_data");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
