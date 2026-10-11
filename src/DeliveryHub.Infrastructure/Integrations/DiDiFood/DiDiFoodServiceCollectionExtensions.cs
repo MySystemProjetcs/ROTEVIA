@@ -24,9 +24,14 @@ public static class DiDiFoodServiceCollectionExtensions
 
     public static IServiceCollection AddDiDiFoodIntegration(this IServiceCollection services, IConfiguration configuration)
     {
+        // ValidateDataAnnotations ativa os atributos [Required]/[Range] em
+        // DiDiFoodOptions; sem isso ValidateOnStart não dispara nenhuma
+        // verificação e um AppSecret vazio em produção só quebraria na
+        // primeira assinatura MD5 do webhook — tarde demais.
         services
             .AddOptions<DiDiFoodOptions>()
             .Bind(configuration.GetSection(DiDiFoodOptions.SectionName))
+            .ValidateDataAnnotations()
             .ValidateOnStart();
 
         services.TryAddSingleton(TimeProvider.System);
