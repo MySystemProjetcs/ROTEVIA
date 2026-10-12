@@ -226,7 +226,10 @@ if (app.Environment.IsDevelopment())
 // Configurável porque a 5000 é disputada: no macOS o Receptor AirPlay ocupa
 // ela sozinho, e aí a API inteira deixa de subir por causa do worker.
 var workerHost = DeliveryHub.Worker.WorkerHostFactory.Build(
-    urls: builder.Configuration["Worker:HealthUrl"] ?? "http://localhost:5000");
+    // Default 5050, não 5000: no macOS a 5000 é ocupada pelo AirPlay Receiver
+    // (ControlCenter) por padrão e derrubava a API inteira no boot. 5050 é
+    // livre no sistema. Sobrescreva via Worker:HealthUrl se precisar de outro.
+    urls: builder.Configuration["Worker:HealthUrl"] ?? "http://localhost:5050");
 await workerHost.StartAsync();
 
 try
