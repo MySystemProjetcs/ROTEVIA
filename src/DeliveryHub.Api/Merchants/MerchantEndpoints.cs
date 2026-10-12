@@ -4,7 +4,13 @@ using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.IFood;
+using DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 using Microsoft.AspNetCore.Http.HttpResults;
+// Alias: dentro de DeliveryHub.Api.Merchants o nome "Merchants" já está
+// ocupado pelo próprio namespace, então o tipo do domínio precisa de apelido
+// para não ficar ambíguo.
+using MerchantEntity = DeliveryHub.Domain.Merchants.Merchant;
 
 namespace DeliveryHub.Api.Merchants;
 
@@ -17,6 +23,34 @@ public sealed record TesteAutenticacao99Response(
     bool Sucesso, string? AppId99, string? AppShopId, string? TokenMascarado, string? Erro);
 
 public sealed record Autorizacao99Response(string Url);
+
+// Status de uma plataforma de origem de pedido, normalizado pela Api: o
+// componente do painel não precisa conhecer o formato de cada marketplace.
+// Disponibilidade é string e não enum porque "sem-vinculo" não é um estado
+// da loja na plataforma — é a ausência de integração, e o front renderiza
+// os quatro casos de forma diferente.
+public sealed record StatusPlataforma(
+    bool Vinculado,
+    bool Autenticado,
+    string? LojaNome,
+    string Disponibilidade,
+    DateTimeOffset? AtualizadoEm,
+    string? Erro);
+
+public sealed record CatalogoIFoodResumo(
+    string CatalogId,
+    string? Status,
+    IReadOnlyList<string> Context,
+    DateTimeOffset? ModifiedAt);
+
+public sealed record StatusCatalogoIFoodResponse(
+    bool EscopoLiberado,
+    int Quantidade,
+    IReadOnlyList<CatalogoIFoodResumo> Catalogos);
+
+public sealed record StatusIntegracoesResponse(
+    StatusPlataforma IFood,
+    StatusPlataforma NoventaENove);
 
 public sealed record GetUrlAutorizacaoRequest(BigInteger AppId);
 public sealed record TaxaEntregaResponse(decimal Valor);
@@ -59,6 +93,171 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/99food/testar-autenticacao", TestarAutenticacao99Food);
         group.MapPost("/{merchantId:guid}/99food/autorizacao/get-url", GetUrlAutorizacao99);
         group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
+        group.MapGet("/{merchantId:guid}/integracoes/status", ObterStatusIntegracoes);
+        group.MapGet("/{merchantId:guid}/catalogo/status", ObterStatusCatalogoIFood);
+    }
+
+    // Status consolidado das origens de pedido. Uma chamada só porque o painel
+    // mostra as duas lado a lado — dois endpoints fariam o componente esperar
+    // o mais lento dos dois de qualquer forma, e ainda duplicariam o carregar
+    // do Merchant.
+    private static async Task<Results<Ok<StatusIntegracoesResponse>, ProblemHttpResult>> ObterStatusIntegracoes(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IObterContextoIFood contextoIFood,
+        IDiDiFoodAuthenticator autenticar99,
+        TimeProvider relogio,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        // As duas consultas são independentes e falham de forma isolada: uma
+        // plataforma fora do ar não pode esconder o status da outra. Em
+        // paralelo porque o painel espera o resultado das duas para pintar.
+        var tarefaIFood = StatusDoIFoodAsync(merchant, contextoIFood, relogio, ct);
+        var tarefa99 = StatusDaNoventaENoveAsync(merchant, autenticar99, relogio, ct);
+        await Task.WhenAll(tarefaIFood, tarefa99);
+
+        return TypedResults.Ok(new StatusIntegracoesResponse(
+            await tarefaIFood,
+            await tarefa99));
+    }
+
+    // O try/catch aqui não contraria a regra do CLAUDE.md §8 (try/catch por
+    // endpoint é proibido): não estamos engolindo falha do endpoint, estamos
+    // convertendo o estado de uma integração externa em dado de resposta. Uma
+    // exceção escapando daqui derrubaria o status da OUTRA plataforma junto,
+    // que é exatamente o que este endpoint existe para evitar.
+    private static async Task<StatusPlataforma> StatusDoIFoodAsync(
+        MerchantEntity merchant,
+        IObterContextoIFood obter,
+        TimeProvider relogio,
+        CancellationToken ct)
+    {
+        if (merchant.IFoodMerchantId is null || merchant.ConexaoIFood?.Conectado != true)
+            return new StatusPlataforma(false, false, null, "sem-vinculo", null, null);
+
+        try
+        {
+            var resultado = await obter.ExecutarAsync(merchant.Id, ct);
+            if (resultado.IsFailure)
+                return new StatusPlataforma(
+                    true, false, null, "indisponivel", relogio.GetUtcNow(), resultado.Error.Message);
+
+            var contexto = resultado.Value;
+            return new StatusPlataforma(
+                Vinculado: true,
+                Autenticado: true,
+                LojaNome: StatusDaLojaIFood.Nome(contexto.DetailsJson),
+                Disponibilidade: StatusDaLojaIFood.Disponibilidade(contexto.StatusJson),
+                AtualizadoEm: contexto.UpdatedAt,
+                Erro: contexto.IsStale ? "Dados podem estar desatualizados." : null);
+        }
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
+        {
+            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), MotivoDe(ex));
+        }
+    }
+
+    // Fase 1: autenticar com sucesso é o sinal de que a loja está acessível.
+    // O nome e a disponibilidade reais exigem GET /v1/shop/shop/detail, que
+    // só podemos chamar depois de ter o auth_token — fica para a fase 2,
+    // quando houver loja vinculada em conta com acesso.
+    private static async Task<StatusPlataforma> StatusDaNoventaENoveAsync(
+        MerchantEntity merchant,
+        IDiDiFoodAuthenticator autenticar,
+        TimeProvider relogio,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return new StatusPlataforma(false, false, null, "sem-vinculo", null, null);
+
+        try
+        {
+            await autenticar.GetAuthTokenAsync(merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
+            return new StatusPlataforma(true, true, null, "online", relogio.GetUtcNow(), null);
+        }
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
+        {
+            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), MotivoDe(ex));
+        }
+    }
+
+    // Timeout do HttpClient chega como OperationCanceledException sem que o
+    // token do request tenha sido cancelado — é falha da plataforma, vira
+    // status. Já um cancelamento real (navegador fechou a aba) tem que subir:
+    // não há ninguém para ler a resposta, e engolir mascararia o motivo.
+    private static bool FalhaDeIntegracao(Exception ex, CancellationToken ct) => ex switch
+    {
+        OperationCanceledException => !ct.IsCancellationRequested,
+        HttpRequestException or InvalidOperationException or JsonException => true,
+        _ => false,
+    };
+
+    // A 99Food devolve HTTP 200 com errno != 0 para erro de negócio, e o
+    // autenticador converte isso em InvalidOperationException carregando o
+    // errmsg original — é o texto que diagnostica (errno=10101 loja não
+    // vinculada ao app, errno=14106 app_id e app_secret de apps diferentes),
+    // e o que o lojista repassa ao suporte.
+    private static string MotivoDe(Exception ex) => ex is OperationCanceledException
+        ? "Tempo esgotado ao consultar a plataforma."
+        : ex.Message;
+
+
+    // Responde a pergunta que bloqueia o módulo de catálogo: o escopo está
+    // liberado para este clientId no iFood? O app do projeto nasceu com
+    // Order, Events e Merchant (CLAUDE.md §7); Catalog precisa ser habilitado
+    // no portal, e até lá a API recusa com 403. A aba de Catálogo do painel
+    // chama isto para o lojista descobrir sozinho quando foi liberado.
+    private static async Task<Results<Ok<StatusCatalogoIFoodResponse>, ProblemHttpResult>> ObterStatusCatalogoIFood(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IIFoodCatalogClient catalogo,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (merchant.IFoodMerchantId is not Guid ifoodMerchantId)
+            return TypedResults.Problem(
+                title: "Restaurante sem vínculo com o iFood.",
+                detail: "merchant.sem_vinculo_ifood",
+                statusCode: StatusCodes.Status409Conflict);
+
+        try
+        {
+            var catalogos = await catalogo.ListarCatalogosAsync(ifoodMerchantId, ct);
+
+            return TypedResults.Ok(new StatusCatalogoIFoodResponse(
+                EscopoLiberado: true,
+                Quantidade: catalogos.Count,
+                Catalogos: catalogos
+                    .Select(c => new CatalogoIFoodResumo(c.CatalogId, c.Status, c.Context, c.ModifiedAt))
+                    .ToList()));
+        }
+        catch (IFoodApiException ex)
+        {
+            // 403 aqui quase sempre é módulo não habilitado, não credencial
+            // ruim — o mesmo token funciona em Order e Events. A distinção
+            // importa porque a ação do lojista é outra em cada caso.
+            return TypedResults.Problem(
+                title: ex.StatusCode == System.Net.HttpStatusCode.Forbidden
+                    ? "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood."
+                    : "Não foi possível consultar o catálogo no iFood.",
+                detail: ex.Message,
+                statusCode: (int)ex.StatusCode);
+        }
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(

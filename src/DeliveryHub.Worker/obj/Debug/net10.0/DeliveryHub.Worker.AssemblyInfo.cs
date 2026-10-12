@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryHub.Worker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d73b9eabc5324e2c4a1b7524e928baeb9c5295ff")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c084c166c2e260085423dea7d9c21f79fbb839ac")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryHub.Worker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryHub.Worker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -35,3 +35,15 @@ Thumbs.db
 *.heapsnapshot
 coverage/
 TestResults/
+
+# Cache de build do TypeScript — gerado por `tsc -b`, polui o git status
+web/*.tsbuildinfo
+web/*.tsbuildinfo
+
+# Artefatos de build do .NET — mudam a cada compilação
+[Bb]in/
+[Oo]bj/
+
+# Artefatos de build do .NET — mudam a cada compilação
+[Bb]in/
+[Oo]bj/
