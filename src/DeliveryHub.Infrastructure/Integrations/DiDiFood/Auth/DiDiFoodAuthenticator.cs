@@ -7,15 +7,9 @@ namespace DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
 
 public interface IDiDiFoodAuthenticator
 {
-    // O guia da 99Food só documenta os caminhos dos dois endpoints (GET
-    // /v1/auth/authtoken/get e /refresh) e diz que o token "retorna para a
-    // loja solicitada" — ou seja, por app_shop_id, não um token único do app
-    // inteiro como no iFood Centralizado. Os nomes exatos dos campos do
-    // corpo/resposta abaixo (app_id/app_secret/app_shop_id na ida,
-    // auth_token/expires_in na volta) são inferidos do vocabulário já
-    // estabelecido pelo próprio guia (seção "Identificando as Credenciais") —
-    // precisam ser confirmados contra uma chamada real de sandbox antes da
-    // validação viva (CLAUDE.md §2 passo 4).
+    // Token da 99Food é por app_shop_id, não global do app como no iFood
+    // Centralizado — a doc do /v1/auth/authtoken/get diz "returns the auth
+    // token for the shop specified with app_shop_id".
     Task<string> GetAuthTokenAsync(string appShopId, CancellationToken ct);
 
     void InvalidateCache(string appShopId);
@@ -23,10 +17,8 @@ public interface IDiDiFoodAuthenticator
 
 internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
 {
-    // Sem confirmação do prazo real de expiração — 10 minutos é conservador o
-    // bastante para nunca usar um token vencido, e barato o bastante (uma
-    // chamada extra a cada 10 min por loja ativa) para não pesar na API deles
-    // enquanto o valor real não é confirmado.
+    // Fallback para quando token_expiration_time não vem ou vem zerado.
+    // Conservador: menor que a validade real documentada, nunca usa expirado.
     private static readonly TimeSpan DuracaoAssumida = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan MargemDeRenovacao = TimeSpan.FromMinutes(1);
 
@@ -34,10 +26,9 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
     private readonly DiDiFoodOptions _options;
     private readonly TimeProvider _timeProvider;
 
-    // Um cache por loja — o token não é global do app como no iFood
-    // Centralizado, é por app_shop_id. SemaphoreSlim por chave evita que duas
-    // requisições concorrentes para a mesma loja autentiquem em dobro, sem
-    // travar lojas diferentes entre si.
+    // Um cache por loja — o token não é global do app. SemaphoreSlim por chave
+    // evita que duas requisições concorrentes para a mesma loja autentiquem em
+    // dobro, sem travar lojas diferentes entre si.
     private readonly ConcurrentDictionary<string, (string Token, DateTimeOffset RenovarEm)> _cache = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
@@ -75,32 +66,93 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
     {
         var http = _httpClientFactory.CreateClient(nameof(DiDiFoodAuthenticator));
 
+        // /v1/auth/authtoken/get só RETORNA um token já gerado — nunca gera.
+        // Para loja recém-vinculada, data vem sem auth_token e precisamos
+        // disparar /refresh (que cria um novo) antes de tentar o /get de novo
+        // ("If you don't have a auth token yet or the auth token expired,
+        //  please call auth/authtoken/refresh api first" — doc oficial).
+        var payload = await ChamarGetAsync(http, appShopId, ct);
+        if (string.IsNullOrWhiteSpace(payload?.AuthToken))
+        {
+            await ChamarRefreshAsync(http, appShopId, ct);
+            payload = await ChamarGetAsync(http, appShopId, ct);
+        }
+
+        if (payload is null || string.IsNullOrWhiteSpace(payload.AuthToken))
+            throw new InvalidOperationException(
+                "99Food não retornou auth_token para a loja informada mesmo após /refresh.");
+
+        var renovarEm = CalcularRenovacao(payload.TokenExpirationTime);
+        _cache[appShopId] = (payload.AuthToken, renovarEm);
+        return payload.AuthToken;
+    }
+
+    private DateTimeOffset CalcularRenovacao(long tokenExpirationTime)
+    {
+        var agora = _timeProvider.GetUtcNow();
+        if (tokenExpirationTime <= 0)
+            return agora + DuracaoAssumida - MargemDeRenovacao;
+
+        var expiracao = DateTimeOffset.FromUnixTimeSeconds(tokenExpirationTime);
+        // Guarda contra timestamp já no passado (relógio dessincronizado ou
+        // response fora de ordem): usa o fallback em vez de token vencido.
+        if (expiracao <= agora)
+            return agora + DuracaoAssumida - MargemDeRenovacao;
+
+        return expiracao - MargemDeRenovacao;
+    }
+
+    private async Task<DiDiAuthTokenData?> ChamarGetAsync(HttpClient http, string appShopId, CancellationToken ct)
+    {
         var uri = "/v1/auth/authtoken/get"
             + $"?app_id={_options.AppId}"
             + $"&app_secret={Uri.EscapeDataString(_options.AppSecret)}"
             + $"&app_shop_id={Uri.EscapeDataString(appShopId)}";
 
-        using var response = await http.GetAsync(uri, ct);
-        response.EnsureSuccessStatusCode();
-
-        var corpo = await response.Content.ReadFromJsonAsync<DiDiAuthTokenResponse>(cancellationToken: ct)
-            ?? throw new InvalidOperationException("Resposta vazia ao obter auth_token da 99Food.");
-
-        if (string.IsNullOrWhiteSpace(corpo.AuthToken))
-            throw new InvalidOperationException("99Food não retornou auth_token para a loja informada.");
-
-        var duracao = corpo.ExpiresIn > 0 ? TimeSpan.FromSeconds(corpo.ExpiresIn) : DuracaoAssumida;
-        var renovarEm = _timeProvider.GetUtcNow() + duracao - MargemDeRenovacao;
-
-        _cache[appShopId] = (corpo.AuthToken, renovarEm);
-        return corpo.AuthToken;
+        return await ExecutarAsync<DiDiAuthTokenData>(http, HttpMethod.Get, uri, "authtoken/get", ct);
     }
 
-    // internal (não Contracts/) de propósito: é resposta de autenticação, não
-    // dado de pedido — o teste de arquitetura que isola DiDiFood.Contracts não
-    // precisa cobrir isto, mas nada aqui deve vazar para Domain/Application
-    // do mesmo jeito.
-    internal sealed record DiDiAuthTokenResponse(
+    private async Task ChamarRefreshAsync(HttpClient http, string appShopId, CancellationToken ct)
+    {
+        var uri = "/v1/auth/authtoken/refresh"
+            + $"?app_id={_options.AppId}"
+            + $"&app_secret={Uri.EscapeDataString(_options.AppSecret)}"
+            + $"&app_shop_id={Uri.EscapeDataString(appShopId)}";
+
+        // /refresh devolve data = true/false segundo a doc; o importante é que
+        // errno == 0. O token em si vem na próxima chamada ao /get.
+        await ExecutarAsync<bool?>(http, HttpMethod.Get, uri, "authtoken/refresh", ct);
+    }
+
+    private static async Task<T?> ExecutarAsync<T>(
+        HttpClient http, HttpMethod method, string uri, string op, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(method, uri);
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var envelope = await response.Content.ReadFromJsonAsync<DiDiStandardResponse<T>>(cancellationToken: ct)
+            ?? throw new InvalidOperationException($"Resposta vazia da 99Food em {op}.");
+
+        if (envelope.Errno != 0)
+            throw new InvalidOperationException(
+                $"99Food recusou {op}: errno={envelope.Errno} errmsg={envelope.Errmsg ?? "(sem mensagem)"}.");
+
+        return envelope.Data;
+    }
+
+    // Envelope padrão da 99Food em todas as respostas da OpenAPI
+    // (StandardResponse no swagger: errno + errmsg + data).
+    internal sealed record DiDiStandardResponse<T>(
+        [property: JsonPropertyName("errno")] int Errno,
+        [property: JsonPropertyName("errmsg")] string? Errmsg,
+        [property: JsonPropertyName("data")] T? Data);
+
+    // Corpo do data em /v1/auth/authtoken/get. Expiração é unix timestamp
+    // ABSOLUTO em segundos — não é duração relativa como no iFood.
+    internal sealed record DiDiAuthTokenData(
+        [property: JsonPropertyName("app_id")] long AppId,
+        [property: JsonPropertyName("app_shop_id")] string? AppShopId,
         [property: JsonPropertyName("auth_token")] string? AuthToken,
-        [property: JsonPropertyName("expires_in")] int ExpiresIn);
+        [property: JsonPropertyName("token_expiration_time")] long TokenExpirationTime);
 }
