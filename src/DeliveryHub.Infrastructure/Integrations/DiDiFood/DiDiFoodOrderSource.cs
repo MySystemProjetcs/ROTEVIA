@@ -136,7 +136,11 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
 
         try
         {
-            var authToken = await _authenticator.GetAuthTokenAsync(appShopId, ct);
+            // Passa appId=null — a nossa branch ainda não propaga o
+            // Merchant.NoventaENoveAppId até aqui. Quando o merge com a
+            // feature "app_id por loja" (develop) acontecer, o caller já
+            // carregará o appId do Merchant e passará aqui.
+            var authToken = await _authenticator.GetAuthTokenAsync(appShopId, null, ct);
             await acao(orderId, authToken, ct);
             return Result.Success();
         }
