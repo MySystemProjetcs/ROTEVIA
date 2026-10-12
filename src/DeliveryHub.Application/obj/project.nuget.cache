@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "pl6Ly1QH3qM=",
+  "dgSpecHash": "wppc0K+cH98=",
   "success": true,
   "projectFilePath": "/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Application/DeliveryHub.Application.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/jonathan/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.12/microsoft.extensions.dependencyinjection.abstractions.10.0.12.nupkg.sha512",
+    "/Users/jonathan/.nuget/packages/microsoft.extensions.logging.abstractions/10.0.12/microsoft.extensions.logging.abstractions.10.0.12.nupkg.sha512"
+  ],
   "logs": []
 }

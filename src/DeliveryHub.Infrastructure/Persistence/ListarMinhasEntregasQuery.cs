@@ -1,6 +1,9 @@
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Domain.Orders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace DeliveryHub.Infrastructure.Persistence;
 
@@ -16,21 +19,28 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
     ];
 
     private readonly AppDbContext _db;
+    private readonly ILogger<ListarMinhasEntregasQuery> _logger;
 
-    public ListarMinhasEntregasQuery(AppDbContext db)
+    public ListarMinhasEntregasQuery(AppDbContext db, ILogger<ListarMinhasEntregasQuery>? logger = null)
     {
         _db = db;
+        _logger = logger ?? NullLogger<ListarMinhasEntregasQuery>.Instance;
     }
 
     public async Task<IReadOnlyList<PedidoDto>> ExecutarAsync(Guid usuarioLogadoId, CancellationToken ct)
     {
+        var duracao = Stopwatch.StartNew();
         var courier = await _db.Couriers.AsNoTracking().FirstOrDefaultAsync(c => c.UsuarioId == usuarioLogadoId, ct);
         if (courier is null)
+        {
+            _logger.LogWarning("Listagem de entregas sem entregador associado. UsuarioId={UsuarioId} ResultadoCount=0 DuraçãoMs={DuracaoMs}",
+                usuarioLogadoId, duracao.Elapsed.TotalMilliseconds);
             return [];
+        }
 
         // Cross-tenant de propósito: o motoboy não tem merchant_id no token,
         // e pode legitimamente atender mais de um restaurante.
-        return await _db.Pedidos
+        var resultado = await _db.Pedidos
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(x => x.EntregadorId == courier.Id && StatusDeEntregaAtiva.Contains(x.Status))
@@ -73,5 +83,9 @@ internal sealed class ListarMinhasEntregasQuery : IListarMinhasEntregas
                 x.OrdemNaRota,
                 x.CodigoDeEntrega))
             .ToListAsync(ct);
+
+        _logger.LogInformation("Listagem de entregas concluída. EntregadorId={EntregadorId} ResultadoCount={ResultadoCount} DuraçãoMs={DuracaoMs}",
+            courier.Id, resultado.Count, duracao.Elapsed.TotalMilliseconds);
+        return resultado;
     }
 }

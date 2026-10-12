@@ -23,6 +23,7 @@ internal sealed class MerchantConfiguration : IEntityTypeConfiguration<Merchant>
         builder.Property(x => x.Nome).HasColumnName("nome").HasMaxLength(200).IsRequired();
         builder.Property(x => x.IFoodMerchantId).HasColumnName("ifood_merchant_id");
         builder.Property(x => x.NoventaENoveAppShopId).HasColumnName("noventa_e_nove_app_shop_id").HasMaxLength(64);
+        builder.Property(x => x.NoventaENoveAppId).HasColumnName("app_id_99").HasMaxLength(64);
         builder.Property(x => x.CriadoEm).HasColumnName("criado_em").IsRequired();
         builder.Property(x => x.TaxaPadraoPorEntrega).HasColumnName("taxa_padrao_por_entrega").IsRequired();
 

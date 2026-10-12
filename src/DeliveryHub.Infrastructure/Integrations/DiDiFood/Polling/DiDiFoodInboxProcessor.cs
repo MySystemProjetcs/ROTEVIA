@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
@@ -49,26 +50,34 @@ internal sealed class DiDiFoodInboxProcessor : IDiDiFoodInboxProcessor
 
         foreach (var entrada in pendentes)
         {
+            var duracao = Stopwatch.StartNew();
             try
             {
-                await ProcessarAsync(entrada, ct);
+                var resultado = await ProcessarAsync(entrada, ct);
                 entrada.MarcarProcessado(_timeProvider.GetUtcNow());
                 await _db.SaveChangesAsync(ct);
                 processados++;
+
+                _logger.LogInformation("Evento 99Food aplicado ao pedido e persistido. InboxId={InboxId} MerchantId={MerchantId} PedidoId={PedidoId} TipoEvento={TipoEvento} PedidoCriado={PedidoCriado} StatusAnterior={StatusAnterior} StatusNovo={StatusNovo} DuraçãoMs={DuracaoMs}",
+                    entrada.Id, entrada.MerchantId, resultado.PedidoId, resultado.TipoEvento, resultado.PedidoCriado,
+                    resultado.StatusAnterior, resultado.StatusNovo, duracao.Elapsed.TotalMilliseconds);
 
                 await _notificador.ResumoAtualizadoAsync(entrada.MerchantId!.Value, ct);
             }
             catch (Exception ex)
             {
                 _db.ChangeTracker.Clear();
-                _logger.LogError(ex, "Falha ao processar evento 99Food {EventoId} do inbox.", entrada.ExternalEventId);
+                _logger.LogError(ex, "Falha ao processar evento 99Food do inbox. InboxId={InboxId} MerchantId={MerchantId} DuraçãoMs={DuracaoMs}",
+                    entrada.Id, entrada.MerchantId, duracao.Elapsed.TotalMilliseconds);
             }
         }
 
         return processados;
     }
 
-    private async Task ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)
+    private sealed record ResultadoProcessamento(Guid? PedidoId, string? TipoEvento, bool PedidoCriado, StatusPedido? StatusAnterior, StatusPedido? StatusNovo);
+
+    private async Task<ResultadoProcessamento> ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)
     {
         var evento = JsonSerializer.Deserialize<DiDiWebhookEvent>(entrada.Payload)
             ?? throw new InvalidOperationException("Payload do inbox da 99Food ilegível.");
@@ -83,17 +92,19 @@ internal sealed class DiDiFoodInboxProcessor : IDiDiFoodInboxProcessor
             if (evento.Order is null)
             {
                 _logger.LogWarning(
-                    "Evento {EventType} da 99Food para o pedido {PedidoId} sem objeto Order.",
-                    evento.EventType, idExterno);
-                return;
+                    "Evento 99Food sem objeto de pedido. InboxId={InboxId} MerchantId={MerchantId} TipoEvento={TipoEvento}",
+                    entrada.Id, entrada.MerchantId, evento.EventType);
+                return new ResultadoProcessamento(null, evento.EventType, false, null, null);
             }
 
             pedido = DiDiFoodOrderMapper.ParaPedido(evento.Order, entrada.MerchantId!.Value, entrada.ReceivedAt);
             _db.Pedidos.Add(pedido);
-            return;
+            return new ResultadoProcessamento(pedido.Id, evento.EventType, true, null, pedido.Status);
         }
 
+        var statusAnterior = pedido.Status;
         AplicarTransicao(pedido, evento);
+        return new ResultadoProcessamento(pedido.Id, evento.EventType, false, statusAnterior, pedido.Status);
     }
 
     // Nomes reais do guia da 99Food ("Receber informações sobre Pedidos"):
