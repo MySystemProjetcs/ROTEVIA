@@ -18,8 +18,8 @@ import { IconeMoeda } from '@/components/icones/IconeMoeda'
 import { usePerfil } from '@/perfil/contexto'
 import { DialogoPerfil } from '@/perfil/DialogoPerfil'
 
-// Ícone do cardápio
-function IconeCardapio({ className }: { className?: string }) {
+// Ícone do catálogo
+function IconeCatalogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z" />
@@ -247,7 +247,7 @@ export function BarraLateral() {
         {ehDono && (
           <>
             <RotuloSecao>Gestão</RotuloSecao>
-            <ItemNav para="/cardapio"      icone={<IconeCardapio />}     rotulo="Cardápio" />
+            <ItemNav para="/catalogo"      icone={<IconeCatalogo />}     rotulo="Catálogo" />
             <ItemNav para="/relatorios"    icone={<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>} rotulo="Relatórios" />
             <div>
               <button

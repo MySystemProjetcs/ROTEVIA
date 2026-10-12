@@ -18,6 +18,7 @@ import { EstadoIntegracoes } from '@/pedidos/EstadoIntegracoes'
 import { PaginaHorariosFuncionamento } from '@/configuracoes/PaginaHorariosFuncionamento'
 import { PaginaImpressoras } from '@/configuracoes/PaginaImpressoras'
 import { Pagina99Food } from '@/configuracoes/Pagina99Food'
+import { PaginaCatalogo } from '@/catalogo/PaginaCatalogo'
 
 export function App() {
   return (
@@ -57,6 +58,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
     localizacao.pathname === '/motoboys'      ? 'Motoboys'
     : localizacao.pathname === '/whatsapp'    ? 'Conversas'
     : localizacao.pathname === '/meus-ganhos' ? 'Meus ganhos'
+    : localizacao.pathname === '/catalogo'    ? 'Catálogo'
     : localizacao.pathname.startsWith('/configuracoes/') ? 'Configurações'
     : null
 
@@ -138,6 +140,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
               <Route path="/"         element={<PainelOperacao />} />
               <Route path="/motoboys" element={<PaginaMotoboys />} />
               <Route path="/whatsapp" element={<PaginaWhatsapp />} />
+              <Route path="/catalogo" element={<PaginaCatalogo />} />
               <Route path="/configuracoes/horarios" element={<PaginaHorariosFuncionamento />} />
               <Route path="/configuracoes/impressoras" element={<PaginaImpressoras />} />
               <Route path="/configuracoes/99food" element={<Pagina99Food />} />
