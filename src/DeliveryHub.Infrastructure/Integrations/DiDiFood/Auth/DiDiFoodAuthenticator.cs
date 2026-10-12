@@ -16,9 +16,11 @@ public interface IDiDiFoodAuthenticator
     // estabelecido pelo próprio guia (seção "Identificando as Credenciais") —
     // precisam ser confirmados contra uma chamada real de sandbox antes da
     // validação viva (CLAUDE.md §2 passo 4).
-    Task<string> GetAuthTokenAsync(string appShopId, CancellationToken ct);
+    // appId nulo cai no AppId global de configuração (DiDiFood:AppId); quando a
+    // loja traz o próprio app_id_99, ele tem precedência.
+    Task<string> GetAuthTokenAsync(string appShopId, string? appId, CancellationToken ct);
 
-    void InvalidateCache(string appShopId);
+    void InvalidateCache(string appShopId, string? appId);
 }
 
 internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
@@ -49,19 +51,21 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
         _timeProvider = timeProvider;
     }
 
-    public async Task<string> GetAuthTokenAsync(string appShopId, CancellationToken ct)
+    public async Task<string> GetAuthTokenAsync(string appShopId, string? appId, CancellationToken ct)
     {
-        if (_cache.TryGetValue(appShopId, out var existente) && _timeProvider.GetUtcNow() < existente.RenovarEm)
+        var chave = ChaveDoCache(appShopId, appId);
+
+        if (_cache.TryGetValue(chave, out var existente) && _timeProvider.GetUtcNow() < existente.RenovarEm)
             return existente.Token;
 
-        var trava = _locks.GetOrAdd(appShopId, _ => new SemaphoreSlim(1, 1));
+        var trava = _locks.GetOrAdd(chave, _ => new SemaphoreSlim(1, 1));
         await trava.WaitAsync(ct);
         try
         {
-            if (_cache.TryGetValue(appShopId, out existente) && _timeProvider.GetUtcNow() < existente.RenovarEm)
+            if (_cache.TryGetValue(chave, out existente) && _timeProvider.GetUtcNow() < existente.RenovarEm)
                 return existente.Token;
 
-            return await AutenticarAsync(appShopId, ct);
+            return await AutenticarAsync(appShopId, appId, chave, ct);
         }
         finally
         {
@@ -69,14 +73,22 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
         }
     }
 
-    public void InvalidateCache(string appShopId) => _cache.TryRemove(appShopId, out _);
+    public void InvalidateCache(string appShopId, string? appId) =>
+        _cache.TryRemove(ChaveDoCache(appShopId, appId), out _);
 
-    private async Task<string> AutenticarAsync(string appShopId, CancellationToken ct)
+    // app_id entra na chave: duas lojas com app_id diferente não podem
+    // compartilhar entrada de cache, ainda que o app_shop_id coincidisse.
+    private string ChaveDoCache(string appShopId, string? appId) =>
+        $"{(string.IsNullOrWhiteSpace(appId) ? _options.AppId.ToString() : appId)}:{appShopId}";
+
+    private async Task<string> AutenticarAsync(string appShopId, string? appId, string chave, CancellationToken ct)
     {
         var http = _httpClientFactory.CreateClient(nameof(DiDiFoodAuthenticator));
 
+        var idDoApp = string.IsNullOrWhiteSpace(appId) ? _options.AppId.ToString() : appId;
+
         var uri = "/v1/auth/authtoken/get"
-            + $"?app_id={_options.AppId}"
+            + $"?app_id={Uri.EscapeDataString(idDoApp)}"
             + $"&app_secret={Uri.EscapeDataString(_options.AppSecret)}"
             + $"&app_shop_id={Uri.EscapeDataString(appShopId)}";
 
@@ -89,10 +101,19 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
         if (string.IsNullOrWhiteSpace(corpo.AuthToken))
             throw new InvalidOperationException("99Food não retornou auth_token para a loja informada.");
 
-        var duracao = corpo.ExpiresIn > 0 ? TimeSpan.FromSeconds(corpo.ExpiresIn) : DuracaoAssumida;
+        // Usa o token_expiration_time retornado pela API (em segundos desde o epoch).
+        // Se o campo for 0 ou negativo, cai na duração assumida como fallback.
+        long duracaoSegundos = corpo.TokenExpirationTimeUnix > 0
+            ? corpo.TokenExpirationTimeUnix
+            : corpo.ExpiresIn;
+
+        var duracao = duracaoSegundos > 0
+            ? TimeSpan.FromSeconds(duracaoSegundos)
+            : DuracaoAssumida;
+
         var renovarEm = _timeProvider.GetUtcNow() + duracao - MargemDeRenovacao;
 
-        _cache[appShopId] = (corpo.AuthToken, renovarEm);
+        _cache[chave] = (corpo.AuthToken, renovarEm);
         return corpo.AuthToken;
     }
 
@@ -102,5 +123,6 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
     // do mesmo jeito.
     internal sealed record DiDiAuthTokenResponse(
         [property: JsonPropertyName("auth_token")] string? AuthToken,
-        [property: JsonPropertyName("expires_in")] int ExpiresIn);
+        [property: JsonPropertyName("expires_in")] int ExpiresIn,
+        [property: JsonPropertyName("token_expiration_time")] long TokenExpirationTimeUnix);
 }

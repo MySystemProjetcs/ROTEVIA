@@ -292,6 +292,11 @@ namespace DeliveryHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome");
 
+                    b.Property<string>("NoventaENoveAppId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("app_id_99");
+
                     b.Property<string>("NoventaENoveAppShopId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
