@@ -14,7 +14,7 @@ import { NovoPedidoProvider } from '@/pedidos/NovoPedidoContext'
 import { PerfilProvider } from '@/perfil/PerfilProvider'
 import { PaginaGanhos } from '@/entregador/PaginaGanhos'
 import { PaginaWhatsapp } from '@/whatsapp/PaginaWhatsapp'
-import { EstadoLojaIFood } from '@/pedidos/EstadoLojaIFood'
+import { EstadoIntegracoes } from '@/pedidos/EstadoIntegracoes'
 import { PaginaHorariosFuncionamento } from '@/configuracoes/PaginaHorariosFuncionamento'
 import { PaginaImpressoras } from '@/configuracoes/PaginaImpressoras'
 import { Pagina99Food } from '@/configuracoes/Pagina99Food'
@@ -73,7 +73,7 @@ function PainelDaSessao({ usuario }: { usuario: DadosDoToken }) {
             </span>
             {ehDono && localizacao.pathname === '/' && (
               <div className="mt-1.5">
-                <EstadoLojaIFood
+                <EstadoIntegracoes
                   merchantId={usuario.merchantId}
                   nomeFallback={usuario.nomeRestaurante}
                 />

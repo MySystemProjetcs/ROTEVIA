@@ -5,6 +5,10 @@ using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
 using Microsoft.AspNetCore.Http.HttpResults;
+// Alias: dentro de DeliveryHub.Api.Merchants o nome "Merchants" já está
+// ocupado pelo próprio namespace, então o tipo do domínio precisa de apelido
+// para não ficar ambíguo.
+using MerchantEntity = DeliveryHub.Domain.Merchants.Merchant;
 
 namespace DeliveryHub.Api.Merchants;
 
@@ -17,6 +21,23 @@ public sealed record TesteAutenticacao99Response(
     bool Sucesso, string? AppId99, string? AppShopId, string? TokenMascarado, string? Erro);
 
 public sealed record Autorizacao99Response(string Url);
+
+// Status de uma plataforma de origem de pedido, normalizado pela Api: o
+// componente do painel não precisa conhecer o formato de cada marketplace.
+// Disponibilidade é string e não enum porque "sem-vinculo" não é um estado
+// da loja na plataforma — é a ausência de integração, e o front renderiza
+// os quatro casos de forma diferente.
+public sealed record StatusPlataforma(
+    bool Vinculado,
+    bool Autenticado,
+    string? LojaNome,
+    string Disponibilidade,
+    DateTimeOffset? AtualizadoEm,
+    string? Erro);
+
+public sealed record StatusIntegracoesResponse(
+    StatusPlataforma IFood,
+    StatusPlataforma NoventaENove);
 
 public sealed record GetUrlAutorizacaoRequest(BigInteger AppId);
 public sealed record TaxaEntregaResponse(decimal Valor);
@@ -59,6 +80,136 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/99food/testar-autenticacao", TestarAutenticacao99Food);
         group.MapPost("/{merchantId:guid}/99food/autorizacao/get-url", GetUrlAutorizacao99);
         group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
+        group.MapGet("/{merchantId:guid}/integracoes/status", ObterStatusIntegracoes);
+    }
+
+    // Status consolidado das origens de pedido. Uma chamada só porque o painel
+    // mostra as duas lado a lado — dois endpoints fariam o componente esperar
+    // o mais lento dos dois de qualquer forma, e ainda duplicariam o carregar
+    // do Merchant.
+    private static async Task<Results<Ok<StatusIntegracoesResponse>, ProblemHttpResult>> ObterStatusIntegracoes(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IObterContextoIFood contextoIFood,
+        IDiDiFoodAuthenticator autenticar99,
+        TimeProvider relogio,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        // As duas consultas são independentes e falham de forma isolada: uma
+        // plataforma fora do ar não pode esconder o status da outra. Em
+        // paralelo porque o painel espera o resultado das duas para pintar.
+        var tarefaIFood = StatusDoIFoodAsync(merchant.Id, merchant, contextoIFood, ct);
+        var tarefa99 = StatusDaNoventaENoveAsync(merchant, autenticar99, relogio, ct);
+        await Task.WhenAll(tarefaIFood, tarefa99);
+
+        return TypedResults.Ok(new StatusIntegracoesResponse(
+            await tarefaIFood,
+            await tarefa99));
+    }
+
+    private static async Task<StatusPlataforma> StatusDoIFoodAsync(
+        Guid merchantId,
+        MerchantEntity merchant,
+        IObterContextoIFood obter,
+        CancellationToken ct)
+    {
+        if (merchant.IFoodMerchantId is null || merchant.ConexaoIFood?.Conectado != true)
+            return new StatusPlataforma(false, false, null, "sem-vinculo", null, null);
+
+        var resultado = await obter.ExecutarAsync(merchantId, ct);
+        if (resultado.IsFailure)
+            return new StatusPlataforma(true, false, null, "indisponivel", null, resultado.Error.Message);
+
+        var contexto = resultado.Value;
+        return new StatusPlataforma(
+            Vinculado: true,
+            Autenticado: true,
+            LojaNome: NomeDaLojaIFood(contexto.DetailsJson),
+            Disponibilidade: DisponibilidadeDoIFood(contexto.StatusJson),
+            AtualizadoEm: contexto.UpdatedAt,
+            Erro: contexto.IsStale ? "Dados podem estar desatualizados." : null);
+    }
+
+    // Fase 1: autenticar com sucesso é o sinal de que a loja está acessível.
+    // O nome e a disponibilidade reais exigem GET /v1/shop/shop/detail, que
+    // só podemos chamar depois de ter o auth_token — fica para a fase 2,
+    // quando houver loja vinculada em conta com acesso.
+    private static async Task<StatusPlataforma> StatusDaNoventaENoveAsync(
+        MerchantEntity merchant,
+        IDiDiFoodAuthenticator autenticar,
+        TimeProvider relogio,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return new StatusPlataforma(false, false, null, "sem-vinculo", null, null);
+
+        try
+        {
+            await autenticar.GetAuthTokenAsync(merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
+            return new StatusPlataforma(true, true, null, "online", relogio.GetUtcNow(), null);
+        }
+        // A 99Food devolve HTTP 200 com errno != 0 para erro de negócio, que o
+        // autenticador converte em InvalidOperationException com o errmsg
+        // original — é essa mensagem que diagnostica (errno=10101 loja não
+        // vinculada, errno=14106 app_id/app_secret de apps diferentes).
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), ex.Message);
+        }
+    }
+
+    private static string? NomeDaLojaIFood(string detailsJson)
+    {
+        using var documento = JsonDocument.Parse(detailsJson);
+        return documento.RootElement.TryGetProperty("name", out var nome) && nome.ValueKind == JsonValueKind.String
+            ? nome.GetString()
+            : null;
+    }
+
+    // O iFood devolve um array de operações; a que interessa ao painel é a de
+    // entrega no canal do próprio iFood. Quando há uma só operação de entrega,
+    // ela vale mesmo sem o canal bater — loja com um canal só não precisa
+    // declarar qual é.
+    private static string DisponibilidadeDoIFood(string statusJson)
+    {
+        using var documento = JsonDocument.Parse(statusJson);
+        if (documento.RootElement.ValueKind != JsonValueKind.Array)
+            return "indisponivel";
+
+        var entregas = documento.RootElement
+            .EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.Object
+                && item.TryGetProperty("operation", out var operacao)
+                && operacao.ValueKind == JsonValueKind.String
+                && string.Equals(operacao.GetString(), "DELIVERY", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (entregas.Count == 0)
+            return "indisponivel";
+
+        var doCanalIFood = entregas.FirstOrDefault(item =>
+            item.TryGetProperty("salesChannel", out var canal)
+            && canal.ValueKind == JsonValueKind.String
+            && string.Equals(canal.GetString(), "IFOOD", StringComparison.OrdinalIgnoreCase));
+
+        var escolhida = doCanalIFood.ValueKind == JsonValueKind.Object
+            ? doCanalIFood
+            : entregas.Count == 1 ? entregas[0] : default;
+
+        if (escolhida.ValueKind != JsonValueKind.Object
+            || !escolhida.TryGetProperty("available", out var disponivel)
+            || disponivel.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            return "indisponivel";
+
+        return disponivel.GetBoolean() ? "online" : "offline";
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(
