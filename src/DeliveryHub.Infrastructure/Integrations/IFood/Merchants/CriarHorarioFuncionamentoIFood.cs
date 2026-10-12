@@ -57,12 +57,13 @@ internal sealed class CriarHorarioFuncionamentoIFood : IConfigurarHorarioFuncion
             {
                 var responseJson = await _gateway.CriarAsync(merchant, input, ct);
                 var agora = _timeProvider.GetUtcNow();
-                var snapshot = await _snapshots.AtualizarHorarioAsync(merchantId, responseJson, agora, ct);
+                await _snapshots.AtualizarHorarioAsync(merchantId, responseJson, agora, ct);
 
-                if (snapshot is null)
-                    _cache.Remove(merchantId);
-                else
-                    _cache.AtualizarHorario(snapshot);
+                // Sempre invalida o cache: o Status/Details continuam
+                // apontando pro estado anterior (eventualmente "offline")
+                // e precisam ser refetchados na próxima leitura do contexto
+                // — do contrário a UI mente que a loja segue offline.
+                _cache.Remove(merchantId);
 
                 return Result.Success(responseJson);
             }

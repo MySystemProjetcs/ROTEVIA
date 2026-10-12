@@ -325,6 +325,23 @@ export function BarraLateral() {
                     </svg>
                     {expandida && <span>Impressoras</span>}
                   </NavLink>
+                  <NavLink
+                    to="/configuracoes/99food"
+                    onClick={() => { if (ehCelular) definirAbertaNoCelular(false) }}
+                    title={!expandida ? '99Food' : undefined}
+                    className={({ isActive }) => cn(
+                      'flex items-center gap-2.5 rounded-[10px] py-2 text-[12px] transition-colors',
+                      !expandida ? 'justify-center px-0' : 'px-2.5',
+                      isActive
+                        ? 'font-semibold text-[#EEF0FF]'
+                        : 'text-texto-suave hover:bg-superficie-afundada hover:text-texto',
+                    )}
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                    {expandida && <span>99Food</span>}
+                  </NavLink>
                 </div>
               )}
             </div>

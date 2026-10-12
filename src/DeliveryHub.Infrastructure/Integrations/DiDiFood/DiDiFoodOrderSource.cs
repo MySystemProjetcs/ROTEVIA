@@ -67,7 +67,7 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
             return Result.Success();
 
         return await ExecutarComContextoAsync(
-            orderId, contexto.Value.AppShopId, "despachar",
+            orderId, contexto.Value.AppShopId, contexto.Value.AppId, "despachar",
             (id, token, cancellationToken) => _client.OrderDeliveredAsync(id, token, cancellationToken), ct);
     }
 
@@ -116,12 +116,13 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
         if (contexto is null)
             return Result.Failure(OrderSourceErrors.OrigemRecusou);
 
-        return await ExecutarComContextoAsync(orderId, contexto.Value.AppShopId, descricao, acao, ct);
+        return await ExecutarComContextoAsync(orderId, contexto.Value.AppShopId, contexto.Value.AppId, descricao, acao, ct);
     }
 
     private async Task<Result> ExecutarComContextoAsync(
         long orderId,
         string? appShopId,
+        string? appId,
         string descricao,
         Func<long, string, CancellationToken, Task> acao,
         CancellationToken ct)
@@ -136,11 +137,7 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
 
         try
         {
-            // Passa appId=null — a nossa branch ainda não propaga o
-            // Merchant.NoventaENoveAppId até aqui. Quando o merge com a
-            // feature "app_id por loja" (develop) acontecer, o caller já
-            // carregará o appId do Merchant e passará aqui.
-            var authToken = await _authenticator.GetAuthTokenAsync(appShopId, null, ct);
+            var authToken = await _authenticator.GetAuthTokenAsync(appShopId, appId, ct);
             await acao(orderId, authToken, ct);
             return Result.Success();
         }
@@ -158,7 +155,7 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
 
     // Pedido → Merchant num round-trip só. AsNoTracking: leitura de apoio a
     // uma chamada de API, não algo que vai ser salvo por aqui.
-    private async Task<(string? AppShopId, bool EntregaPeloParceiro)?> ObterContextoAsync(long orderId, CancellationToken ct)
+    private async Task<(string? AppShopId, string? AppId, bool EntregaPeloParceiro)?> ObterContextoAsync(long orderId, CancellationToken ct)
     {
         var idExterno = orderId.ToString();
 
@@ -171,12 +168,12 @@ internal sealed class DiDiFoodOrderSource : IOrderSource
         if (linha is null)
             return null;
 
-        var appShopId = await _db.Merchants
+        var loja = await _db.Merchants
             .AsNoTracking()
             .Where(x => x.Id == linha.MerchantId)
-            .Select(x => x.NoventaENoveAppShopId)
+            .Select(x => new { x.NoventaENoveAppShopId, x.NoventaENoveAppId })
             .FirstOrDefaultAsync(ct);
 
-        return (appShopId, linha.EntregaPeloParceiro);
+        return (loja?.NoventaENoveAppShopId, loja?.NoventaENoveAppId, linha.EntregaPeloParceiro);
     }
 }

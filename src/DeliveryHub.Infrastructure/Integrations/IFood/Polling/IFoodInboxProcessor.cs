@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Domain.Orders;
@@ -67,12 +68,17 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
 
         foreach (var entrada in pendentes)
         {
+            var duracao = Stopwatch.StartNew();
             try
             {
-                await ProcessarAsync(entrada, ct);
+                var resultado = await ProcessarAsync(entrada, ct);
                 entrada.MarcarProcessado(_timeProvider.GetUtcNow());
                 await _db.SaveChangesAsync(ct);
                 processados++;
+
+                _logger.LogInformation("Evento iFood aplicado ao pedido e persistido. InboxId={InboxId} MerchantId={MerchantId} PedidoId={PedidoId} TipoEvento={TipoEvento} PedidoCriado={PedidoCriado} StatusAnterior={StatusAnterior} StatusNovo={StatusNovo} DuraçãoMs={DuracaoMs}",
+                    entrada.Id, entrada.MerchantId, resultado.PedidoId, resultado.TipoEvento, resultado.PedidoCriado,
+                    resultado.StatusAnterior, resultado.StatusNovo, duracao.Elapsed.TotalMilliseconds);
 
                 // Só depois de persistido: avisar antes deixaria a tela buscar
                 // um estado que ainda não existe no banco. Vai pelo backplane
@@ -84,7 +90,8 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
                 // Uma entrada ruim não pode travar a fila inteira: ela fica
                 // pendente e é retentada no próximo ciclo.
                 _db.ChangeTracker.Clear();
-                _logger.LogError(ex, "Falha ao processar evento {EventoId} do inbox.", entrada.ExternalEventId);
+                _logger.LogError(ex, "Falha ao processar evento iFood do inbox. InboxId={InboxId} MerchantId={MerchantId} DuraçãoMs={DuracaoMs}",
+                    entrada.Id, entrada.MerchantId, duracao.Elapsed.TotalMilliseconds);
             }
         }
 
@@ -104,7 +111,9 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
         return resumo is null ? (0, null) : (resumo.Count, resumo.Min);
     }
 
-    private async Task ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)
+    private sealed record ResultadoProcessamento(Guid PedidoId, string TipoEvento, bool PedidoCriado, StatusPedido? StatusAnterior, StatusPedido StatusNovo);
+
+    private async Task<ResultadoProcessamento> ProcessarAsync(IntegrationInboxEvent entrada, CancellationToken ct)
     {
         var evento = JsonSerializer.Deserialize<Contracts.IFoodEvent>(entrada.Payload)
             ?? throw new InvalidOperationException("Payload do inbox ilegível.");
@@ -143,9 +152,10 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
             // guardado no banco, então a primeira impressão e as reimpressões
             // partem dos mesmos bytes.
             await _notificador.PedidoParaImprimirAsync(entrada.MerchantId!.Value, snapshot, ct);
-            return;
+            return new ResultadoProcessamento(pedido.Id, evento.FullCode, true, null, pedido.Status);
         }
 
+        var statusAnterior = pedido.Status;
         AplicarTransicao(pedido, evento.FullCode);
 
         // Segundo caminho do fato gerador (o primeiro é o Finalizar do
@@ -166,6 +176,8 @@ internal sealed class IFoodInboxProcessor : IIFoodInboxProcessor
             if (taxa.HasValue)
                 pedido.RegistrarRepasseAoEntregador(taxa.Value);
         }
+
+            return new ResultadoProcessamento(pedido.Id, evento.FullCode, false, statusAnterior, pedido.Status);
     }
 
     // Confirmação automática: o pedido já entra confirmado, sem depender de o

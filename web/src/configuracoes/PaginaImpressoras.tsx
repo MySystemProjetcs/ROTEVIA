@@ -139,10 +139,13 @@ export function PaginaImpressoras() {
   function imprimirTeste() {
     const agora = new Date().toISOString()
     const comandaFake: Comanda = {
+      schemaVersion: 1,
       pedidoId: 'teste-' + Math.random().toString(36).slice(2, 8),
       numeroExibicao: 'TST001',
       ehTeste: true,
       origem: 'Interno',
+      idExterno: 'teste-local',
+      merchantId: merchantId ?? 'teste',
       criadoEm: agora,
       recebidoEm: agora,
       cliente: { nome: 'Cliente de Teste', telefone: '(11) 90000-0000', localizador: 'TESTE' },

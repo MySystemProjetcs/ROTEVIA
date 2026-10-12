@@ -13,6 +13,7 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Relational.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.Extensions.DependencyModel.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
@@ -22,6 +23,15 @@
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Pipelines.Sockets.Unofficial.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Polly.Core.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.AspNetCore.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Extensions.Hosting.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Extensions.Logging.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Formatting.Compact.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Settings.Configuration.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.Console.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.Debug.dll
+/Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/Serilog.Sinks.File.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/StackExchange.Redis.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/DeliveryHub.Application.dll
 /Users/jonathan/Documents/ROTEVIA/src/DeliveryHub.Worker/bin/Debug/net10.0/DeliveryHub.Domain.dll

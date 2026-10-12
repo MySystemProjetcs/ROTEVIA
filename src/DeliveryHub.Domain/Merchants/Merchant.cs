@@ -23,6 +23,13 @@ public sealed class Merchant
     // até a loja ser configurada lá, e vive isolado do IFoodMerchantId acima:
     // são identidades de marketplaces diferentes, sem relação entre si.
     public string? NoventaENoveAppShopId { get; private set; }
+
+    // "app_id_99": id do app da loja no painel da 99Food. Opcional — quando
+    // nulo, a autenticação usa o AppId global de configuração (DiDiFood:AppId).
+    // Vive separado do app_shop_id: um identifica o app, o outro a loja dentro
+    // dele.
+    public string? NoventaENoveAppId { get; private set; }
+
     public DateTimeOffset CriadoEm { get; private set; }
 
     // Quanto a loja paga ao motoboy por entrega concluída. É o valor vigente —
@@ -64,12 +71,13 @@ public sealed class Merchant
     // Sem handshake OAuth como o iFood: o app_shop_id da 99Food é escolhido
     // por nós na criação manual da loja no painel deles, então vincular aqui é
     // só registrar o valor combinado — não há token nem autorização a trocar.
-    public Result VincularNoventaENove(string appShopId)
+    public Result VincularNoventaENove(string appShopId, string? appId = null)
     {
         if (string.IsNullOrWhiteSpace(appShopId))
             return Result.Failure(MerchantErrors.AppShopIdInvalido);
 
         NoventaENoveAppShopId = appShopId.Trim();
+        NoventaENoveAppId = string.IsNullOrWhiteSpace(appId) ? null : appId.Trim();
         return Result.Success();
     }
 

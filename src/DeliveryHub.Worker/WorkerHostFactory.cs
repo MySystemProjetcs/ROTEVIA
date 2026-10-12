@@ -7,6 +7,8 @@ using DeliveryHub.Worker.Health;
 using DeliveryHub.Worker.Resilience;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 namespace DeliveryHub.Worker;
 
@@ -25,6 +27,15 @@ public static class WorkerHostFactory
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(urls);
+        builder.Host.UseSerilog((context, services, logger) => logger
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Service", "DeliveryHub.Worker")
+            .Enrich.WithProperty("Process", Environment.ProcessId)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
+            .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
         // A ingestão opera entre tenants: o iFood entrega os eventos de todas
         // as lojas num fluxo só e é aqui que o merchant é resolvido, evento a

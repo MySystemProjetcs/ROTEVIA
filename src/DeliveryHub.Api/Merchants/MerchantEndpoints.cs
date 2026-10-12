@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Numerics;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
+using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace DeliveryHub.Api.Merchants;
@@ -10,6 +12,13 @@ public sealed record IniciarConexaoResponse(string UserCode, string Verification
 public sealed record ConfirmarConexaoRequest(string AuthorizationCode);
 public sealed record DefinirTaxaRequest(decimal Valor);
 public sealed record DefinirNomeRequest(string Nome);
+public sealed record VincularNoventaENoveRequest(string AppShopId, string? AppId99 = null);
+public sealed record TesteAutenticacao99Response(
+    bool Sucesso, string? AppId99, string? AppShopId, string? TokenMascarado, string? Erro);
+
+public sealed record Autorizacao99Response(string Url);
+
+public sealed record GetUrlAutorizacaoRequest(BigInteger AppId);
 public sealed record TaxaEntregaResponse(decimal Valor);
 public sealed record ConfigurarHorarioFuncionamentoRequest(IReadOnlyList<IFoodOpeningHourShift> Shifts);
 public sealed record ContextoIFoodResponse(
@@ -46,6 +55,127 @@ public static class MerchantEndpoints
         group.MapPut("/{merchantId:guid}/taxa-entrega", DefinirTaxa);
         group.MapGet("/{merchantId:guid}/endereco", ObterEndereco);
         group.MapPut("/{merchantId:guid}/endereco", DefinirEndereco);
+        group.MapPut("/{merchantId:guid}/99food/app-shop-id", VincularNoventaENove);
+        group.MapPost("/{merchantId:guid}/99food/testar-autenticacao", TestarAutenticacao99Food);
+        group.MapPost("/{merchantId:guid}/99food/autorizacao/get-url", GetUrlAutorizacao99);
+        group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(
+        Guid merchantId,
+        VincularNoventaENoveRequest request,
+        ITenantContext tenant,
+        IVincularLojaNoventaENove vincular,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var resultado = await vincular.ExecutarAsync(merchantId, request.AppShopId, request.AppId99, ct);
+        return resultado.IsSuccess ? TypedResults.NoContent() : ProblemaDe(resultado.Error);
+    }
+
+    // Diagnóstico: roda a autenticação da 99Food com as credenciais da loja e
+    // devolve o resultado para inspeção. O token sai mascarado — o valor
+    // completo nunca cruza a fronteira da Api. Sem isto, saber se app_id e
+    // app_shop_id estão corretos exigia disparar um pedido real.
+    private static async Task<Results<Ok<TesteAutenticacao99Response>, ProblemHttpResult>> TestarAutenticacao99Food(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IDiDiFoodAuthenticator autenticar,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return TypedResults.Ok(new TesteAutenticacao99Response(
+                false, merchant.NoventaENoveAppId, null, null, "Loja sem app_shop_id vinculado."));
+
+        try
+        {
+            var token = await autenticar.GetAuthTokenAsync(
+                merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
+
+            var mascara = token.Length <= 8 ? "****" : $"{token[..4]}…{token[^4..]}";
+
+            return TypedResults.Ok(new TesteAutenticacao99Response(
+                true, merchant.NoventaENoveAppId, merchant.NoventaENoveAppShopId, mascara, null));
+        }
+        catch (HttpRequestException ex)
+        {
+            return TypedResults.Ok(new TesteAutenticacao99Response(
+                false, merchant.NoventaENoveAppId, merchant.NoventaENoveAppShopId, null, ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return TypedResults.Ok(new TesteAutenticacao99Response(
+                false, merchant.NoventaENoveAppId, merchant.NoventaENoveAppShopId, null, ex.Message));
+        }
+    }
+
+    private static async Task<Results<Ok<Autorizacao99Response>, ProblemHttpResult>> GetUrlAutorizacao99(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IDiDiFoodAuthenticator autenticar,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return TypedResults.Ok(new Autorizacao99Response(
+                $"https://didi-food.com/en-US/store/ui-sdk/authorization?appId={merchant.NoventaENoveAppId}&appShopId={merchant.NoventaENoveAppShopId}"));
+
+        try
+        {
+            var token = await autenticar.GetAuthTokenAsync(
+                merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
+
+            var mascara = token.Length <= 8 ? "****" : $"{token[..4]}…{token[^4..]}";
+
+            return TypedResults.Ok(new Autorizacao99Response(
+                $"https://didi-food.com/en-US/store/ui-sdk/authorization?appId={merchant.NoventaENoveAppId}&appShopId={merchant.NoventaENoveAppShopId}&token={mascara}"));
+        }
+        catch (HttpRequestException)
+        {
+            return TypedResults.Ok(new Autorizacao99Response(
+                $"https://didi-food.com/en-US/store/ui-sdk/authorization?appId={merchant.NoventaENoveAppId}&appShopId={merchant.NoventaENoveAppShopId}"));
+        }
+        catch (InvalidOperationException)
+        {
+            return TypedResults.Ok(new Autorizacao99Response(
+                $"https://didi-food.com/en-US/store/ui-sdk/authorization?appId={merchant.NoventaENoveAppId}&appShopId={merchant.NoventaENoveAppShopId}"));
+        }
+    }
+
+    private static async Task<Results<Ok<JsonElement>, ProblemHttpResult>> GetUrlAutorizacaoExterno(
+        BigInteger appId,
+        CancellationToken ct,
+        IHttpClientFactory httpClientFactory)
+    {
+        var client = httpClientFactory.CreateClient("DiDiFoodAuthenticator");
+        var response = await client.PostAsync("/v1/auth/authorizationpage/getUrl", new StringContent(
+            $"{{\"app_id\": {appId}}}", System.Text.Encoding.UTF8, "application/json"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return TypedResults.Ok(JsonDocument.Parse("{}").RootElement.Clone());
+        }
+
+        var content = await response.Content.ReadAsStringAsync(ct);
+        var doc = JsonDocument.Parse(content);
+        return TypedResults.Ok(doc.RootElement.Clone());
     }
 
     private static async Task<Results<Ok<ContextoIFoodResponse>, ProblemHttpResult>> ObterContextoIFood(

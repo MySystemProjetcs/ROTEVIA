@@ -1,6 +1,9 @@
 using DeliveryHub.Application.Orders;
 using DeliveryHub.Domain.Orders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace DeliveryHub.Infrastructure.Persistence;
 
@@ -29,10 +32,12 @@ internal sealed class ListarPedidosQuery : IListarPedidos
         TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
     private readonly AppDbContext _db;
+    private readonly ILogger<ListarPedidosQuery> _logger;
 
-    public ListarPedidosQuery(AppDbContext db)
+    public ListarPedidosQuery(AppDbContext db, ILogger<ListarPedidosQuery>? logger = null)
     {
         _db = db;
+        _logger = logger ?? NullLogger<ListarPedidosQuery>.Instance;
     }
 
     // Teto defensivo: a cada 4s o painel pede essa lista; mais de 300 cartões
@@ -43,6 +48,7 @@ internal sealed class ListarPedidosQuery : IListarPedidos
 
     public async Task<IReadOnlyList<PedidoDto>> ExecutarAsync(bool apenasAtivos, CancellationToken ct)
     {
+        var duracao = Stopwatch.StartNew();
         // Leitura projetada direto para DTO, sem tracking: carregar a entidade
         // inteira para depois mapear é desperdício (ENGINEERING-GUIDE §6).
         var pedidos = _db.Pedidos.AsNoTracking();
@@ -114,6 +120,9 @@ internal sealed class ListarPedidosQuery : IListarPedidos
                 x.OrdemNaRota,
                 x.CodigoDeEntrega);
 
-        return await consulta.Take(LimiteDePedidos).ToListAsync(ct);
+        var resultado = await consulta.Take(LimiteDePedidos).ToListAsync(ct);
+        _logger.LogInformation("Listagem de pedidos concluída. ApenasAtivos={ApenasAtivos} ResultadoCount={ResultadoCount} Limite={Limite} DuraçãoMs={DuracaoMs}",
+            apenasAtivos, resultado.Count, LimiteDePedidos, duracao.Elapsed.TotalMilliseconds);
+        return resultado;
     }
 }

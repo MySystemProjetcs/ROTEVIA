@@ -3,6 +3,9 @@ using DeliveryHub.Domain.Couriers;
 using DeliveryHub.Domain.Merchants;
 using DeliveryHub.Domain.Orders;
 using DeliveryHub.Domain.SharedKernel;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace DeliveryHub.Application.Orders;
 
@@ -41,6 +44,7 @@ public sealed class DespacharEmLote : IDespacharEmLote
     private readonly IOrderSource _origem;
     private readonly INotificadorPainel _notificador;
     private readonly ITenantContext _tenant;
+    private readonly ILogger<DespacharEmLote> _logger;
 
     public DespacharEmLote(
         IPedidoRepository pedidos,
@@ -48,7 +52,8 @@ public sealed class DespacharEmLote : IDespacharEmLote
         IMerchantRepository merchants,
         IOrderSource origem,
         INotificadorPainel notificador,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        ILogger<DespacharEmLote>? logger = null)
     {
         _pedidos = pedidos;
         _couriers = couriers;
@@ -56,17 +61,28 @@ public sealed class DespacharEmLote : IDespacharEmLote
         _origem = origem;
         _notificador = notificador;
         _tenant = tenant;
+        _logger = logger ?? NullLogger<DespacharEmLote>.Instance;
     }
 
     public async Task<Result> ExecutarAsync(
         Guid entregadorId, IReadOnlyList<Guid> pedidoIds, CancellationToken ct)
     {
+        var duracao = Stopwatch.StartNew();
         var ids = pedidoIds.Distinct().ToList();
         if (ids.Count < 2)
+        {
+            _logger.LogWarning("Despacho em lote recusado: quantidade insuficiente. Quantidade={Quantidade}", ids.Count);
             return Result.Failure(DespacharEmLoteErrors.LoteMuitoPequeno);
+        }
 
         if (_tenant.MerchantId is not { } merchantId)
+        {
+            _logger.LogWarning("Despacho em lote recusado: tenant ausente. Quantidade={Quantidade}", ids.Count);
             return Result.Failure(DespacharEmLoteErrors.TenantAusente);
+        }
+
+        _logger.LogInformation("Iniciando despacho em lote. MerchantId={MerchantId} EntregadorId={EntregadorId} Quantidade={Quantidade}",
+            merchantId, entregadorId, ids.Count);
 
         // Carrega e valida todos antes de qualquer efeito colateral.
         var pedidos = new List<Pedido>(ids.Count);
@@ -77,18 +93,32 @@ public sealed class DespacharEmLote : IDespacharEmLote
             // Mesma mensagem para "não existe" e "não é desta loja": não revela
             // pedido de outro tenant.
             if (pedido is null || pedido.MerchantId != merchantId)
+            {
+                _logger.LogWarning("Despacho em lote recusado: pedido não encontrado no tenant. MerchantId={MerchantId} Quantidade={Quantidade}",
+                    merchantId, ids.Count);
                 return Result.Failure(AvancarPedidoErrors.PedidoNaoEncontrado);
+            }
 
             if (pedido.Status != StatusPedido.Pronto)
+            {
+                _logger.LogWarning("Despacho em lote recusado: estado incompatível. PedidoId={PedidoId} MerchantId={MerchantId} Status={Status} Erro={Erro}",
+                    pedido.Id, merchantId, pedido.Status, DespacharEmLoteErrors.PedidoNaoDespachavel.Code);
                 return Result.Failure(DespacharEmLoteErrors.PedidoNaoDespachavel);
+            }
 
             pedidos.Add(pedido);
         }
 
         if (!await _couriers.ExisteVinculoAtivoAsync(entregadorId, merchantId, ct))
+        {
+            _logger.LogWarning("Despacho em lote recusado: vínculo de entregador inativo ou ausente. MerchantId={MerchantId} EntregadorId={EntregadorId}",
+                merchantId, entregadorId);
             return Result.Failure(CourierErrors.VinculoNaoEncontrado);
+        }
 
-        var ordem = CalcularOrdem(pedidos, await _merchants.ObterPorIdAsync(merchantId, ct));
+        var loja = await _merchants.ObterPorIdAsync(merchantId, ct);
+        var ordem = CalcularOrdem(pedidos, loja);
+        var otimizouRota = loja?.Endereco is not null;
 
         // Origem primeiro (efeito colateral no marketplace), só então o domínio.
         // Falha de origem aborta o lote inteiro: os pedidos que já foram
@@ -101,7 +131,11 @@ public sealed class DespacharEmLote : IDespacharEmLote
             {
                 var naOrigem = await _origem.DespacharAsync(pedido.IdExterno, ct);
                 if (naOrigem.IsFailure)
+                {
+                    _logger.LogWarning("Origem recusou despacho em lote. PedidoId={PedidoId} MerchantId={MerchantId} Erro={Erro} Quantidade={Quantidade} DuraçãoMs={DuracaoMs}",
+                        pedido.Id, merchantId, naOrigem.Error.Code, ids.Count, duracao.Elapsed.TotalMilliseconds);
                     return naOrigem;
+                }
             }
         }
 
@@ -114,11 +148,17 @@ public sealed class DespacharEmLote : IDespacharEmLote
 
             var despacho = pedido.Despachar();
             if (despacho.IsFailure)
+            {
+                _logger.LogWarning("Domínio recusou item do despacho em lote. PedidoId={PedidoId} MerchantId={MerchantId} Erro={Erro}",
+                    pedido.Id, merchantId, despacho.Error.Code);
                 return despacho;
+            }
         }
 
         await _pedidos.SalvarAsync(ct);
         await _notificador.ResumoAtualizadoAsync(merchantId, ct);
+        _logger.LogInformation("Lote de pedidos despachado. LoteId={LoteId} MerchantId={MerchantId} EntregadorId={EntregadorId} Quantidade={Quantidade} OtimizouRota={OtimizouRota} DuraçãoMs={DuracaoMs}",
+            loteId, merchantId, entregadorId, ids.Count, otimizouRota, duracao.Elapsed.TotalMilliseconds);
         return Result.Success();
     }
 
