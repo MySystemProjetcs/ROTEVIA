@@ -4,12 +4,23 @@ using DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
 
 namespace DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 
-internal interface IIFoodCatalogClient
+// DTO que cruza a fronteira do assembly. Não é o contrato do iFood: aquele
+// (IFoodCatalog) mora em Contracts e é internal por regra de arquitetura
+// testada — nenhum tipo de lá pode ser público, senão o formato do
+// marketplace vaza para quem consome. Este aqui é nosso, e o client traduz.
+public sealed record CatalogoDoIFood(
+    string CatalogId,
+    string? Status,
+    IReadOnlyList<string> Context,
+    DateTimeOffset? ModifiedAt,
+    string? GroupId);
+
+public interface IIFoodCatalogClient
 {
     // Catálogos de uma loja. Um merchant costuma ter mais de um: o de
     // delivery (context DEFAULT) e o de consumo no local (INDOOR). Quem chama
     // decide qual interessa — aqui devolvemos todos.
-    Task<IReadOnlyList<IFoodCatalog>> ListarCatalogosAsync(Guid merchantId, CancellationToken ct);
+    Task<IReadOnlyList<CatalogoDoIFood>> ListarCatalogosAsync(Guid merchantId, CancellationToken ct);
 }
 
 internal sealed class IFoodCatalogClient : IIFoodCatalogClient
@@ -21,14 +32,19 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
         _httpClient = httpClient;
     }
 
-    public async Task<IReadOnlyList<IFoodCatalog>> ListarCatalogosAsync(Guid merchantId, CancellationToken ct)
+    public async Task<IReadOnlyList<CatalogoDoIFood>> ListarCatalogosAsync(
+        Guid merchantId, CancellationToken ct)
     {
         using var response = await _httpClient.GetAsync($"merchants/{merchantId}/catalogs", ct);
 
         if (!response.IsSuccessStatusCode)
             throw await ToExceptionAsync(response, "listar catálogos", ct);
 
-        return await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodCatalog>>(ct) ?? [];
+        var corpo = await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodCatalog>>(ct) ?? [];
+
+        return corpo
+            .Select(c => new CatalogoDoIFood(c.CatalogId, c.Status, c.Context, c.ModifiedAt, c.GroupId))
+            .ToList();
     }
 
     // O corpo de erro do Catalog é plano (code/message/requestId/details), não

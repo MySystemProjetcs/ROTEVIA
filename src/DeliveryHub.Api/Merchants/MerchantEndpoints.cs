@@ -4,6 +4,8 @@ using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.IFood;
+using DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 using Microsoft.AspNetCore.Http.HttpResults;
 // Alias: dentro de DeliveryHub.Api.Merchants o nome "Merchants" já está
 // ocupado pelo próprio namespace, então o tipo do domínio precisa de apelido
@@ -34,6 +36,17 @@ public sealed record StatusPlataforma(
     string Disponibilidade,
     DateTimeOffset? AtualizadoEm,
     string? Erro);
+
+public sealed record CatalogoIFoodResumo(
+    string CatalogId,
+    string? Status,
+    IReadOnlyList<string> Context,
+    DateTimeOffset? ModifiedAt);
+
+public sealed record StatusCatalogoIFoodResponse(
+    bool EscopoLiberado,
+    int Quantidade,
+    IReadOnlyList<CatalogoIFoodResumo> Catalogos);
 
 public sealed record StatusIntegracoesResponse(
     StatusPlataforma IFood,
@@ -81,6 +94,7 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/99food/autorizacao/get-url", GetUrlAutorizacao99);
         group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
         group.MapGet("/{merchantId:guid}/integracoes/status", ObterStatusIntegracoes);
+        group.MapGet("/{merchantId:guid}/catalogo/status", ObterStatusCatalogoIFood);
     }
 
     // Status consolidado das origens de pedido. Uma chamada só porque o painel
@@ -194,6 +208,57 @@ public static class MerchantEndpoints
     private static string MotivoDe(Exception ex) => ex is OperationCanceledException
         ? "Tempo esgotado ao consultar a plataforma."
         : ex.Message;
+
+
+    // Responde a pergunta que bloqueia o módulo de catálogo: o escopo está
+    // liberado para este clientId no iFood? O app do projeto nasceu com
+    // Order, Events e Merchant (CLAUDE.md §7); Catalog precisa ser habilitado
+    // no portal, e até lá a API recusa com 403. A aba de Catálogo do painel
+    // chama isto para o lojista descobrir sozinho quando foi liberado.
+    private static async Task<Results<Ok<StatusCatalogoIFoodResponse>, ProblemHttpResult>> ObterStatusCatalogoIFood(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IIFoodCatalogClient catalogo,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (merchant.IFoodMerchantId is not Guid ifoodMerchantId)
+            return TypedResults.Problem(
+                title: "Restaurante sem vínculo com o iFood.",
+                detail: "merchant.sem_vinculo_ifood",
+                statusCode: StatusCodes.Status409Conflict);
+
+        try
+        {
+            var catalogos = await catalogo.ListarCatalogosAsync(ifoodMerchantId, ct);
+
+            return TypedResults.Ok(new StatusCatalogoIFoodResponse(
+                EscopoLiberado: true,
+                Quantidade: catalogos.Count,
+                Catalogos: catalogos
+                    .Select(c => new CatalogoIFoodResumo(c.CatalogId, c.Status, c.Context, c.ModifiedAt))
+                    .ToList()));
+        }
+        catch (IFoodApiException ex)
+        {
+            // 403 aqui quase sempre é módulo não habilitado, não credencial
+            // ruim — o mesmo token funciona em Order e Events. A distinção
+            // importa porque a ação do lojista é outra em cada caso.
+            return TypedResults.Problem(
+                title: ex.StatusCode == System.Net.HttpStatusCode.Forbidden
+                    ? "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood."
+                    : "Não foi possível consultar o catálogo no iFood.",
+                detail: ex.Message,
+                statusCode: (int)ex.StatusCode);
+        }
+    }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(
         Guid merchantId,
