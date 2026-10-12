@@ -106,7 +106,7 @@ public static class MerchantEndpoints
         // As duas consultas são independentes e falham de forma isolada: uma
         // plataforma fora do ar não pode esconder o status da outra. Em
         // paralelo porque o painel espera o resultado das duas para pintar.
-        var tarefaIFood = StatusDoIFoodAsync(merchant.Id, merchant, contextoIFood, ct);
+        var tarefaIFood = StatusDoIFoodAsync(merchant, contextoIFood, relogio, ct);
         var tarefa99 = StatusDaNoventaENoveAsync(merchant, autenticar99, relogio, ct);
         await Task.WhenAll(tarefaIFood, tarefa99);
 
@@ -115,27 +115,40 @@ public static class MerchantEndpoints
             await tarefa99));
     }
 
+    // O try/catch aqui não contraria a regra do CLAUDE.md §8 (try/catch por
+    // endpoint é proibido): não estamos engolindo falha do endpoint, estamos
+    // convertendo o estado de uma integração externa em dado de resposta. Uma
+    // exceção escapando daqui derrubaria o status da OUTRA plataforma junto,
+    // que é exatamente o que este endpoint existe para evitar.
     private static async Task<StatusPlataforma> StatusDoIFoodAsync(
-        Guid merchantId,
         MerchantEntity merchant,
         IObterContextoIFood obter,
+        TimeProvider relogio,
         CancellationToken ct)
     {
         if (merchant.IFoodMerchantId is null || merchant.ConexaoIFood?.Conectado != true)
             return new StatusPlataforma(false, false, null, "sem-vinculo", null, null);
 
-        var resultado = await obter.ExecutarAsync(merchantId, ct);
-        if (resultado.IsFailure)
-            return new StatusPlataforma(true, false, null, "indisponivel", null, resultado.Error.Message);
+        try
+        {
+            var resultado = await obter.ExecutarAsync(merchant.Id, ct);
+            if (resultado.IsFailure)
+                return new StatusPlataforma(
+                    true, false, null, "indisponivel", relogio.GetUtcNow(), resultado.Error.Message);
 
-        var contexto = resultado.Value;
-        return new StatusPlataforma(
-            Vinculado: true,
-            Autenticado: true,
-            LojaNome: NomeDaLojaIFood(contexto.DetailsJson),
-            Disponibilidade: DisponibilidadeDoIFood(contexto.StatusJson),
-            AtualizadoEm: contexto.UpdatedAt,
-            Erro: contexto.IsStale ? "Dados podem estar desatualizados." : null);
+            var contexto = resultado.Value;
+            return new StatusPlataforma(
+                Vinculado: true,
+                Autenticado: true,
+                LojaNome: StatusDaLojaIFood.Nome(contexto.DetailsJson),
+                Disponibilidade: StatusDaLojaIFood.Disponibilidade(contexto.StatusJson),
+                AtualizadoEm: contexto.UpdatedAt,
+                Erro: contexto.IsStale ? "Dados podem estar desatualizados." : null);
+        }
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
+        {
+            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), MotivoDe(ex));
+        }
     }
 
     // Fase 1: autenticar com sucesso é o sinal de que a loja está acessível.
@@ -156,61 +169,31 @@ public static class MerchantEndpoints
             await autenticar.GetAuthTokenAsync(merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
             return new StatusPlataforma(true, true, null, "online", relogio.GetUtcNow(), null);
         }
-        // A 99Food devolve HTTP 200 com errno != 0 para erro de negócio, que o
-        // autenticador converte em InvalidOperationException com o errmsg
-        // original — é essa mensagem que diagnostica (errno=10101 loja não
-        // vinculada, errno=14106 app_id/app_secret de apps diferentes).
-        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
         {
-            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), ex.Message);
+            return new StatusPlataforma(true, false, null, "indisponivel", relogio.GetUtcNow(), MotivoDe(ex));
         }
     }
 
-    private static string? NomeDaLojaIFood(string detailsJson)
+    // Timeout do HttpClient chega como OperationCanceledException sem que o
+    // token do request tenha sido cancelado — é falha da plataforma, vira
+    // status. Já um cancelamento real (navegador fechou a aba) tem que subir:
+    // não há ninguém para ler a resposta, e engolir mascararia o motivo.
+    private static bool FalhaDeIntegracao(Exception ex, CancellationToken ct) => ex switch
     {
-        using var documento = JsonDocument.Parse(detailsJson);
-        return documento.RootElement.TryGetProperty("name", out var nome) && nome.ValueKind == JsonValueKind.String
-            ? nome.GetString()
-            : null;
-    }
+        OperationCanceledException => !ct.IsCancellationRequested,
+        HttpRequestException or InvalidOperationException or JsonException => true,
+        _ => false,
+    };
 
-    // O iFood devolve um array de operações; a que interessa ao painel é a de
-    // entrega no canal do próprio iFood. Quando há uma só operação de entrega,
-    // ela vale mesmo sem o canal bater — loja com um canal só não precisa
-    // declarar qual é.
-    private static string DisponibilidadeDoIFood(string statusJson)
-    {
-        using var documento = JsonDocument.Parse(statusJson);
-        if (documento.RootElement.ValueKind != JsonValueKind.Array)
-            return "indisponivel";
-
-        var entregas = documento.RootElement
-            .EnumerateArray()
-            .Where(item => item.ValueKind == JsonValueKind.Object
-                && item.TryGetProperty("operation", out var operacao)
-                && operacao.ValueKind == JsonValueKind.String
-                && string.Equals(operacao.GetString(), "DELIVERY", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (entregas.Count == 0)
-            return "indisponivel";
-
-        var doCanalIFood = entregas.FirstOrDefault(item =>
-            item.TryGetProperty("salesChannel", out var canal)
-            && canal.ValueKind == JsonValueKind.String
-            && string.Equals(canal.GetString(), "IFOOD", StringComparison.OrdinalIgnoreCase));
-
-        var escolhida = doCanalIFood.ValueKind == JsonValueKind.Object
-            ? doCanalIFood
-            : entregas.Count == 1 ? entregas[0] : default;
-
-        if (escolhida.ValueKind != JsonValueKind.Object
-            || !escolhida.TryGetProperty("available", out var disponivel)
-            || disponivel.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
-            return "indisponivel";
-
-        return disponivel.GetBoolean() ? "online" : "offline";
-    }
+    // A 99Food devolve HTTP 200 com errno != 0 para erro de negócio, e o
+    // autenticador converte isso em InvalidOperationException carregando o
+    // errmsg original — é o texto que diagnostica (errno=10101 loja não
+    // vinculada ao app, errno=14106 app_id e app_secret de apps diferentes),
+    // e o que o lojista repassa ao suporte.
+    private static string MotivoDe(Exception ex) => ex is OperationCanceledException
+        ? "Tempo esgotado ao consultar a plataforma."
+        : ex.Message;
 
     private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(
         Guid merchantId,
