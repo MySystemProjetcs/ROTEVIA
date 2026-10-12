@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Infrastructure.Integrations.IFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 using DeliveryHub.Infrastructure.Integrations.IFood.Merchants;
 using DeliveryHub.Infrastructure.Integrations.IFood.Orders;
 using DeliveryHub.Infrastructure.Integrations.IFood.Polling;
@@ -17,6 +18,8 @@ public static class IFoodServiceCollectionExtensions
     private const string EventsBaseAddress = "https://merchant-api.ifood.com.br/events/v1.0/";
     private const string OrderBaseAddress = "https://merchant-api.ifood.com.br/order/v1.0/";
     private const string MerchantBaseAddress = "https://merchant-api.ifood.com.br/merchant/v1.0/";
+    // Catalog é v2.0, não v1.0 como os demais módulos.
+    private const string CatalogBaseAddress = "https://merchant-api.ifood.com.br/catalog/v2.0/";
 
     public static IServiceCollection AddIFoodIntegration(this IServiceCollection services, IConfiguration configuration)
     {
@@ -84,6 +87,11 @@ public static class IFoodServiceCollectionExtensions
 
         services
             .AddHttpClient<IIFoodOrderClient, IFoodOrderClient>(client => Configure(client, OrderBaseAddress))
+            .ConfigurePrimaryHttpMessageHandler(PrimaryHandler)
+            .AddHttpMessageHandler<IFoodAuthorizationHandler>();
+
+        services
+            .AddHttpClient<IIFoodCatalogClient, IFoodCatalogClient>(client => Configure(client, CatalogBaseAddress))
             .ConfigurePrimaryHttpMessageHandler(PrimaryHandler)
             .AddHttpMessageHandler<IFoodAuthorizationHandler>();
 

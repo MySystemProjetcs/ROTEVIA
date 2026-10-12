@@ -35,3 +35,6 @@ Thumbs.db
 *.heapsnapshot
 coverage/
 TestResults/
+
+# Cache de build do TypeScript — gerado por `tsc -b`, polui o git status
+web/*.tsbuildinfo
