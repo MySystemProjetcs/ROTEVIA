@@ -1075,7 +1075,9 @@
         "dependencies": {
           "DeliveryHub.Application": "1.0.0",
           "DeliveryHub.Infrastructure": "1.0.0",
-          "Polly.Core": "8.8.0"
+          "Polly.Core": "8.8.0",
+          "Serilog.AspNetCore": "10.0.0",
+          "Serilog.Sinks.Console": "6.1.1"
         },
         "compile": {
           "bin/placeholder/DeliveryHub.Worker.dll": {}

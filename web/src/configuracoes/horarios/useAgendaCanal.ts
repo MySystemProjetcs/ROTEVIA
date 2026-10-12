@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ErroDaApi, api } from '@/lib/api'
-import type { AgendaCanal, Canal, DiaDaAgenda, DiaSemana, Faixa } from './tipos'
+import type { AgendaCanal, Canal, DiaSemana, Faixa } from './tipos'
 import { DIAS_SEMANA } from './tipos'
 
 // Mapeamento iFood ⇆ domínio local. O iFood modela cada janela como um

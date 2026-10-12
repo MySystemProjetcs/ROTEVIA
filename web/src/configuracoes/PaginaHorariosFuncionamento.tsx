@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Botao } from '@/components/Botao'
 import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { Dialogo } from '@/components/Dialogo'

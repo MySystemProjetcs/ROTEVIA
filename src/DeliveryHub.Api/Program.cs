@@ -144,6 +144,7 @@ builder.Services.AddScoped<IDisponibilidadeEntrega, DisponibilidadeEntrega>();
 builder.Services.AddScoped<IDefinirTaxaPorEntrega, DefinirTaxaPorEntrega>();
 builder.Services.AddScoped<IDefinirEnderecoDaLoja, DefinirEnderecoDaLoja>();
 builder.Services.AddScoped<IDefinirNomeDaLoja, DefinirNomeDaLoja>();
+builder.Services.AddScoped<IVincularLojaNoventaENove, VincularLojaNoventaENove>();
 builder.Services.AddScoped<IAtualizarCadastroDoEntregador, AtualizarCadastroDoEntregador>();
 builder.Services.AddScoped<IRemoverVinculoDoEntregador, RemoverVinculoDoEntregador>();
 builder.Services.AddScoped<IAlterarEmailDoUsuario, AlterarEmailDoUsuario>();

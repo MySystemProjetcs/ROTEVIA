@@ -146,3 +146,15 @@
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/obj/Debug/net10.0/DeliveryHub.Integration.Tests.pdb
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/obj/Debug/net10.0/DeliveryHub.Integration.Tests.genruntimeconfig.cache
 /Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/obj/Debug/net10.0/ref/DeliveryHub.Integration.Tests.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Microsoft.Extensions.DependencyModel.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Microsoft.Extensions.Logging.Abstractions.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.AspNetCore.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Extensions.Hosting.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Extensions.Logging.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Formatting.Compact.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Settings.Configuration.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Sinks.Console.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Sinks.Debug.dll
+/Users/jonathan/Documents/ROTEVIA/tests/DeliveryHub.Integration.Tests/bin/Debug/net10.0/Serilog.Sinks.File.dll
