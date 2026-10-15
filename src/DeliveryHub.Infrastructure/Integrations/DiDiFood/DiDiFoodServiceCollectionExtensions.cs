@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.DiDiFood.Catalog;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Orders;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Polling;
 using DeliveryHub.Infrastructure.Integrations.IFood;
@@ -40,6 +41,7 @@ public static class DiDiFoodServiceCollectionExtensions
         services.AddScoped<INoventaENoveMerchantResolver, NoventaENoveMerchantResolver>();
         services.AddScoped<IDiDiFoodWebhookGateway, DiDiFoodWebhookGateway>();
         services.AddScoped<IDiDiFoodAuthenticator, DiDiFoodAuthenticator>();
+        services.AddScoped<IDiDiFoodCatalogClient, DiDiFoodCatalogClient>();
         services.AddScoped<DiDiFoodOrderSource>();
         services.AddScoped<IOrderSource, OrderSourceResolver>();
 
@@ -53,6 +55,14 @@ public static class DiDiFoodServiceCollectionExtensions
         // app_id/app_secret/app_shop_id na query, não precisa de um client
         // dedicado por método como o de pedidos.
         services.AddHttpClient(nameof(DiDiFoodAuthenticator), client =>
+        {
+            client.BaseAddress = new Uri(DiDiFoodBaseAddress);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        });
+
+        // Catálogo também é nomeado: o auth_token vai na query (v3/item/*),
+        // não em header, então não há handler de autorização a encaixar.
+        services.AddHttpClient(nameof(DiDiFoodCatalogClient), client =>
         {
             client.BaseAddress = new Uri(DiDiFoodBaseAddress);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

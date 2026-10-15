@@ -4,6 +4,7 @@ import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { useSessao } from '@/auth/SessaoProvider'
 import { ErroDaApi, api } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import { Painel99Food } from './Painel99Food'
 import { CANAIS_CATALOGO } from './tipos'
 import type { CanalCatalogo, DiagnosticoCatalogoIFood } from './tipos'
 
@@ -63,7 +64,8 @@ export function PaginaCatalogo() {
                 Catálogo do {info.rotulo}
               </p>
               <p className="text-corpo text-texto-fraco">
-                {info.bloqueio ?? 'Sincronizado com a plataforma.'}
+                {info.bloqueio
+                  ?? 'Itens, categorias e disponibilidade sincronizados com a plataforma.'}
               </p>
             </CartaoCorpo>
           </Cartao>
@@ -72,6 +74,8 @@ export function PaginaCatalogo() {
         <section className="min-w-0">
           {canalAtivo === 'ifood' ? (
             <PainelIFood merchantId={usuario?.merchantId ?? null} />
+          ) : canalAtivo === 'noventaenove' ? (
+            <Painel99Food merchantId={usuario?.merchantId ?? null} />
           ) : (
             <PainelIndisponivel rotulo={info.rotulo} bloqueio={info.bloqueio} />
           )}

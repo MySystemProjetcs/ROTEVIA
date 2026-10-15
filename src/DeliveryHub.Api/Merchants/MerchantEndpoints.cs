@@ -4,6 +4,7 @@ using DeliveryHub.Application.Abstractions;
 using DeliveryHub.Application.Merchants;
 using DeliveryHub.Domain.SharedKernel;
 using DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
+using DeliveryHub.Infrastructure.Integrations.DiDiFood.Catalog;
 using DeliveryHub.Infrastructure.Integrations.IFood;
 using DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -36,6 +37,33 @@ public sealed record StatusPlataforma(
     string Disponibilidade,
     DateTimeOffset? AtualizadoEm,
     string? Erro);
+
+public sealed record ItemCardapioResponse(
+    string AppItemId,
+    string Nome,
+    string? Descricao,
+    decimal Preco,
+    bool Disponivel,
+    bool VendidoSeparadamente,
+    string? ImagemUrl);
+
+public sealed record Categoria99Response(
+    string AppCategoryId,
+    string Nome,
+    IReadOnlyList<ItemCardapioResponse> Itens);
+
+public sealed record Cardapio99Response(
+    int TotalItens,
+    IReadOnlyList<Categoria99Response> Categorias,
+    IReadOnlyList<ItemCardapioResponse> ItensSemCategoria);
+
+public sealed record DefinirDisponibilidadeRequest(
+    IReadOnlyList<string> AppItemIds,
+    bool Disponivel);
+
+public sealed record DisponibilidadeResponse(
+    IReadOnlyList<string> Sucesso,
+    IReadOnlyList<string> Falha);
 
 public sealed record CatalogoIFoodResumo(
     string CatalogId,
@@ -95,6 +123,8 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
         group.MapGet("/{merchantId:guid}/integracoes/status", ObterStatusIntegracoes);
         group.MapGet("/{merchantId:guid}/catalogo/status", ObterStatusCatalogoIFood);
+        group.MapGet("/{merchantId:guid}/catalogo/99food", ObterCardapio99Food);
+        group.MapPut("/{merchantId:guid}/catalogo/99food/disponibilidade", DefinirDisponibilidade99Food);
     }
 
     // Status consolidado das origens de pedido. Uma chamada só porque o painel
@@ -259,6 +289,110 @@ public static class MerchantEndpoints
                 statusCode: (int)ex.StatusCode);
         }
     }
+
+
+    // Cardápio publicado na 99Food. Diferente do iFood, aqui não há questão de
+    // escopo: o acesso vem do auth_token da loja, então a falha possível é a
+    // loja não estar autorizada ao app (errno 10101).
+    private static async Task<Results<Ok<Cardapio99Response>, ProblemHttpResult>> ObterCardapio99Food(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IDiDiFoodCatalogClient catalogo,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return TypedResults.Problem(
+                title: "Restaurante sem vínculo com a 99Food.",
+                detail: "merchant.sem_vinculo_99food",
+                statusCode: StatusCodes.Status409Conflict);
+
+        try
+        {
+            var cardapio = await catalogo.ObterCardapioAsync(
+                merchant.NoventaENoveAppShopId, merchant.NoventaENoveAppId, ct);
+
+            return TypedResults.Ok(new Cardapio99Response(
+                cardapio.TotalItens,
+                cardapio.Categorias
+                    .Select(c => new Categoria99Response(
+                        c.AppCategoryId,
+                        c.Nome,
+                        c.Itens.Select(ParaResponse).ToList()))
+                    .ToList(),
+                cardapio.ItensSemCategoria.Select(ParaResponse).ToList()));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            // A mensagem carrega o errno/errmsg da 99 — é o que diagnostica e
+            // o que o lojista repassa ao suporte deles.
+            return TypedResults.Problem(
+                title: "Não foi possível consultar o cardápio na 99Food.",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+    }
+
+    private static async Task<Results<Ok<DisponibilidadeResponse>, ProblemHttpResult>> DefinirDisponibilidade99Food(
+        Guid merchantId,
+        DefinirDisponibilidadeRequest request,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IDiDiFoodCatalogClient catalogo,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (request.AppItemIds.Count == 0)
+            return TypedResults.Problem(
+                title: "Informe ao menos um item.",
+                detail: "catalogo.itens_vazios",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (string.IsNullOrWhiteSpace(merchant.NoventaENoveAppShopId))
+            return TypedResults.Problem(
+                title: "Restaurante sem vínculo com a 99Food.",
+                detail: "merchant.sem_vinculo_99food",
+                statusCode: StatusCodes.Status409Conflict);
+
+        try
+        {
+            var resultado = await catalogo.DefinirDisponibilidadeAsync(
+                merchant.NoventaENoveAppShopId,
+                merchant.NoventaENoveAppId,
+                request.AppItemIds,
+                request.Disponivel,
+                ct);
+
+            // A 99 aceita o lote parcialmente. Devolver só "ok" esconderia os
+            // itens que continuaram como estavam.
+            return TypedResults.Ok(new DisponibilidadeResponse(
+                resultado.Sucesso, resultado.Falha));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            return TypedResults.Problem(
+                title: "Não foi possível alterar a disponibilidade na 99Food.",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+    }
+
+    private static ItemCardapioResponse ParaResponse(ItemDoCardapio99 item) => new(
+        item.AppItemId, item.Nome, item.Descricao, item.Preco,
+        item.Disponivel, item.VendidoSeparadamente, item.ImagemUrl);
 
     private static async Task<Results<NoContent, ProblemHttpResult>> VincularNoventaENove(
         Guid merchantId,

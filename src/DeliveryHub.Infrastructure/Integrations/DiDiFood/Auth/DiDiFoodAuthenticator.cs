@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace DeliveryHub.Infrastructure.Integrations.DiDiFood.Auth;
@@ -161,14 +162,6 @@ internal sealed class DiDiFoodAuthenticator : IDiDiFoodAuthenticator
 
         return envelope.Data;
     }
-
-    // Envelope padrão da 99Food em todas as respostas da OpenAPI
-    // (StandardResponse no swagger: errno + errmsg + data). O painel oficial
-    // confirma: {"errno":0,"errmsg":"ok","requestId":"...","time":...,"data":{...}}
-    internal sealed record DiDiStandardResponse<T>(
-        [property: JsonPropertyName("errno")] int Errno,
-        [property: JsonPropertyName("errmsg")] string? Errmsg,
-        [property: JsonPropertyName("data")] T? Data);
 
     // Corpo do data em /v1/auth/authtoken/get. token_expiration_time é unix
     // timestamp ABSOLUTO em segundos (ex. 1791779425 = 2026-10-12 11:50 UTC) —
