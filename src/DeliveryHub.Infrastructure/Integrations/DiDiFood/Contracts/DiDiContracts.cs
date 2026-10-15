@@ -2,6 +2,27 @@ using System.Text.Json.Serialization;
 
 namespace DeliveryHub.Infrastructure.Integrations.DiDiFood.Contracts;
 
+// Envelope padrão da 99Food em TODAS as respostas da OpenAPI (StandardResponse
+// no swagger). Resposta real confirmada no painel oficial:
+// {"errno":0,"errmsg":"ok","requestId":"0a9fc838…","time":1791778525,"data":{…}}
+//
+// Vive aqui, e não dentro de um client, porque auth, catálogo e pedidos usam
+// o mesmo envelope — duplicar vira bug no dia em que um for corrigido e o
+// outro não.
+//
+// Atenção: errno != 0 vem com HTTP 200. Tratar só o status HTTP deixa passar
+// erro de negócio como se fosse sucesso.
+internal sealed record DiDiStandardResponse<T>(
+    [property: JsonPropertyName("errno")] int Errno,
+    [property: JsonPropertyName("errmsg")] string? Errmsg,
+    [property: JsonPropertyName("data")] T? Data)
+{
+    public bool Ok => Errno == 0;
+
+    public string Resumir(string operacao) =>
+        $"99Food recusou {operacao}: errno={Errno} errmsg={Errmsg ?? "(sem mensagem)"}.";
+}
+
 // Envelope do webhook da DiDi Food. A DiDi envia um POST com este corpo
 // para a URL cadastrada no painel de desenvolvedor quando o status de um
 // pedido muda.
