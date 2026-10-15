@@ -3,7 +3,7 @@ import { Cartao, CartaoCorpo } from '@/components/Cartao'
 import { Switch } from '@/components/Switch'
 import { ErroDaApi, api } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import type { Cardapio99, Categoria99, ItemCardapio, ResultadoDisponibilidade } from './tipos'
+import type { Cardapio99, ItemCardapio, ResultadoDisponibilidade } from './tipos'
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 

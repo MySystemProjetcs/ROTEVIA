@@ -383,14 +383,29 @@ public static class MerchantEndpoints
         }
         catch (IFoodApiException ex)
         {
-            // 403 em sellableItems também significa escopo não liberado — mesma
-            // mensagem do /catalogo/status, pra o painel não precisar diferenciar.
+            // Só 403 e 404 passam adiante como estão: 403 é escopo do Catalog
+            // não liberado, 404 é catálogo inexistente. O resto (401, 5xx) é
+            // falha do iFood e vira 502 — devolver 401 aqui faria o painel
+            // achar que a sessão do lojista expirou.
+            var (titulo, status) = ex.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Forbidden => (
+                    "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood.",
+                    StatusCodes.Status403Forbidden),
+                System.Net.HttpStatusCode.NotFound => (
+                    "O iFood não encontrou o catálogo desta loja.",
+                    StatusCodes.Status404NotFound),
+                _ => ("Não foi possível carregar o catálogo do iFood.", StatusCodes.Status502BadGateway),
+            };
+
+            return TypedResults.Problem(title: titulo, detail: ex.Message, statusCode: status);
+        }
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
+        {
             return TypedResults.Problem(
-                title: ex.StatusCode == System.Net.HttpStatusCode.Forbidden
-                    ? "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood."
-                    : "Não foi possível carregar o catálogo do iFood.",
-                detail: ex.Message,
-                statusCode: (int)ex.StatusCode);
+                title: "Não foi possível carregar o catálogo do iFood.",
+                detail: MotivoDe(ex),
+                statusCode: StatusCodes.Status502BadGateway);
         }
     }
 

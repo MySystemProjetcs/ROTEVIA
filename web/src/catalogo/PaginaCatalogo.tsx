@@ -6,12 +6,7 @@ import { ErroDaApi, api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { Painel99Food } from './Painel99Food'
 import { CANAIS_CATALOGO } from './tipos'
-import type {
-  CanalCatalogo,
-  CatalogoCompletoIFood,
-  DiagnosticoCatalogoIFood,
-  ItemCatalogoIFood,
-} from './tipos'
+import type { CanalCatalogo, CatalogoCompletoIFood, ItemCatalogoIFood } from './tipos'
 
 export function PaginaCatalogo() {
   const { usuario } = useSessao()
@@ -90,49 +85,52 @@ export function PaginaCatalogo() {
   )
 }
 
-// Dois passos em sequência: /catalogo/status confirma o escopo e devolve o
-// groupId, /catalogo/ifood traz categorias e itens. Separar os dois endpoints
-// no backend permite que o painel diga "o módulo está liberado mas o cardápio
-// ainda está sincronizando" em vez de uma mensagem única de falha.
+interface FalhaCatalogo {
+  status: number | null
+  titulo: string
+  detalhe: string | null
+}
+
+// Uma chamada só: o backend resolve o catálogo DEFAULT da loja e devolve
+// categorias e itens. O catálogo é o publicado no portal, então aparece
+// mesmo com a loja fechada ou pausada.
 function PainelIFood({ merchantId }: { merchantId: string | null }) {
-  const [estado, setEstado] = useState<
-    'ocioso' | 'verificando' | 'carregando-itens' | 'pronto' | 'bloqueado' | 'vazio'
-  >('ocioso')
-  const [diagnostico, setDiagnostico] = useState<DiagnosticoCatalogoIFood | null>(null)
   const [catalogo, setCatalogo] = useState<CatalogoCompletoIFood | null>(null)
-  const [erro, setErro] = useState<string | null>(null)
+  const [falha, setFalha] = useState<FalhaCatalogo | null>(null)
+  const [carregando, setCarregando] = useState(true)
+  const [tentativa, setTentativa] = useState(0)
 
   useEffect(() => {
     if (!merchantId) return
     let ativo = true
 
     async function carregar() {
-      setEstado('verificando')
-      setErro(null)
-      setCatalogo(null)
+      setCarregando(true)
+      setFalha(null)
       try {
-        const status = await api.get<DiagnosticoCatalogoIFood>(
-          `/restaurantes/${merchantId}/catalogo/status`,
-        )
-        if (!ativo) return
-        setDiagnostico(status)
-
-        if (status.quantidade === 0) {
-          setEstado('vazio')
-          return
-        }
-
-        setEstado('carregando-itens')
         const completo = await api.get<CatalogoCompletoIFood>(
           `/restaurantes/${merchantId}/catalogo/ifood`,
         )
         if (!ativo) return
         setCatalogo(completo)
-        setEstado('pronto')
       } catch (e) {
         if (!ativo) return
-        setErro(e instanceof ErroDaApi ? e.message : 'Não foi possível consultar o iFood.')
-        setEstado('bloqueado')
+        setCatalogo(null)
+        setFalha(
+          e instanceof ErroDaApi
+            ? {
+                status: e.status,
+                titulo: e.message,
+                detalhe: e.codigo === 'erro.desconhecido' ? null : e.codigo,
+              }
+            : {
+                status: null,
+                titulo: 'Não foi possível falar com a API.',
+                detalhe: e instanceof Error ? e.message : null,
+              },
+        )
+      } finally {
+        if (ativo) setCarregando(false)
       }
     }
 
@@ -140,82 +138,45 @@ function PainelIFood({ merchantId }: { merchantId: string | null }) {
     return () => {
       ativo = false
     }
-  }, [merchantId])
+  }, [merchantId, tentativa])
 
   if (!merchantId) {
     return <PainelIndisponivel rotulo="iFood" bloqueio="Sessão sem restaurante vinculado." />
   }
 
-  if (estado === 'ocioso' || estado === 'verificando') {
+  if (carregando) {
     return (
       <Cartao>
         <CartaoCorpo>
-          <p className="text-corpo text-texto-fraco">Consultando o catálogo no iFood…</p>
+          <p className="text-corpo text-texto-fraco">Carregando o catálogo do iFood…</p>
         </CartaoCorpo>
       </Cartao>
     )
   }
 
-  if (estado === 'bloqueado') {
+  if (falha) {
     return (
       <Cartao>
         <CartaoCorpo className="space-y-3">
-          <h2 className="text-[15px] font-semibold text-texto">Catálogo ainda não disponível</h2>
-          <p className="text-corpo leading-relaxed text-texto-fraco">{erro}</p>
-          <p className="text-corpo leading-relaxed text-texto-fraco">
-            Enquanto o módulo não é habilitado, o cardápio segue sendo gerido
-            direto no portal do iFood.
-          </p>
-          <Botao variante="secundario" tamanho="pequeno" onClick={() => window.location.reload()}>
-            Verificar novamente
+          <h2 className="text-[15px] font-semibold text-texto">{falha.titulo}</h2>
+          {falha.detalhe && (
+            <p className="break-words font-mono text-rotulo text-texto-mudo">{falha.detalhe}</p>
+          )}
+          {falha.status === 403 && (
+            <p className="text-corpo leading-relaxed text-texto-fraco">
+              Enquanto o módulo não é habilitado, o cardápio segue sendo gerido
+              direto no portal do iFood.
+            </p>
+          )}
+          <Botao variante="secundario" tamanho="pequeno" onClick={() => setTentativa((t) => t + 1)}>
+            Tentar novamente
           </Botao>
         </CartaoCorpo>
       </Cartao>
     )
   }
 
-  if (estado === 'vazio') {
-    return (
-      <Cartao>
-        <CartaoCorpo className="space-y-3">
-          <h2 className="text-[15px] font-semibold text-texto">Nenhum catálogo publicado</h2>
-          <p className="text-corpo leading-relaxed text-texto-fraco">
-            A integração está liberada, mas a loja ainda não tem catálogo
-            publicado no iFood. Publique um pelo portal e o cardápio aparece aqui.
-          </p>
-        </CartaoCorpo>
-      </Cartao>
-    )
-  }
-
-  if (estado === 'carregando-itens') {
-    return (
-      <Cartao>
-        <CartaoCorpo className="space-y-2">
-          <p className="text-corpo text-texto-fraco">
-            Carregando categorias e itens do iFood…
-          </p>
-          {diagnostico && (
-            <p className="font-mono text-rotulo text-texto-mudo">
-              catálogo {diagnostico.catalogos[0]?.catalogId ?? '—'}
-            </p>
-          )}
-        </CartaoCorpo>
-      </Cartao>
-    )
-  }
-
-  if (!catalogo) {
-    // Estado defensivo: 'pronto' sem catalogo não deveria acontecer. Mostrar
-    // mensagem genérica em vez de quebrar a tela.
-    return (
-      <Cartao>
-        <CartaoCorpo>
-          <p className="text-corpo text-texto-fraco">Catálogo indisponível.</p>
-        </CartaoCorpo>
-      </Cartao>
-    )
-  }
+  if (!catalogo) return null
 
   return <PainelCatalogoIFood catalogo={catalogo} />
 }

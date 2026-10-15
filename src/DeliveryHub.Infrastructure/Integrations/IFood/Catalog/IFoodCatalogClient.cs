@@ -1,14 +1,16 @@
+using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
+using Microsoft.Extensions.Logging;
 
 namespace DeliveryHub.Infrastructure.Integrations.IFood.Catalog;
 
 // DTOs que cruzam a fronteira do assembly. Não são o contrato do iFood:
-// aqueles (IFoodCatalog, IFoodSellableItem, ...) moram em Contracts e são
-// internal por regra de arquitetura testada — nenhum tipo de lá pode ser
-// público, senão o formato do marketplace vaza para quem consome. Estes aqui
-// são nossos, e o client traduz.
+// aquele mora em Contracts e é internal por regra de arquitetura testada —
+// nenhum tipo de lá pode ser público, senão o formato do marketplace vaza
+// para quem consome. Estes aqui são nossos, e o client traduz.
 
 public sealed record CatalogoDoIFood(
     string CatalogId,
@@ -49,21 +51,24 @@ public interface IIFoodCatalogClient
     // decide qual interessa — aqui devolvemos todos.
     Task<IReadOnlyList<CatalogoDoIFood>> ListarCatalogosAsync(Guid merchantId, CancellationToken ct);
 
-    // Catálogo completo de um groupId: categorias com os itens vendáveis,
-    // marcando quais estão pausados ou com violação (dado vindo do endpoint
-    // paralelo /unsellableItems). Uma chamada só porque o painel do catálogo
-    // nunca mostra "vendáveis" sem a razão de por que o resto não aparece.
+    // Itens vendáveis do catálogo agrupados por categoria, marcando o que o
+    // iFood aponta como pausado ou com violação.
     Task<CatalogoCompletoIFood> ObterCatalogoCompletoAsync(
         Guid merchantId, string catalogId, string groupId, CancellationToken ct);
 }
 
 internal sealed class IFoodCatalogClient : IIFoodCatalogClient
 {
-    private readonly HttpClient _httpClient;
+    private const string SemCategoria = "sem-categoria";
+    private const int TamanhoDoTrechoNoLog = 500;
 
-    public IFoodCatalogClient(HttpClient httpClient)
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<IFoodCatalogClient> _logger;
+
+    public IFoodCatalogClient(HttpClient httpClient, ILogger<IFoodCatalogClient> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<CatalogoDoIFood>> ListarCatalogosAsync(
@@ -77,116 +82,273 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
         var corpo = await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodCatalog>>(ct) ?? [];
 
         return corpo
-            .Select(c => new CatalogoDoIFood(c.CatalogId, c.Status, c.Context, c.ModifiedAt, c.GroupId))
+            .Select(c => new CatalogoDoIFood(c.CatalogId, c.Status, c.Context ?? [], c.ModifiedAt, c.GroupId))
             .ToList();
     }
 
     public async Task<CatalogoCompletoIFood> ObterCatalogoCompletoAsync(
         Guid merchantId, string catalogId, string groupId, CancellationToken ct)
     {
-        // As duas chamadas são independentes: itens vendáveis vêm por groupId
-        // (/catalogs/{groupId}/sellableItems — a doc chama assim o path, mesmo
-        // que o nome do segmento seja catalogId no path), e itens não-vendáveis
-        // por catalogId (/catalogs/{catalogId}/unsellableItems). Rodam em
-        // paralelo porque o painel precisa das duas pra decidir o que mostrar.
+        // Vendáveis vêm por groupId, não-vendáveis por catalogId — é o que a
+        // doc do Catalog v2.0 pede em cada rota. Independentes, então em
+        // paralelo.
         var tarefaItens = ListarItensVendaveisAsync(merchantId, groupId, ct);
-        var tarefaPausados = ListarItensNaoVendaveisAsync(merchantId, catalogId, ct);
-        await Task.WhenAll(tarefaItens, tarefaPausados);
+        var tarefaRestricoes = LerRestricoesAsync(merchantId, catalogId, ct);
+        await Task.WhenAll(tarefaItens, tarefaRestricoes);
 
         var itens = await tarefaItens;
-        var pausados = await tarefaPausados;
+        var restricoes = await tarefaRestricoes;
 
-        // Mapeia item.id -> restrições, categoria.id -> (pausada, restrições).
-        // O lookup fica fora dos selects pra não refazer a construção dentro
-        // do loop (um cardápio grande tem centenas de itens).
-        var restricoesPorItem = pausados.Categories
-            .SelectMany(c => c.UnsellableItems.Select(i => new { i.Id, i.Restrictions }))
-            .GroupBy(x => x.Id)
-            .ToDictionary(g => g.Key, g => g.First().Restrictions);
-
-        var restricoesPorCategoria = pausados.Categories
-            .ToDictionary(c => c.Id, c => (
-                Pausada: c.Restrictions.Any(r => r.Contains("PAUSED", StringComparison.OrdinalIgnoreCase)),
-                Restricoes: c.Restrictions));
-
-        // Agrupa por categoria — um item sem categoria é edge case documentado
-        // (produto solto no catálogo) mas raro. Vai pra uma categoria sintética
-        // "Sem categoria" pra não sumir da tela.
         var categorias = itens
-            .GroupBy(i => new { Id = i.CategoryId ?? "sem-categoria", i.CategoryName, i.CategoryIndex })
-            .OrderBy(g => g.Key.CategoryIndex)
+            .GroupBy(i => i.CategoryId ?? SemCategoria)
             .Select(g =>
             {
-                var categoriaInfo = restricoesPorCategoria.GetValueOrDefault(g.Key.Id,
-                    (Pausada: false, Restricoes: (IReadOnlyList<string>)Array.Empty<string>()));
+                var daCategoria = restricoes.PorCategoria.GetValueOrDefault(g.Key) ?? Array.Empty<string>();
 
                 return new CategoriaDoCatalogoIFood(
-                    CategoryId: g.Key.Id,
-                    Nome: string.IsNullOrWhiteSpace(g.Key.CategoryName) ? "Sem categoria" : g.Key.CategoryName,
-                    Ordem: g.Key.CategoryIndex,
-                    Pausada: categoriaInfo.Pausada,
-                    Restricoes: categoriaInfo.Restricoes,
+                    CategoryId: g.Key,
+                    Nome: g.Select(i => i.CategoryName).FirstOrDefault(n => n is not null) ?? "Sem categoria",
+                    Ordem: g.Min(i => i.CategoryIndex),
+                    Pausada: daCategoria.Any(r => r.Contains("PAUSED", StringComparison.OrdinalIgnoreCase)),
+                    Restricoes: daCategoria,
                     Itens: g
                         .OrderBy(i => i.ItemIndex)
-                        .Select(i => new ItemDoCatalogoIFood(
-                            ItemId: i.ItemId,
-                            CategoryId: i.CategoryId,
-                            Nome: i.ItemName ?? "(sem nome)",
-                            Descricao: string.IsNullOrWhiteSpace(i.ItemDescription) ? null : i.ItemDescription,
-                            Preco: i.ItemPrice?.Value ?? 0m,
-                            PrecoOriginal: i.ItemPrice is { OriginalValue: > 0 } p
-                                && p.OriginalValue != p.Value
-                                    ? p.OriginalValue
-                                    : null,
-                            // Se o item veio em /sellableItems, está vendável.
-                            // Se o id aparece em /unsellableItems também, o
-                            // iFood está em estado transitório — tratamos como
-                            // vendável porque é o que o /sellableItems disse,
-                            // mas carregamos a restrição pra UI mostrar.
-                            Disponivel: !restricoesPorItem.ContainsKey(i.ItemId),
-                            Restricoes: restricoesPorItem.GetValueOrDefault(
-                                i.ItemId, Array.Empty<string>()),
-                            ImagemUrl: i.LogosUrls.FirstOrDefault(),
-                            Ordem: i.ItemIndex))
+                        .ThenBy(i => i.Nome, StringComparer.CurrentCulture)
+                        .Select(i =>
+                        {
+                            var doItem = restricoes.PorItem.GetValueOrDefault(i.ItemId);
+                            return new ItemDoCatalogoIFood(
+                                ItemId: i.ItemId,
+                                CategoryId: i.CategoryId,
+                                Nome: i.Nome,
+                                Descricao: i.Descricao,
+                                Preco: i.Preco,
+                                PrecoOriginal: i.PrecoOriginal,
+                                Disponivel: doItem is null,
+                                Restricoes: doItem ?? Array.Empty<string>(),
+                                ImagemUrl: i.ImagemUrl,
+                                Ordem: i.ItemIndex);
+                        })
                         .ToList());
             })
+            .OrderBy(c => c.Ordem)
+            .ThenBy(c => c.Nome, StringComparer.CurrentCulture)
             .ToList();
 
         return new CatalogoCompletoIFood(groupId, categorias, itens.Count);
     }
 
-    private async Task<IReadOnlyList<IFoodSellableItem>> ListarItensVendaveisAsync(
+    // Leitura campo a campo em vez de desserializar num contrato rígido: o
+    // payload real do sellableItems traz null em campos que a doc mostra como
+    // número (índices, preço), e um único null num int derrubava a listagem
+    // inteira com JsonException.
+    private async Task<IReadOnlyList<ItemLido>> ListarItensVendaveisAsync(
         Guid merchantId, string groupId, CancellationToken ct)
     {
-        var escapado = Uri.EscapeDataString(groupId);
-        using var response = await _httpClient.GetAsync(
-            $"merchants/{merchantId}/catalogs/{escapado}/sellableItems", ct);
+        const string operacao = "listar itens vendáveis";
 
-        if (!response.IsSuccessStatusCode)
-            throw await ToExceptionAsync(response, "listar itens vendáveis", ct);
+        using var documento = await GetJsonAsync(
+            $"merchants/{merchantId}/catalogs/{Uri.EscapeDataString(groupId)}/sellableItems", operacao, ct);
 
-        return await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodSellableItem>>(ct) ?? [];
+        return ListaDaRaiz(documento.RootElement, operacao)
+            .Select(LerItem)
+            .OfType<ItemLido>()
+            .ToList();
     }
 
-    private async Task<IFoodUnsellableResponse> ListarItensNaoVendaveisAsync(
+    // Complementar: sem ele a listagem perde só a marcação de pausado, então
+    // falha aqui vira log e não derruba o cardápio.
+    private async Task<RestricoesDoCatalogo> LerRestricoesAsync(
         Guid merchantId, string catalogId, CancellationToken ct)
     {
-        var escapado = Uri.EscapeDataString(catalogId);
-        using var response = await _httpClient.GetAsync(
-            $"merchants/{merchantId}/catalogs/{escapado}/unsellableItems", ct);
+        try
+        {
+            using var documento = await GetJsonAsync(
+                $"merchants/{merchantId}/catalogs/{Uri.EscapeDataString(catalogId)}/unsellableItems",
+                "listar itens não vendáveis", ct);
 
-        // 404 aqui é benigno: significa que não há item pausado — não é motivo
-        // pra derrubar a listagem inteira. 403 e demais erros caem no fluxo
-        // normal, porque indicam permissão ou falha real.
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return new IFoodUnsellableResponse();
+            return LerRestricoes(documento.RootElement);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "Não foi possível ler os itens não vendáveis do catálogo {CatalogId} no iFood; seguindo sem restrições.",
+                catalogId);
+            return new RestricoesDoCatalogo(new(), new());
+        }
+    }
+
+    private async Task<JsonDocument> GetJsonAsync(string caminho, string operacao, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync(caminho, ct);
 
         if (!response.IsSuccessStatusCode)
-            throw await ToExceptionAsync(response, "listar itens não-vendáveis", ct);
+            throw await ToExceptionAsync(response, operacao, ct);
 
-        return await response.Content.ReadFromJsonAsync<IFoodUnsellableResponse>(ct)
-            ?? new IFoodUnsellableResponse();
+        var corpo = await response.Content.ReadAsStringAsync(ct);
+        if (string.IsNullOrWhiteSpace(corpo))
+            return JsonDocument.Parse("[]");
+
+        try
+        {
+            return JsonDocument.Parse(corpo);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "iFood devolveu corpo que não é JSON ao {Operacao}. Trecho: {Trecho}",
+                operacao, Trecho(corpo));
+            throw new IFoodApiException(HttpStatusCode.BadGateway, $"O iFood devolveu uma resposta inválida ao {operacao}.");
+        }
     }
+
+    // A doc mostra array na raiz. Se vier envelopado num objeto, usa a
+    // primeira propriedade que for array em vez de falhar.
+    private List<JsonElement> ListaDaRaiz(JsonElement raiz, string operacao)
+    {
+        switch (raiz.ValueKind)
+        {
+            case JsonValueKind.Array:
+                return raiz.EnumerateArray().ToList();
+            case JsonValueKind.Null:
+                return [];
+            case JsonValueKind.Object:
+                foreach (var propriedade in raiz.EnumerateObject())
+                {
+                    if (propriedade.Value.ValueKind == JsonValueKind.Array)
+                        return propriedade.Value.EnumerateArray().ToList();
+                }
+                break;
+        }
+
+        _logger.LogWarning("Formato inesperado do iFood ao {Operacao}. Trecho: {Trecho}",
+            operacao, Trecho(raiz.GetRawText()));
+        throw new IFoodApiException(HttpStatusCode.BadGateway, $"Formato inesperado do iFood ao {operacao}.");
+    }
+
+    private static ItemLido? LerItem(JsonElement item)
+    {
+        var itemId = Texto(item, "itemId");
+        if (itemId is null)
+            return null;
+
+        var (preco, precoOriginal) = LerPreco(item);
+
+        return new ItemLido(
+            ItemId: itemId,
+            CategoryId: Texto(item, "categoryId"),
+            CategoryName: Texto(item, "categoryName"),
+            CategoryIndex: Inteiro(item, "categoryIndex"),
+            Nome: Texto(item, "itemName") ?? "(sem nome)",
+            Descricao: Texto(item, "itemDescription"),
+            ItemIndex: Inteiro(item, "itemIndex"),
+            Preco: preco,
+            PrecoOriginal: precoOriginal,
+            ImagemUrl: Textos(item, "logosUrls").FirstOrDefault());
+    }
+
+    // itemPrice = { value, originalValue }, em reais. originalValue só vale
+    // como "preço cheio" quando difere do de venda — senão não há promoção.
+    private static (decimal Preco, decimal? PrecoOriginal) LerPreco(JsonElement item)
+    {
+        if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("itemPrice", out var preco))
+            return (0m, null);
+
+        if (preco.ValueKind != JsonValueKind.Object)
+            return (NumeroDe(preco) ?? 0m, null);
+
+        var valor = Numero(preco, "value") ?? 0m;
+        var original = Numero(preco, "originalValue");
+
+        return original.HasValue && original.Value > 0m && original.Value != valor
+            ? (valor, original)
+            : (valor, null);
+    }
+
+    private static RestricoesDoCatalogo LerRestricoes(JsonElement raiz)
+    {
+        var porItem = new Dictionary<string, IReadOnlyList<string>>();
+        var porCategoria = new Dictionary<string, IReadOnlyList<string>>();
+
+        if (raiz.ValueKind != JsonValueKind.Object
+            || !raiz.TryGetProperty("categories", out var categorias)
+            || categorias.ValueKind != JsonValueKind.Array)
+            return new RestricoesDoCatalogo(porItem, porCategoria);
+
+        foreach (var categoria in categorias.EnumerateArray())
+        {
+            if (Texto(categoria, "id") is { } categoriaId)
+                porCategoria.TryAdd(categoriaId, Textos(categoria, "restrictions"));
+
+            if (categoria.ValueKind != JsonValueKind.Object
+                || !categoria.TryGetProperty("unsellableItems", out var itens)
+                || itens.ValueKind != JsonValueKind.Array)
+                continue;
+
+            foreach (var item in itens.EnumerateArray())
+            {
+                if (Texto(item, "id") is { } itemId)
+                    porItem.TryAdd(itemId, Textos(item, "restrictions"));
+            }
+        }
+
+        return new RestricoesDoCatalogo(porItem, porCategoria);
+    }
+
+    private static string? Texto(JsonElement objeto, string nome)
+    {
+        if (objeto.ValueKind != JsonValueKind.Object || !objeto.TryGetProperty(nome, out var valor))
+            return null;
+
+        var texto = valor.ValueKind switch
+        {
+            JsonValueKind.String => valor.GetString(),
+            JsonValueKind.Number => valor.GetRawText(),
+            _ => null,
+        };
+
+        return string.IsNullOrWhiteSpace(texto) ? null : texto;
+    }
+
+    private static IReadOnlyList<string> Textos(JsonElement objeto, string nome)
+    {
+        if (objeto.ValueKind != JsonValueKind.Object
+            || !objeto.TryGetProperty(nome, out var valor)
+            || valor.ValueKind != JsonValueKind.Array)
+            return Array.Empty<string>();
+
+        return valor.EnumerateArray()
+            .Where(e => e.ValueKind == JsonValueKind.String)
+            .Select(e => e.GetString())
+            .OfType<string>()
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+    }
+
+    private static decimal? Numero(JsonElement objeto, string nome) =>
+        objeto.ValueKind == JsonValueKind.Object && objeto.TryGetProperty(nome, out var valor)
+            ? NumeroDe(valor)
+            : null;
+
+    private static decimal? NumeroDe(JsonElement valor)
+    {
+        if (valor.ValueKind == JsonValueKind.Number && valor.TryGetDecimal(out var numero))
+            return numero;
+
+        if (valor.ValueKind == JsonValueKind.String
+            && decimal.TryParse(valor.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var convertido))
+            return convertido;
+
+        return null;
+    }
+
+    // Sem índice o item vai para o fim da lista, não para o topo.
+    private static int Inteiro(JsonElement objeto, string nome) =>
+        Numero(objeto, nome) is { } valor && valor >= int.MinValue && valor <= int.MaxValue
+            ? (int)valor
+            : int.MaxValue;
+
+    private static string Trecho(string corpo) =>
+        corpo.Length <= TamanhoDoTrechoNoLog ? corpo : corpo[..TamanhoDoTrechoNoLog] + "…";
 
     // O corpo de erro do Catalog é plano (code/message/requestId/details), não
     // o { "error": { ... } } do resto da API — ver IFoodCatalogContracts.
@@ -210,4 +372,20 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
 
         return new IFoodApiException(response.StatusCode, detalhe, corpo?.Code);
     }
+
+    private sealed record ItemLido(
+        string ItemId,
+        string? CategoryId,
+        string? CategoryName,
+        int CategoryIndex,
+        string Nome,
+        string? Descricao,
+        int ItemIndex,
+        decimal Preco,
+        decimal? PrecoOriginal,
+        string? ImagemUrl);
+
+    private sealed record RestricoesDoCatalogo(
+        Dictionary<string, IReadOnlyList<string>> PorItem,
+        Dictionary<string, IReadOnlyList<string>> PorCategoria);
 }
