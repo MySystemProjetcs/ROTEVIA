@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryHub.Integration.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c084c166c2e260085423dea7d9c21f79fbb839ac")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e0ad43ed9c01f10c95e714f9d2096ff1ff351f96")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryHub.Integration.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryHub.Integration.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
