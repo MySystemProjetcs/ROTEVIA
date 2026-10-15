@@ -2,37 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace DeliveryHub.Infrastructure.Integrations.IFood.Contracts;
 
-// Contratos do módulo Catalog do iFood. Ficam separados dos demais porque o
-// envelope de erro é outro: Auth/Order/Events devolvem
-// { "error": { code, message } } (ver IFoodErrorResponse), enquanto Catalog
-// devolve o objeto plano com requestId e details[]. Desserializar um com o
-// contrato do outro devolve campos nulos silenciosamente.
-
-internal sealed class IFoodCatalog
-{
-    [JsonPropertyName("catalogId")]
-    public string CatalogId { get; init; } = string.Empty;
-
-    // AVAILABLE é o único valor confirmado na doc até agora. String em vez de
-    // enum para não quebrar quando o iFood introduzir outro status — o mapper
-    // decide o que fazer com valor desconhecido.
-    [JsonPropertyName("status")]
-    public string? Status { get; init; }
-
-    // Onde o catálogo vale: DEFAULT (delivery) e INDOOR (consumo no local) são
-    // os valores vistos na doc. Um merchant pode ter catálogo só para INDOOR,
-    // que não interessa ao despacho de entrega.
-    [JsonPropertyName("context")]
-    public IReadOnlyList<string> Context { get; init; } = [];
-
-    [JsonPropertyName("modifiedAt")]
-    public DateTimeOffset? ModifiedAt { get; init; }
-
-    [JsonPropertyName("groupId")]
-    public string? GroupId { get; init; }
-}
-
-// Envelope de erro do módulo Catalog.
+// Envelope de erro do módulo Catalog. Fica separado dos demais porque é
+// outro formato: Auth/Order/Events devolvem { "error": { code, message } }
+// (ver IFoodErrorResponse), enquanto Catalog devolve o objeto plano com
+// requestId e details[]. Desserializar um com o contrato do outro devolve
+// campos nulos silenciosamente. As respostas de sucesso do Catalog são lidas
+// campo a campo no IFoodCatalogClient.
 internal sealed class IFoodCatalogErrorResponse
 {
     [JsonPropertyName("code")]

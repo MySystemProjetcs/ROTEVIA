@@ -67,11 +67,15 @@ public sealed record DisponibilidadeResponse(
 
 public sealed record CatalogoIFoodResumo(
     string CatalogId,
+    string? GroupId,
     string? Status,
     IReadOnlyList<string> Context,
     DateTimeOffset? ModifiedAt);
 
+// IFoodMerchantId é o id que foi no {merchantId} da chamada ao iFood — vai na
+// resposta para dar para conferir na tela com qual loja a consulta foi feita.
 public sealed record StatusCatalogoIFoodResponse(
+    Guid IFoodMerchantId,
     bool EscopoLiberado,
     int Quantidade,
     IReadOnlyList<CatalogoIFoodResumo> Catalogos);
@@ -294,24 +298,44 @@ public static class MerchantEndpoints
             var catalogos = await catalogo.ListarCatalogosAsync(ifoodMerchantId, ct);
 
             return TypedResults.Ok(new StatusCatalogoIFoodResponse(
+                IFoodMerchantId: ifoodMerchantId,
                 EscopoLiberado: true,
                 Quantidade: catalogos.Count,
                 Catalogos: catalogos
-                    .Select(c => new CatalogoIFoodResumo(c.CatalogId, c.Status, c.Context, c.ModifiedAt))
+                    .Select(c => new CatalogoIFoodResumo(c.CatalogId, c.GroupId, c.Status, c.Context, c.ModifiedAt))
                     .ToList()));
         }
         catch (IFoodApiException ex)
         {
-            // 403 aqui quase sempre é módulo não habilitado, não credencial
-            // ruim — o mesmo token funciona em Order e Events. A distinção
-            // importa porque a ação do lojista é outra em cada caso.
-            return TypedResults.Problem(
-                title: ex.StatusCode == System.Net.HttpStatusCode.Forbidden
-                    ? "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood."
-                    : "Não foi possível consultar o catálogo no iFood.",
-                detail: ex.Message,
-                statusCode: (int)ex.StatusCode);
+            return ProblemaDoCatalogoIFood(ex);
         }
+        catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
+        {
+            return TypedResults.Problem(
+                title: "Não foi possível consultar os catálogos no iFood.",
+                detail: MotivoDe(ex),
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+    }
+
+    // 403 aqui quase sempre é módulo Catalog não habilitado, não credencial
+    // ruim — o mesmo token funciona em Order e Events. Só 403 e 404 passam
+    // adiante como estão; o resto (401, 5xx) é falha do iFood e vira 502 —
+    // devolver 401 faria o painel achar que a sessão do lojista expirou.
+    private static ProblemHttpResult ProblemaDoCatalogoIFood(IFoodApiException ex)
+    {
+        var (titulo, status) = ex.StatusCode switch
+        {
+            System.Net.HttpStatusCode.Forbidden => (
+                "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood.",
+                StatusCodes.Status403Forbidden),
+            System.Net.HttpStatusCode.NotFound => (
+                "O iFood não encontrou esta loja ou o catálogo dela.",
+                StatusCodes.Status404NotFound),
+            _ => ("Não foi possível consultar o catálogo no iFood.", StatusCodes.Status502BadGateway),
+        };
+
+        return TypedResults.Problem(title: titulo, detail: ex.Message, statusCode: status);
     }
 
 
@@ -383,22 +407,7 @@ public static class MerchantEndpoints
         }
         catch (IFoodApiException ex)
         {
-            // Só 403 e 404 passam adiante como estão: 403 é escopo do Catalog
-            // não liberado, 404 é catálogo inexistente. O resto (401, 5xx) é
-            // falha do iFood e vira 502 — devolver 401 aqui faria o painel
-            // achar que a sessão do lojista expirou.
-            var (titulo, status) = ex.StatusCode switch
-            {
-                System.Net.HttpStatusCode.Forbidden => (
-                    "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood.",
-                    StatusCodes.Status403Forbidden),
-                System.Net.HttpStatusCode.NotFound => (
-                    "O iFood não encontrou o catálogo desta loja.",
-                    StatusCodes.Status404NotFound),
-                _ => ("Não foi possível carregar o catálogo do iFood.", StatusCodes.Status502BadGateway),
-            };
-
-            return TypedResults.Problem(title: titulo, detail: ex.Message, statusCode: status);
+            return ProblemaDoCatalogoIFood(ex);
         }
         catch (Exception ex) when (FalhaDeIntegracao(ex, ct))
         {

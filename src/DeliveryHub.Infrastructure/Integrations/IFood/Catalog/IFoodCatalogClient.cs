@@ -71,18 +71,18 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
         _logger = logger;
     }
 
+    // GET /merchants/{merchantId}/catalogs. O merchantId aqui é o id da loja
+    // no iFood, não o id interno do restaurante.
     public async Task<IReadOnlyList<CatalogoDoIFood>> ListarCatalogosAsync(
         Guid merchantId, CancellationToken ct)
     {
-        using var response = await _httpClient.GetAsync($"merchants/{merchantId}/catalogs", ct);
+        const string operacao = "listar catálogos";
 
-        if (!response.IsSuccessStatusCode)
-            throw await ToExceptionAsync(response, "listar catálogos", ct);
+        using var documento = await GetJsonAsync($"merchants/{merchantId}/catalogs", operacao, ct);
 
-        var corpo = await response.Content.ReadFromJsonAsync<IReadOnlyList<IFoodCatalog>>(ct) ?? [];
-
-        return corpo
-            .Select(c => new CatalogoDoIFood(c.CatalogId, c.Status, c.Context ?? [], c.ModifiedAt, c.GroupId))
+        return ListaDaRaiz(documento.RootElement, operacao)
+            .Select(LerCatalogo)
+            .OfType<CatalogoDoIFood>()
             .ToList();
     }
 
@@ -225,6 +225,20 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
         throw new IFoodApiException(HttpStatusCode.BadGateway, $"Formato inesperado do iFood ao {operacao}.");
     }
 
+    private static CatalogoDoIFood? LerCatalogo(JsonElement catalogo)
+    {
+        var catalogId = Texto(catalogo, "catalogId");
+        if (catalogId is null)
+            return null;
+
+        return new CatalogoDoIFood(
+            CatalogId: catalogId,
+            Status: Texto(catalogo, "status"),
+            Context: Textos(catalogo, "context"),
+            ModifiedAt: Data(catalogo, "modifiedAt"),
+            GroupId: Texto(catalogo, "groupId"));
+    }
+
     private static ItemLido? LerItem(JsonElement item)
     {
         var itemId = Texto(item, "itemId");
@@ -340,6 +354,12 @@ internal sealed class IFoodCatalogClient : IIFoodCatalogClient
 
         return null;
     }
+
+    private static DateTimeOffset? Data(JsonElement objeto, string nome) =>
+        Texto(objeto, nome) is { } texto
+        && DateTimeOffset.TryParse(texto, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var data)
+            ? data
+            : null;
 
     // Sem índice o item vai para o fim da lista, não para o topo.
     private static int Inteiro(JsonElement objeto, string nome) =>

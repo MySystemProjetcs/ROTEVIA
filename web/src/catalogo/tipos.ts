@@ -42,18 +42,22 @@ export const CANAIS_CATALOGO: readonly CanalCatalogoInfo[] = [
   },
 ]
 
-// Resultado do diagnóstico de escopo do iFood (GET /diagnostics/ifood-catalog).
-// Existe para a aba do iFood conseguir dizer se o bloqueio continua de pé sem
-// o lojista precisar do console do navegador.
+// Resultado de GET /restaurantes/{id}/catalogo/status, que repassa o
+// GET /merchants/{merchantId}/catalogs do iFood. ifoodMerchantId é o id que
+// foi no {merchantId} da chamada — não o id interno do restaurante.
+export interface CatalogoIFoodResumo {
+  catalogId: string
+  groupId: string | null
+  status: string | null
+  context: string[]
+  modifiedAt: string | null
+}
+
 export interface DiagnosticoCatalogoIFood {
+  ifoodMerchantId: string
   escopoLiberado: boolean
   quantidade: number
-  catalogos: {
-    catalogId: string
-    status: string | null
-    context: string[]
-    modifiedAt: string | null
-  }[]
+  catalogos: CatalogoIFoodResumo[]
 }
 
 // Item do catálogo do iFood. Preço já vem em reais — a doc do iFood confirma
