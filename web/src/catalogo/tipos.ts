@@ -56,6 +56,37 @@ export interface DiagnosticoCatalogoIFood {
   }[]
 }
 
+// Item do catálogo do iFood. Preço já vem em reais — a doc do iFood confirma
+// que não é centavo, diferente da 99Food. precoOriginal só vem quando difere
+// de preco (item com desconto); null quando não há promoção. restricoes carrega
+// ITEM_PAUSED/ITEM_HAS_VIOLATION pro painel explicar por que algo vendável
+// pode ter indicação adicional.
+export interface ItemCatalogoIFood {
+  itemId: string
+  nome: string
+  descricao: string | null
+  preco: number
+  precoOriginal: number | null
+  disponivel: boolean
+  restricoes: string[]
+  imagemUrl: string | null
+}
+
+export interface CategoriaCatalogoIFood {
+  categoryId: string
+  nome: string
+  pausada: boolean
+  restricoes: string[]
+  itens: ItemCatalogoIFood[]
+}
+
+export interface CatalogoCompletoIFood {
+  catalogId: string
+  groupId: string
+  totalItens: number
+  categorias: CategoriaCatalogoIFood[]
+}
+
 // Cardápio da 99Food (GET /restaurantes/{id}/catalogo/99food). Preço já vem
 // em reais: a conversão de centavos acontece no client do backend, para que
 // a unidade da 99 não vaze até aqui.

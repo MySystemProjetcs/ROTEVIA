@@ -76,6 +76,29 @@ public sealed record StatusCatalogoIFoodResponse(
     int Quantidade,
     IReadOnlyList<CatalogoIFoodResumo> Catalogos);
 
+public sealed record ItemCatalogoIFoodResponse(
+    string ItemId,
+    string Nome,
+    string? Descricao,
+    decimal Preco,
+    decimal? PrecoOriginal,
+    bool Disponivel,
+    IReadOnlyList<string> Restricoes,
+    string? ImagemUrl);
+
+public sealed record CategoriaCatalogoIFoodResponse(
+    string CategoryId,
+    string Nome,
+    bool Pausada,
+    IReadOnlyList<string> Restricoes,
+    IReadOnlyList<ItemCatalogoIFoodResponse> Itens);
+
+public sealed record CatalogoCompletoIFoodResponse(
+    string CatalogId,
+    string GroupId,
+    int TotalItens,
+    IReadOnlyList<CategoriaCatalogoIFoodResponse> Categorias);
+
 public sealed record StatusIntegracoesResponse(
     StatusPlataforma IFood,
     StatusPlataforma NoventaENove);
@@ -123,6 +146,7 @@ public static class MerchantEndpoints
         group.MapPost("/{merchantId:guid}/99food/autorizacao", GetUrlAutorizacao99);
         group.MapGet("/{merchantId:guid}/integracoes/status", ObterStatusIntegracoes);
         group.MapGet("/{merchantId:guid}/catalogo/status", ObterStatusCatalogoIFood);
+        group.MapGet("/{merchantId:guid}/catalogo/ifood", ObterCatalogoCompletoIFood);
         group.MapGet("/{merchantId:guid}/catalogo/99food", ObterCardapio99Food);
         group.MapPut("/{merchantId:guid}/catalogo/99food/disponibilidade", DefinirDisponibilidade99Food);
     }
@@ -290,6 +314,85 @@ public static class MerchantEndpoints
         }
     }
 
+
+    // Catálogo completo do iFood: categorias e itens vendáveis, com restrições
+    // apontando o que está pausado ou com violação. Resolve o groupId sozinho
+    // (primeiro catálogo DEFAULT) pra o painel não precisar passar nada além
+    // do merchantId. Se a loja tiver só catálogo INDOOR, cai pro primeiro —
+    // é raro e documentar seria pior UX do que mostrar o que existe.
+    private static async Task<Results<Ok<CatalogoCompletoIFoodResponse>, ProblemHttpResult>> ObterCatalogoCompletoIFood(
+        Guid merchantId,
+        ITenantContext tenant,
+        IMerchantRepository merchants,
+        IIFoodCatalogClient catalogo,
+        CancellationToken ct)
+    {
+        if (!PodeAcessar(tenant, merchantId))
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        var merchant = await merchants.ObterPorIdAsync(merchantId, ct);
+        if (merchant is null)
+            return ProblemaDe(ConexaoIFoodErrors.MerchantNaoEncontrado);
+
+        if (merchant.IFoodMerchantId is not Guid ifoodMerchantId)
+            return TypedResults.Problem(
+                title: "Restaurante sem vínculo com o iFood.",
+                detail: "merchant.sem_vinculo_ifood",
+                statusCode: StatusCodes.Status409Conflict);
+
+        try
+        {
+            var catalogos = await catalogo.ListarCatalogosAsync(ifoodMerchantId, ct);
+
+            // DEFAULT (delivery) sempre primeiro. Se não houver, cai pro primeiro
+            // disponível — INDOOR é melhor que erro de "sem catálogo", pois a
+            // loja consegue ao menos ver o cardápio de consumo no local.
+            var catalogoAlvo = catalogos.FirstOrDefault(c => c.Context.Contains("DEFAULT"))
+                ?? catalogos.FirstOrDefault();
+
+            if (catalogoAlvo is null)
+                return TypedResults.Problem(
+                    title: "A loja não tem catálogo publicado no iFood.",
+                    detail: "catalogo.ifood.sem_catalogo",
+                    statusCode: StatusCodes.Status404NotFound);
+
+            if (string.IsNullOrWhiteSpace(catalogoAlvo.GroupId))
+                return TypedResults.Problem(
+                    title: "O catálogo da loja no iFood está sem groupId.",
+                    detail: "catalogo.ifood.sem_group_id",
+                    statusCode: StatusCodes.Status409Conflict);
+
+            var completo = await catalogo.ObterCatalogoCompletoAsync(
+                ifoodMerchantId, catalogoAlvo.CatalogId, catalogoAlvo.GroupId, ct);
+
+            return TypedResults.Ok(new CatalogoCompletoIFoodResponse(
+                CatalogId: catalogoAlvo.CatalogId,
+                GroupId: completo.GroupId,
+                TotalItens: completo.TotalItens,
+                Categorias: completo.Categorias
+                    .Select(c => new CategoriaCatalogoIFoodResponse(
+                        c.CategoryId,
+                        c.Nome,
+                        c.Pausada,
+                        c.Restricoes,
+                        c.Itens.Select(i => new ItemCatalogoIFoodResponse(
+                            i.ItemId, i.Nome, i.Descricao,
+                            i.Preco, i.PrecoOriginal,
+                            i.Disponivel, i.Restricoes, i.ImagemUrl)).ToList()))
+                    .ToList()));
+        }
+        catch (IFoodApiException ex)
+        {
+            // 403 em sellableItems também significa escopo não liberado — mesma
+            // mensagem do /catalogo/status, pra o painel não precisar diferenciar.
+            return TypedResults.Problem(
+                title: ex.StatusCode == System.Net.HttpStatusCode.Forbidden
+                    ? "O módulo de catálogo ainda não está habilitado para este aplicativo no iFood."
+                    : "Não foi possível carregar o catálogo do iFood.",
+                detail: ex.Message,
+                statusCode: (int)ex.StatusCode);
+        }
+    }
 
     // Cardápio publicado na 99Food. Diferente do iFood, aqui não há questão de
     // escopo: o acesso vem do auth_token da loja, então a falha possível é a

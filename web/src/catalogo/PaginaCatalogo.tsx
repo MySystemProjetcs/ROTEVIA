@@ -6,7 +6,12 @@ import { ErroDaApi, api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { Painel99Food } from './Painel99Food'
 import { CANAIS_CATALOGO } from './tipos'
-import type { CanalCatalogo, DiagnosticoCatalogoIFood } from './tipos'
+import type {
+  CanalCatalogo,
+  CatalogoCompletoIFood,
+  DiagnosticoCatalogoIFood,
+  ItemCatalogoIFood,
+} from './tipos'
 
 export function PaginaCatalogo() {
   const { usuario } = useSessao()
@@ -85,31 +90,45 @@ export function PaginaCatalogo() {
   )
 }
 
-// Única aba com backend por trás hoje: consulta o escopo de catálogo do app
-// no iFood. Existe para o lojista descobrir sozinho se o módulo já foi
-// liberado, em vez de abrir chamado a cada tentativa.
+// Dois passos em sequência: /catalogo/status confirma o escopo e devolve o
+// groupId, /catalogo/ifood traz categorias e itens. Separar os dois endpoints
+// no backend permite que o painel diga "o módulo está liberado mas o cardápio
+// ainda está sincronizando" em vez de uma mensagem única de falha.
 function PainelIFood({ merchantId }: { merchantId: string | null }) {
-  const [estado, setEstado] = useState<'ocioso' | 'consultando' | 'liberado' | 'bloqueado'>('ocioso')
-  const [dados, setDados] = useState<DiagnosticoCatalogoIFood | null>(null)
+  const [estado, setEstado] = useState<
+    'ocioso' | 'verificando' | 'carregando-itens' | 'pronto' | 'bloqueado' | 'vazio'
+  >('ocioso')
+  const [diagnostico, setDiagnostico] = useState<DiagnosticoCatalogoIFood | null>(null)
+  const [catalogo, setCatalogo] = useState<CatalogoCompletoIFood | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
-  // Consulta uma vez ao abrir a aba: o estado do escopo muda no portal do
-  // iFood, fora daqui, então mostrar o último valor conhecido sem conferir
-  // seria mentira.
   useEffect(() => {
     if (!merchantId) return
     let ativo = true
 
-    async function consultar() {
-      setEstado('consultando')
+    async function carregar() {
+      setEstado('verificando')
       setErro(null)
+      setCatalogo(null)
       try {
-        const resposta = await api.get<DiagnosticoCatalogoIFood>(
+        const status = await api.get<DiagnosticoCatalogoIFood>(
           `/restaurantes/${merchantId}/catalogo/status`,
         )
         if (!ativo) return
-        setDados(resposta)
-        setEstado('liberado')
+        setDiagnostico(status)
+
+        if (status.quantidade === 0) {
+          setEstado('vazio')
+          return
+        }
+
+        setEstado('carregando-itens')
+        const completo = await api.get<CatalogoCompletoIFood>(
+          `/restaurantes/${merchantId}/catalogo/ifood`,
+        )
+        if (!ativo) return
+        setCatalogo(completo)
+        setEstado('pronto')
       } catch (e) {
         if (!ativo) return
         setErro(e instanceof ErroDaApi ? e.message : 'Não foi possível consultar o iFood.')
@@ -117,7 +136,7 @@ function PainelIFood({ merchantId }: { merchantId: string | null }) {
       }
     }
 
-    void consultar()
+    void carregar()
     return () => {
       ativo = false
     }
@@ -127,7 +146,7 @@ function PainelIFood({ merchantId }: { merchantId: string | null }) {
     return <PainelIndisponivel rotulo="iFood" bloqueio="Sessão sem restaurante vinculado." />
   }
 
-  if (estado === 'consultando' || estado === 'ocioso') {
+  if (estado === 'ocioso' || estado === 'verificando') {
     return (
       <Cartao>
         <CartaoCorpo>
@@ -155,40 +174,159 @@ function PainelIFood({ merchantId }: { merchantId: string | null }) {
     )
   }
 
-  // Escopo liberado: a partir daqui entram as listas de categorias e itens,
-  // conforme os endpoints forem implementados. Por ora o painel confirma o
-  // acesso e mostra o que a loja tem publicado.
-  return (
-    <Cartao>
-      <CartaoCorpo className="space-y-3">
-        <h2 className="text-[15px] font-semibold text-texto">
-          {dados?.quantidade === 1
-            ? '1 catálogo publicado'
-            : `${dados?.quantidade ?? 0} catálogos publicados`}
-        </h2>
+  if (estado === 'vazio') {
+    return (
+      <Cartao>
+        <CartaoCorpo className="space-y-3">
+          <h2 className="text-[15px] font-semibold text-texto">Nenhum catálogo publicado</h2>
+          <p className="text-corpo leading-relaxed text-texto-fraco">
+            A integração está liberada, mas a loja ainda não tem catálogo
+            publicado no iFood. Publique um pelo portal e o cardápio aparece aqui.
+          </p>
+        </CartaoCorpo>
+      </Cartao>
+    )
+  }
 
-        <ul className="divide-y divide-borda">
-          {dados?.catalogos.map((c) => (
-            <li key={c.catalogId} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-corpo text-texto">{c.context.join(' · ') || 'Sem contexto'}</p>
-                <p className="truncate font-mono text-rotulo text-texto-mudo">{c.catalogId}</p>
+  if (estado === 'carregando-itens') {
+    return (
+      <Cartao>
+        <CartaoCorpo className="space-y-2">
+          <p className="text-corpo text-texto-fraco">
+            Carregando categorias e itens do iFood…
+          </p>
+          {diagnostico && (
+            <p className="font-mono text-rotulo text-texto-mudo">
+              catálogo {diagnostico.catalogos[0]?.catalogId ?? '—'}
+            </p>
+          )}
+        </CartaoCorpo>
+      </Cartao>
+    )
+  }
+
+  if (!catalogo) {
+    // Estado defensivo: 'pronto' sem catalogo não deveria acontecer. Mostrar
+    // mensagem genérica em vez de quebrar a tela.
+    return (
+      <Cartao>
+        <CartaoCorpo>
+          <p className="text-corpo text-texto-fraco">Catálogo indisponível.</p>
+        </CartaoCorpo>
+      </Cartao>
+    )
+  }
+
+  return <PainelCatalogoIFood catalogo={catalogo} />
+}
+
+function PainelCatalogoIFood({ catalogo }: { catalogo: CatalogoCompletoIFood }) {
+  if (catalogo.categorias.length === 0) {
+    return (
+      <Cartao>
+        <CartaoCorpo className="space-y-2">
+          <h2 className="text-[15px] font-semibold text-texto">Catálogo vazio</h2>
+          <p className="text-corpo leading-relaxed text-texto-fraco">
+            O catálogo está publicado mas não tem itens vendáveis agora. Itens
+            pausados, com violação ou fora da agenda não entram nessa listagem.
+          </p>
+        </CartaoCorpo>
+      </Cartao>
+    )
+  }
+
+  return (
+    <div className="flex min-h-0 flex-col gap-4">
+      <Cartao>
+        <CartaoCorpo className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-[15px] font-semibold text-texto">
+            {catalogo.totalItens === 1
+              ? '1 item publicado'
+              : `${catalogo.totalItens} itens publicados`}
+            {' em '}
+            {catalogo.categorias.length === 1
+              ? '1 categoria'
+              : `${catalogo.categorias.length} categorias`}
+          </h2>
+          <p className="font-mono text-rotulo text-texto-mudo">
+            catálogo {catalogo.catalogId.slice(0, 8)}…
+          </p>
+        </CartaoCorpo>
+      </Cartao>
+
+      <div className="flex flex-col gap-3">
+        {catalogo.categorias.map((cat) => (
+          <Cartao key={cat.categoryId}>
+            <CartaoCorpo className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-corpo font-semibold text-texto">{cat.nome}</h3>
+                <div className="flex items-center gap-2">
+                  {cat.pausada && (
+                    <span className="rounded-full border border-alerta/30 bg-alerta-fundo px-2 py-0.5 text-rotulo text-alerta">
+                      pausada
+                    </span>
+                  )}
+                  <span className="font-mono text-rotulo text-texto-mudo">
+                    {cat.itens.length} {cat.itens.length === 1 ? 'item' : 'itens'}
+                  </span>
+                </div>
               </div>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full border px-2 py-0.5 text-rotulo',
-                  c.status === 'AVAILABLE'
-                    ? 'border-sucesso/30 bg-sucesso-fundo text-sucesso'
-                    : 'border-borda bg-superficie-alt text-texto-mudo',
-                )}
-              >
-                {c.status ?? 'desconhecido'}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </CartaoCorpo>
-    </Cartao>
+
+              {cat.itens.length === 0 ? (
+                <p className="text-corpo text-texto-mudo">Nenhum item vendável nesta categoria.</p>
+              ) : (
+                <ul className="divide-y divide-borda">
+                  {cat.itens.map((item) => (
+                    <LinhaItemIFood key={item.itemId} item={item} />
+                  ))}
+                </ul>
+              )}
+            </CartaoCorpo>
+          </Cartao>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const FORMATO_REAL = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+function LinhaItemIFood({ item }: { item: ItemCatalogoIFood }) {
+  return (
+    <li className="flex items-start justify-between gap-3 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-corpo text-texto">{item.nome}</p>
+        {item.descricao && (
+          <p className="mt-0.5 line-clamp-2 text-rotulo text-texto-fraco">
+            {item.descricao}
+          </p>
+        )}
+        {item.restricoes.length > 0 && (
+          <p className="mt-1 text-rotulo text-alerta">
+            {item.restricoes.join(' · ')}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0 text-right">
+        {item.precoOriginal && item.precoOriginal > item.preco ? (
+          <>
+            <p className="text-rotulo text-texto-mudo line-through">
+              {FORMATO_REAL.format(item.precoOriginal)}
+            </p>
+            <p className="text-corpo font-semibold text-marca-300">
+              {FORMATO_REAL.format(item.preco)}
+            </p>
+          </>
+        ) : (
+          <p className="text-corpo font-semibold text-texto">
+            {FORMATO_REAL.format(item.preco)}
+          </p>
+        )}
+      </div>
+    </li>
   )
 }
 
